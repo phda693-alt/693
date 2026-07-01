@@ -9462,15 +9462,22 @@ class PDVApp:
         tk.Label(content, text="Resumo por Forma de Pagamento", bg=COR_FUNDO,
                  fg=COR_PRIMARIA, font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(5, 3))
 
-        cols_fp = ("forma", "qtd", "total")
-        tree_fp = ttk.Treeview(content, columns=cols_fp, show="headings", height=6)
-        tree_fp.heading("forma", text="Forma de Pagamento")
+        # Cada forma de pagamento e um item expansivel ("+"): ao expandir,
+        # mostra os lancamentos (pagamentos) que compoem o total da forma.
+        fp_frame = tk.Frame(content, bg=COR_FUNDO)
+        fp_frame.pack(fill="x", pady=(0, 10))
+        cols_fp = ("qtd", "total")
+        tree_fp = ttk.Treeview(fp_frame, columns=cols_fp, show="tree headings", height=8)
+        tree_fp.heading("#0", text="Forma de Pagamento  (clique no + para detalhar)")
         tree_fp.heading("qtd", text="Quantidade")
         tree_fp.heading("total", text="Total")
-        tree_fp.column("forma", width=250)
+        tree_fp.column("#0", width=340)
         tree_fp.column("qtd", width=100, anchor="center")
         tree_fp.column("total", width=150, anchor="e")
-        tree_fp.pack(fill="x", pady=(0, 10))
+        fp_scroll = ttk.Scrollbar(fp_frame, orient="vertical", command=tree_fp.yview)
+        tree_fp.configure(yscrollcommand=fp_scroll.set)
+        fp_scroll.pack(side="right", fill="y")
+        tree_fp.pack(side="left", fill="both", expand=True)
 
         # Lista de vendas
         tk.Label(content, text="Vendas do Dia", bg=COR_FUNDO,
@@ -9545,9 +9552,22 @@ class PDVApp:
                     "WHERE v.status='finalizada' AND DATE(v.data_venda) = CURDATE() "
                     "GROUP BY v.id ORDER BY v.id DESC"
                 )
-                return formas, vendas, troco_total
+                # Lancamentos individuais (cada pagamento) que compoem cada forma
+                lancamentos = db.execute_query(
+                    "SELECT COALESCE(fp.descricao, 'N/A') as forma, "
+                    "v.id as venda_id, pv.valor as valor, v.data_venda as data_venda, "
+                    "COALESCE(NULLIF(v.cliente_nome,''), NULLIF(u.cliente_nome,''), c.nome,'N/A') as cliente "
+                    "FROM pagamentos_venda pv "
+                    "JOIN vendas v ON pv.venda_id = v.id "
+                    "LEFT JOIN formas_pagamento fp ON pv.forma_pagamento_id = fp.id "
+                    "LEFT JOIN clientes c ON v.cliente_id = c.id "
+                    "LEFT JOIN uso_armario_sauna u ON v.uso_armario_id = u.id "
+                    "WHERE v.status='finalizada' AND DATE(v.data_venda) = CURDATE() "
+                    "ORDER BY v.id DESC"
+                )
+                return formas, vendas, troco_total, lancamentos
             def on_loaded(result):
-                formas, vendas, troco_total = result
+                formas, vendas, troco_total, lancamentos = result
                 # Normaliza os registros para permitir ajuste do troco
                 formas = [dict(r) for r in formas]
                 for r in formas:
@@ -9561,20 +9581,56 @@ class PDVApp:
                     soma_alvo = sum(r["total"] for r in alvo)
                     if soma_alvo > 0:
                         for r in alvo:
-                            r["total"] -= troco_total * (r["total"] / soma_alvo)
+                            abate = troco_total * (r["total"] / soma_alvo)
+                            r["troco_abatido"] = abate
+                            r["total"] -= abate
                 # Reordena por total (decrescente) apos o ajuste
                 formas.sort(key=lambda r: r["total"], reverse=True)
-                # Preencher formas de pagamento
+                # Agrupa os lancamentos por forma de pagamento
+                lancamentos_por_forma = {}
+                for l in (lancamentos or []):
+                    lancamentos_por_forma.setdefault(l.get("forma") or "N/A", []).append(l)
+                # Preencher formas de pagamento (cada forma e expansivel via "+")
                 tree_fp.delete(*tree_fp.get_children())
                 for i, r in enumerate(formas):
                     tag = "even" if i % 2 == 0 else "odd"
-                    tree_fp.insert("", "end", values=(
-                        r["forma"],
-                        r["qtd"],
-                        f"R$ {FormatUtils.format_money(r['total'])}"
-                    ), tags=(tag,))
+                    parent = tree_fp.insert(
+                        "", "end", text=r["forma"],
+                        values=(r["qtd"], f"R$ {FormatUtils.format_money(r['total'])}"),
+                        tags=(tag,), open=False
+                    )
+                    # Lancamentos (pagamentos) que compoem esta forma
+                    for lanc in lancamentos_por_forma.get(r["forma"], []):
+                        hora = ""
+                        try:
+                            dv = lanc.get("data_venda")
+                            if isinstance(dv, datetime.datetime):
+                                hora = dv.strftime("%H:%M")
+                            else:
+                                hora = str(dv)[11:16] if len(str(dv)) > 16 else ""
+                        except Exception:
+                            pass
+                        desc = f"Venda #{lanc.get('venda_id')}  -  {lanc.get('cliente') or 'N/A'}"
+                        if hora:
+                            desc += f"  ({hora})"
+                        tree_fp.insert(
+                            parent, "end", text="    " + desc,
+                            values=("", f"R$ {FormatUtils.format_money(lanc.get('valor') or 0)}"),
+                            tags=("lanc",)
+                        )
+                    # Linha do troco devolvido (abatido do dinheiro), p/ reconciliar
+                    # a soma dos lancamentos com o total liquido exibido na forma.
+                    ab = float(r.get("troco_abatido") or 0)
+                    if ab > 0.001:
+                        tree_fp.insert(
+                            parent, "end", text="    (-) Troco devolvido no dia",
+                            values=("", f"- R$ {FormatUtils.format_money(ab)}"),
+                            tags=("troco",)
+                        )
                 tree_fp.tag_configure("even", background=COR_GLASS)
                 tree_fp.tag_configure("odd", background=COR_CARD)
+                tree_fp.tag_configure("lanc", background=COR_FUNDO, foreground=COR_TEXTO2)
+                tree_fp.tag_configure("troco", background=COR_FUNDO, foreground=COR_ALERTA)
                 # Preencher vendas
                 tree_v.delete(*tree_v.get_children())
                 total_geral = 0.0
