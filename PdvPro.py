@@ -9507,16 +9507,28 @@ class PDVApp:
         def _carregar():
             def load():
                 db = DatabaseHelper.get_instance()
-                # Resumo por forma de pagamento
+                # Resumo por forma de pagamento.
+                # ATENCAO: pagamentos_venda.valor guarda o valor ENTREGUE pelo cliente
+                # (inclui o excedente pago em dinheiro que gera troco). Por isso a soma
+                # bruta por forma fica maior que o total liquido das vendas. O troco e
+                # sempre devolvido em dinheiro, entao ele e abatido da(s) forma(s) do
+                # tipo 'dinheiro' em on_loaded para que a soma bata com o Total Geral.
                 formas = db.execute_query(
                     "SELECT COALESCE(fp.descricao, 'N/A') as forma, "
+                    "COALESCE(fp.tipo, '') as tipo, "
                     "COUNT(DISTINCT pv.venda_id) as qtd, SUM(pv.valor) as total "
                     "FROM pagamentos_venda pv "
                     "JOIN vendas v ON pv.venda_id = v.id "
                     "LEFT JOIN formas_pagamento fp ON pv.forma_pagamento_id = fp.id "
                     "WHERE v.status='finalizada' AND DATE(v.data_venda) = CURDATE() "
-                    "GROUP BY fp.descricao ORDER BY total DESC"
+                    "GROUP BY fp.id, fp.descricao, fp.tipo ORDER BY total DESC"
                 )
+                # Total de troco devolvido no dia (em dinheiro)
+                troco_row = db.execute_query(
+                    "SELECT COALESCE(SUM(troco),0) as troco FROM vendas "
+                    "WHERE status='finalizada' AND DATE(data_venda) = CURDATE()"
+                )
+                troco_total = float(troco_row[0]["troco"]) if troco_row else 0.0
                 # Vendas do dia
                 vendas = db.execute_query(
                     "SELECT v.id, COALESCE(NULLIF(v.cliente_nome,''), NULLIF(u.cliente_nome,''), c.nome,'N/A') as cliente_nome, "
@@ -9530,9 +9542,25 @@ class PDVApp:
                     "WHERE v.status='finalizada' AND DATE(v.data_venda) = CURDATE() "
                     "GROUP BY v.id ORDER BY v.id DESC"
                 )
-                return formas, vendas
+                return formas, vendas, troco_total
             def on_loaded(result):
-                formas, vendas = result
+                formas, vendas, troco_total = result
+                # Normaliza os registros para permitir ajuste do troco
+                formas = [dict(r) for r in formas]
+                for r in formas:
+                    r["total"] = float(r.get("total") or 0)
+                # Abate o troco devolvido do valor recebido em dinheiro, para que o
+                # resumo reflita a receita liquida real e a soma bata com o Total Geral.
+                if troco_total > 0 and formas:
+                    dinheiro = [r for r in formas
+                                if (r.get("tipo") or "").lower() == "dinheiro"]
+                    alvo = dinheiro if dinheiro else formas
+                    soma_alvo = sum(r["total"] for r in alvo)
+                    if soma_alvo > 0:
+                        for r in alvo:
+                            r["total"] -= troco_total * (r["total"] / soma_alvo)
+                # Reordena por total (decrescente) apos o ajuste
+                formas.sort(key=lambda r: r["total"], reverse=True)
                 # Preencher formas de pagamento
                 tree_fp.delete(*tree_fp.get_children())
                 for i, r in enumerate(formas):
