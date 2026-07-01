@@ -19400,6 +19400,43 @@ function enviarPedido() {{
                 f"Verifique se o 'print_server.py' esta em execucao naquele "
                 f"computador e se a URL/porta estao corretas.\n\nDetalhe: {e}")
 
+    def _logo_para_escpos(self, caminho, largura_dots=576):
+        """Converte uma imagem (PNG/JPG/BMP...) em comando ESC/POS raster
+        (GS v 0) para imprimir no topo do cupom termico. Retorna bytes
+        (vazio se PIL/Pillow indisponivel ou imagem invalida)."""
+        try:
+            if not HAS_PIL:
+                _logger.warning("Logo ignorado: biblioteca Pillow (PIL) nao instalada.")
+                return b""
+            if not caminho or not os.path.exists(caminho):
+                _logger.warning(f"Logo ignorado: arquivo nao encontrado ({caminho}).")
+                return b""
+            from PIL import Image
+            img = Image.open(caminho).convert("L")
+            w, h = img.size
+            # Redimensiona mantendo proporcao, limitando a largura do papel
+            if w > largura_dots:
+                nh = max(1, int(h * largura_dots / float(w)))
+                img = img.resize((largura_dots, nh))
+                w, h = img.size
+            width_bytes = (w + 7) // 8
+            data = bytearray()
+            for y in range(h):
+                for xb in range(width_bytes):
+                    byte = 0
+                    for bit in range(8):
+                        x = xb * 8 + bit
+                        if x < w and img.getpixel((x, y)) < 128:
+                            byte |= (0x80 >> bit)  # pixel escuro => imprime
+                    data.append(byte)
+            xL, xH = width_bytes & 0xff, (width_bytes >> 8) & 0xff
+            yL, yH = h & 0xff, (h >> 8) & 0xff
+            # GS v 0 m xL xH yL yH data   (m=0 => normal)
+            return b"\x1d\x76\x30\x00" + bytes([xL, xH, yL, yH]) + bytes(data)
+        except Exception as e:
+            _logger.warning(f"Falha ao gerar logo ESC/POS: {e}")
+            return b""
+
     # ========================================================================
     # SISTEMA DE IMPRESSAO CENTRALIZADO
     # ========================================================================
@@ -19487,6 +19524,18 @@ function enviarPedido() {{
                 if cp_upper == cp_name.upper().replace("-", "").replace("_", ""):
                     dados_envio += b"\x1b\x74" + bytes([cp_num])
                     break
+
+            # Logo (imagem) centralizado no topo do cupom, se habilitado
+            if config.get("imprimir_logo") and (config.get("caminho_logo") or "").strip():
+                tam_papel = str(config.get("tamanho_papel", "80mm"))
+                largura_dots = 576 if "80" in tam_papel else 384
+                logo_bytes = self._logo_para_escpos(
+                    config.get("caminho_logo").strip(), largura_dots)
+                if logo_bytes:
+                    dados_envio += b"\x1b\x61\x01"   # ESC a 1 = centralizar
+                    dados_envio += logo_bytes
+                    dados_envio += b"\x1b\x61\x00"   # ESC a 0 = alinhar a esquerda
+                    dados_envio += b"\n"
 
             # Selecionar fonte conforme configuracao
             # ESC M n: 0=Font A (normal, 12x24), 1=Font B (condensada, 9x17)
