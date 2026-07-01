@@ -9501,6 +9501,9 @@ class PDVApp:
         StyledButton(btn_frame, text=f"{Icons.HISTORICO} Abrir Historico",
                      command=lambda: (dialog.destroy(), self.show_historico()),
                      color=COR_BOTAO_AZUL, width=16).pack(side="left", padx=5)
+        StyledButton(btn_frame, text=f"{Icons.REFRESH} Atualizar",
+                     command=lambda: _carregar(),
+                     color=COR_BOTAO_VERDE, width=12).pack(side="left", padx=5)
         StyledButton(btn_frame, text="Fechar", command=dialog.destroy,
                      color=COR_FUNDO3, width=10).pack(side="right", padx=5)
 
