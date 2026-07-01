@@ -19300,13 +19300,29 @@ function enviarPedido() {{
                 dados_envio += b"\x1b\x21\x01"  # ESC ! 0x01 = Font B mode
                 # ESC 3 n = Set line spacing to n/180 inch (menor = mais compacto)
                 dados_envio += b"\x1b\x33\x12"  # 18/180 = 0.1 inch
+            elif modo_fonte == "Grande":
+                # Font A com ALTURA dobrada: fonte maior e mais legivel mantendo
+                # a MESMA largura de colunas (o layout do cupom nao muda).
+                # ESC ! 0x10 = double-height | 0x08 = enfase (negrito) => 0x18
+                dados_envio += b"\x1b\x4d\x00"  # ESC M 0 = Font A
+                dados_envio += b"\x1b\x21\x18"  # ESC ! double-height + enfase
+                # Fonte mais alta exige mais espaco entre linhas p/ nao sobrepor
+                dados_envio += b"\x1b\x33\x40"  # ESC 3 = 64/180 inch
+            elif modo_fonte == "Extra Grande":
+                # Font A com ALTURA e LARGURA dobradas: fonte bem maior, porem
+                # cabe metade das colunas (ver preset de colunas).
+                # ESC ! 0x10 (alt) | 0x20 (larg) | 0x08 (enfase) => 0x38
+                dados_envio += b"\x1b\x4d\x00"  # ESC M 0 = Font A
+                dados_envio += b"\x1b\x21\x38"  # ESC ! double-height+width+enfase
+                dados_envio += b"\x1b\x33\x40"  # ESC 3 = 64/180 inch
             else:
                 # Font A (normal/padrao)
                 dados_envio += b"\x1b\x4d\x00"  # ESC M 0 = Font A
                 dados_envio += b"\x1b\x21\x00"  # ESC ! 0x00 = Font A mode
 
-            # ESC 2 = Set default line spacing (se nao for comprimida)
-            if modo_fonte != "Comprimida":
+            # ESC 2 = Set default line spacing (apenas modos de tamanho normal;
+            # os modos maiores/comprimida ja definiram o proprio espacamento)
+            if modo_fonte not in ("Comprimida", "Grande", "Extra Grande"):
                 dados_envio += b"\x1b\x32"
 
         dados_envio += texto_bytes
@@ -19580,9 +19596,9 @@ function enviarPedido() {{
             "tipo_impressora": "Termica",
             "nome_impressora": "",
             "tamanho_papel": "80mm",
-            "largura_papel": 48,
-            "modo_fonte": "Condensada",
-            "tamanho_fonte": 8,
+            "largura_papel": 42,
+            "modo_fonte": "Grande",
+            "tamanho_fonte": 10,
             "corte_automatico": True,
             "abrir_gaveta": False,
             "imprimir_logo": False,
@@ -20459,10 +20475,10 @@ function enviarPedido() {{
         # Modo da Fonte (Normal / Condensada / Comprimida)
         tk.Label(card2, text="Modo da Fonte ESC/POS:", bg=COR_GLASS, fg=COR_TEXTO,
                  font=("Segoe UI", 10)).grid(row=2, column=0, sticky="w", padx=5, pady=4)
-        modos_fonte = ["Normal", "Condensada", "Comprimida"]
+        modos_fonte = ["Normal", "Condensada", "Comprimida", "Grande", "Extra Grande"]
         combo_modo_fonte = ttk.Combobox(card2, values=modos_fonte, width=15, state="readonly",
                                          font=("Segoe UI", 10))
-        combo_modo_fonte.set(config.get("modo_fonte", "Condensada"))
+        combo_modo_fonte.set(config.get("modo_fonte", "Grande"))
         combo_modo_fonte.grid(row=2, column=1, sticky="w", padx=5, pady=4)
 
         # Label informativo sobre modo de fonte
@@ -20471,15 +20487,21 @@ function enviarPedido() {{
         lbl_fonte_info.grid(row=3, column=1, sticky="w", padx=5, pady=(0, 2))
 
         # Tabela de referencia de colunas
-        # 58mm: Normal=32, Condensada=42, Comprimida=42
-        # 80mm: Normal=42, Condensada=56, Comprimida=56
+        # 58mm: Normal=32, Condensada=42, Comprimida=42, Grande=32, ExtraGrande=16
+        # 80mm: Normal=42, Condensada=56, Comprimida=56, Grande=42, ExtraGrande=21
+        # (Grande dobra so a ALTURA => mesmas colunas; Extra Grande dobra tambem
+        #  a LARGURA => metade das colunas)
         PRESETS_COLUNAS = {
             ("58mm", "Normal"): 32,
             ("58mm", "Condensada"): 42,
             ("58mm", "Comprimida"): 42,
+            ("58mm", "Grande"): 32,
+            ("58mm", "Extra Grande"): 16,
             ("80mm", "Normal"): 42,
             ("80mm", "Condensada"): 56,
             ("80mm", "Comprimida"): 56,
+            ("80mm", "Grande"): 42,
+            ("80mm", "Extra Grande"): 21,
         }
 
         def _atualizar_preset_colunas(event=None):
@@ -21530,7 +21552,7 @@ function enviarPedido() {{
                  bg=COR_FUNDO, fg=COR_TEXTO, font=("Segoe UI", 10)).grid(
                  row=row, column=0, sticky="w", padx=5, pady=4)
         row += 1
-        modos_fonte = ["Normal", "Condensada", "Comprimida"]
+        modos_fonte = ["Normal", "Condensada", "Comprimida", "Grande", "Extra Grande"]
         combo_modo_fonte = ttk.Combobox(inner, values=modos_fonte, width=15, state="readonly",
                                          font=("Segoe UI", 10))
         combo_modo_fonte.set(imp.get("modo_fonte", "Condensada"))
