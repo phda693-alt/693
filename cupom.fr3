@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TfrxReport Version="6.9.13" DotMatrix="0" IniFile="\Software\Fast Reports"
+  PreviewOptions.Buttons="15" PreviewOptions.Zoom="1" PrintOptions.Printer="Default"
+  PrintOptions.PrintOnSheet="0" ReportOptions.Name="CupomPDVPro"
+  ReportOptions.Description.Text="Modelo de cupom do PDV Pro (preenchido pelo Servidor de Impressao)"
+  ScriptLanguage="PascalScript" ScriptText.Text="begin&#13;&#10;end."
+  Left="0" Top="0" Width="0" Height="0">
+  <TfrxDataPage Name="Data" Height="1000.000000000000000000"
+    Left="0.000000000000000000" Top="0.000000000000000000"
+    Width="1000.000000000000000000"/>
+  <TfrxReportPage Name="Page1" PaperWidth="72" PaperHeight="500" PaperSize="256"
+    LeftMargin="2" RightMargin="2" TopMargin="2" BottomMargin="2" Columns="0"
+    ColumnWidth="0.000000000000000000" ColumnPositions.Text="" HGuides.Text=""
+    VGuides.Text="">
+    <TfrxReportTitle Name="ReportTitle1" Height="56.692950000000000000"
+      Top="18.897650000000000000" Width="264.567100000000000000">
+      <TfrxMemoView Name="MemoTitulo" AllowVectorExport="1"
+        Left="0.000000000000000000" Top="0.000000000000000000"
+        Width="264.567100000000000000" Height="56.692950000000000000"
+        HAlign="haCenter" VAlign="vaCenter" Font.Charset="0" Font.Color="0"
+        Font.Height="-24" Font.Name="Courier New" Font.Style="1"
+        Memo.Text="[[TITULO]]"/>
+    </TfrxReportTitle>
+    <TfrxMasterData Name="MasterData1" Height="18.897650000000000000"
+      Top="94.488250000000000000" Width="264.567100000000000000" RowCount="1"
+      DataSetName="">
+      <TfrxMemoView Name="MemoConteudo" AllowVectorExport="1"
+        Left="0.000000000000000000" Top="0.000000000000000000"
+        Width="264.567100000000000000" Height="18.897650000000000000"
+        Font.Charset="0" Font.Color="0" Font.Height="-19" Font.Name="Courier New"
+        Font.Style="0" StretchMode="smActualHeight" WordWrap="0"
+        Memo.Text="[[CONTEUDO]]"/>
+    </TfrxMasterData>
+    <TfrxReportSummary Name="ReportSummary1" Height="34.015770000000000000"
+      Top="132.283550000000000000" Width="264.567100000000000000">
+      <TfrxMemoView Name="MemoRodape" AllowVectorExport="1"
+        Left="0.000000000000000000" Top="0.000000000000000000"
+        Width="264.567100000000000000" Height="34.015770000000000000"
+        HAlign="haCenter" Font.Charset="0" Font.Color="0" Font.Height="-13"
+        Font.Name="Courier New" Font.Style="0" Memo.Text="[[DATAHORA]]"/>
+    </TfrxReportSummary>
+  </TfrxReportPage>
+</TfrxReport>

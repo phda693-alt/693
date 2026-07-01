@@ -19358,6 +19358,48 @@ function enviarPedido() {{
 
 
 
+    def _enviar_para_servidor_impressao(self, texto, config):
+        """Envia o cupom (texto ja formatado) para o Servidor de Impressao .fr3
+        (print_server.py) via HTTP POST. O servidor preenche o modelo .fr3 e,
+        se configurado, imprime. Retorna (sucesso, mensagem)."""
+        url = (config.get("servidor_impressao_url") or "").strip()
+        if not url:
+            return False, ("Servidor de impressao habilitado, mas a URL nao foi "
+                           "configurada em Configuracoes de Impressora.")
+        payload = {
+            "texto": texto,
+            "titulo": "CUPOM NAO FISCAL",
+            "copias": int(config.get("num_copias", 1) or 1),
+            "impressora": config.get("nome_impressora", ""),
+            "largura": int(config.get("largura_papel", 48) or 48),
+            "corte": bool(config.get("corte_automatico", True)),
+            "gaveta": bool(config.get("abrir_gaveta", False)),
+            "origem": "PDV Pro",
+            "data_hora": datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+        }
+        try:
+            import urllib.request
+            data = json.dumps(payload).encode("utf-8")
+            req = urllib.request.Request(
+                url, data=data,
+                headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                corpo = resp.read().decode("utf-8", errors="replace")
+                try:
+                    r = json.loads(corpo)
+                except Exception:
+                    r = {}
+                if getattr(resp, "status", 200) == 200 and r.get("ok", True):
+                    arq = r.get("arquivo_fr3") or ""
+                    extra = f"\nArquivo .fr3: {arq}" if arq else ""
+                    return True, f"Enviado ao Servidor de Impressao (.fr3).{extra}"
+                return False, f"Servidor de impressao retornou erro: {r.get('erro', corpo[:200])}"
+        except Exception as e:
+            return False, (
+                f"Nao foi possivel conectar ao Servidor de Impressao em:\n{url}\n\n"
+                f"Verifique se o 'print_server.py' esta em execucao naquele "
+                f"computador e se a URL/porta estao corretas.\n\nDetalhe: {e}")
+
     # ========================================================================
     # SISTEMA DE IMPRESSAO CENTRALIZADO
     # ========================================================================
@@ -19386,6 +19428,12 @@ function enviarPedido() {{
 
         if num_copias < 1:
             num_copias = 1
+
+        # === Servidor de Impressao (.fr3) ===
+        # Se habilitado, SUBSTITUI a impressao direta: envia o cupom para o
+        # servidor de impressao local, que preenche o modelo .fr3 e imprime.
+        if config.get("usar_servidor_impressao"):
+            return self._enviar_para_servidor_impressao(texto, config)
 
         # Tipo PDF => salvar arquivo automaticamente
         if tipo == "PDF (Arquivo)":
@@ -19770,7 +19818,9 @@ function enviarPedido() {{
             "codepage": "UTF-8",
             "velocidade_impressao": "Normal",
             "imprimir_automatico": False,
-            "porta_impressora": ""
+            "porta_impressora": "",
+            "usar_servidor_impressao": False,
+            "servidor_impressao_url": "http://127.0.0.1:8899/print"
         }
         try:
             if os.path.exists(PRINTER_CONFIG_FILE):
@@ -20806,6 +20856,26 @@ function enviarPedido() {{
                        font=("Segoe UI", 10)).grid(
                        row=5, column=0, columnspan=2, sticky="w", padx=5, pady=3)
 
+        # === Servidor de Impressao (.fr3) ===
+        var_servidor = tk.BooleanVar(value=config.get("usar_servidor_impressao", False))
+        tk.Checkbutton(card3,
+                       text="Enviar impressao para o Servidor de Impressao (.fr3)",
+                       variable=var_servidor, bg=COR_CARD, fg=COR_TEXTO,
+                       selectcolor=COR_ENTRADA, activebackground=COR_CARD,
+                       font=("Segoe UI", 10, "bold")).grid(
+                       row=6, column=0, columnspan=2, sticky="w", padx=5, pady=(10, 3))
+        tk.Label(card3,
+                 text="(Quando marcado, o cupom NAO vai direto para a impressora: "
+                      "vai para o servidor que gera o .fr3)",
+                 bg=COR_CARD, fg=COR_TEXTO2, font=("Segoe UI", 8, "italic")).grid(
+                 row=7, column=0, columnspan=2, sticky="w", padx=25, pady=(0, 3))
+        tk.Label(card3, text="URL do Servidor de Impressao:", bg=COR_GLASS, fg=COR_TEXTO,
+                 font=("Segoe UI", 10)).grid(row=8, column=0, sticky="w", padx=5, pady=4)
+        et_servidor_url = StyledEntry(card3, width=35)
+        et_servidor_url.insert(0, config.get("servidor_impressao_url",
+                                             "http://127.0.0.1:8899/print"))
+        et_servidor_url.grid(row=8, column=1, sticky="w", padx=5, pady=4)
+
         # === CARD 4: Botoes de Acao ===
         card4 = CardFrame(content)
         card4.pack(fill="x", padx=20, pady=8)
@@ -20871,7 +20941,10 @@ function enviarPedido() {{
                 "abrir_gaveta": var_gaveta.get(),
                 "imprimir_logo": var_logo.get(),
                 "caminho_logo": et_logo.get().strip(),
-                "imprimir_automatico": var_auto.get()
+                "imprimir_automatico": var_auto.get(),
+                "usar_servidor_impressao": var_servidor.get(),
+                "servidor_impressao_url": et_servidor_url.get().strip(),
+                "fonte_migrada_v2": True
             }
 
         def salvar_config():
