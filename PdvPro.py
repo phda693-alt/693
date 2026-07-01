@@ -14506,15 +14506,26 @@ class PDVApp:
 
         tk.Label(filtro_card, text="Data Inicio:", bg=COR_GLASS, fg=COR_TEXTO2,
                  font=("Segoe UI", 9)).pack(side="left", padx=(8, 4))
+        # "Hoje" deve usar a data do SERVIDOR MySQL, a mesma fonte usada na tela
+        # "Total de Vendas Hoje" (que filtra por CURDATE()) e no proprio
+        # data_venda (DEFAULT CURRENT_TIMESTAMP). Se usarmos a data local do
+        # terminal (datetime.date.today()) e o relogio/fuso do terminal estiver
+        # diferente do servidor, uma venda feita perto da virada do dia aparece
+        # no total do dia mas nao no historico (ou vice-versa).
+        try:
+            _hoje_dt = LicencaManager._obter_hora_mysql() or datetime.date.today()
+        except Exception:
+            _hoje_dt = datetime.date.today()
+        _hoje_str = _hoje_dt.strftime("%d/%m/%Y")
         et_data_ini = StyledEntry(filtro_card, width=11)
-        et_data_ini.insert(0, datetime.date.today().strftime("%d/%m/%Y"))
+        et_data_ini.insert(0, _hoje_str)
         et_data_ini.pack(side="left", padx=4)
         add_tooltip(et_data_ini, "Data inicial no formato DD/MM/AAAA")
 
         tk.Label(filtro_card, text="Fim:", bg=COR_GLASS, fg=COR_TEXTO2,
                  font=("Segoe UI", 9)).pack(side="left", padx=(8, 4))
         et_data_fim = StyledEntry(filtro_card, width=11)
-        et_data_fim.insert(0, datetime.date.today().strftime("%d/%m/%Y"))
+        et_data_fim.insert(0, _hoje_str)
         et_data_fim.pack(side="left", padx=4)
 
         tk.Label(filtro_card, text="Status:", bg=COR_GLASS, fg=COR_TEXTO2,
@@ -17013,21 +17024,30 @@ class PDVApp:
 
         tk.Label(filtro_frame, text="Data Inicio:", bg=COR_CARD,
                  fg=COR_TEXTO).pack(side="left", padx=5)
+        # "Hoje" baseado na data do SERVIDOR MySQL (mesma fonte de CURDATE e do
+        # data_venda), evitando divergencia com a tela "Total de Vendas Hoje"
+        # quando o relogio/fuso do terminal difere do servidor.
+        try:
+            _rel_hoje_dt = LicencaManager._obter_hora_mysql() or datetime.date.today()
+        except Exception:
+            _rel_hoje_dt = datetime.date.today()
+        self._rel_hoje_dt = _rel_hoje_dt
+        _rel_hoje_str = _rel_hoje_dt.strftime("%d/%m/%Y")
         self.et_data_ini = StyledEntry(filtro_frame, width=12)
-        self.et_data_ini.insert(0, datetime.date.today().strftime("%d/%m/%Y"))
+        self.et_data_ini.insert(0, _rel_hoje_str)
         self.et_data_ini.pack(side="left", padx=5)
         add_tooltip(self.et_data_ini, "Data inicial (DD/MM/AAAA)")
 
         tk.Label(filtro_frame, text="Data Fim:", bg=COR_CARD,
                  fg=COR_TEXTO).pack(side="left", padx=5)
         self.et_data_fim = StyledEntry(filtro_frame, width=12)
-        self.et_data_fim.insert(0, datetime.date.today().strftime("%d/%m/%Y"))
+        self.et_data_fim.insert(0, _rel_hoje_str)
         self.et_data_fim.pack(side="left", padx=5)
         add_tooltip(self.et_data_fim, "Data final (DD/MM/AAAA)")
 
         # Botoes de periodo rapido
         def _set_periodo(dias):
-            fim = datetime.date.today()
+            fim = getattr(self, "_rel_hoje_dt", None) or datetime.date.today()
             ini = fim - datetime.timedelta(days=dias)
             self.et_data_ini.delete(0, tk.END)
             self.et_data_ini.insert(0, ini.strftime("%d/%m/%Y"))
