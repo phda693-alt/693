@@ -14557,9 +14557,9 @@ class PDVApp:
         combo_forma.pack(side="left", padx=4)
         add_tooltip(combo_forma, "Filtrar vendas por forma de pagamento")
 
-        # Label de resumo
+        # Label de resumo (Total dinamico conforme os filtros)
         lbl_resumo = tk.Label(filtro_card, text="", bg=COR_GLASS, fg=COR_PRIMARIA,
-                               font=("Segoe UI", 9, "bold"))
+                               font=("Segoe UI", 11, "bold"))
         lbl_resumo.pack(side="right", padx=12)
 
         # --- Treeview ---
@@ -14676,10 +14676,24 @@ class PDVApp:
 
             def load():
                 db = DatabaseHelper.get_instance()
+                params = []
+                # Quando uma forma de pagamento e escolhida, tambem trazemos o
+                # valor pago NESSA forma por venda (valor_forma), para que o
+                # "Total" do rodape reflita o dinheiro daquela forma e nao o
+                # total cheio da venda (importante em pagamentos mistos).
+                if forma_id_f is not None:
+                    valor_forma_col = (
+                        "(SELECT COALESCE(SUM(pv3.valor),0) FROM pagamentos_venda pv3 "
+                        "WHERE pv3.venda_id = v.id AND pv3.forma_pagamento_id = %s) as valor_forma"
+                    )
+                    params.append(forma_id_f)
+                else:
+                    valor_forma_col = "NULL as valor_forma"
                 sql = (
                     "SELECT v.id, COALESCE(NULLIF(v.cliente_nome,''), NULLIF(u.cliente_nome,''), c.nome,'N/A') as cliente_nome, "
                     "v.total_liquido, v.data_venda, v.status, "
-                    "GROUP_CONCAT(fp.descricao SEPARATOR ' + ') as formas "
+                    "GROUP_CONCAT(fp.descricao SEPARATOR ' + ') as formas, "
+                    + valor_forma_col + " "
                     "FROM vendas v "
                     "LEFT JOIN clientes c ON v.cliente_id = c.id "
                     "LEFT JOIN uso_armario_sauna u ON v.uso_armario_id = u.id "
@@ -14687,7 +14701,6 @@ class PDVApp:
                     "LEFT JOIN formas_pagamento fp ON pv.forma_pagamento_id = fp.id "
                     "WHERE 1=1"
                 )
-                params = []
                 if status_f != "Todos":
                     sql += " AND v.status = %s"
                     params.append(status_f)
@@ -14749,7 +14762,10 @@ class PDVApp:
                 if sel_id is not None and r["id"] == sel_id:
                     new_sel_iid = iid
                 if status == "finalizada":
-                    total_valor += total_v
+                    # Se ha uma forma de pagamento filtrada, soma o valor pago
+                    # naquela forma; caso contrario, soma o total liquido da venda.
+                    vf = r.get("valor_forma")
+                    total_valor += float(vf) if vf is not None else total_v
                     count += 1
             if new_sel_iid:
                 self.tree_historico.selection_set(new_sel_iid)
@@ -14760,8 +14776,13 @@ class PDVApp:
             self.tree_historico.tag_configure(
                 "cancelada", background="#1a0a0a", foreground="#ff6666")
 
+            _forma_sel = combo_forma.get()
+            if _forma_sel and _forma_sel != "Todas":
+                _rotulo = f"Total ({_forma_sel})"
+            else:
+                _rotulo = "Total"
             lbl_resumo.config(
-                text=f"{count} vendas  |  Total: R$ {FormatUtils.format_money(total_valor)}")
+                text=f"{count} vendas  |  {_rotulo}: R$ {FormatUtils.format_money(total_valor)}")
 
         et_busca.bind("<KeyRelease>",
                       lambda e: _preencher(_cache_rows[0] or [],
