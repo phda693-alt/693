@@ -14537,6 +14537,23 @@ class PDVApp:
         combo_status.current(0)
         combo_status.pack(side="left", padx=4)
 
+        # Filtro por Forma de Pagamento
+        tk.Label(filtro_card, text="Forma:", bg=COR_GLASS, fg=COR_TEXTO2,
+                 font=("Segoe UI", 9)).pack(side="left", padx=(8, 4))
+        formas_pgto_map = {"Todas": None}
+        try:
+            _fp_rows = DatabaseHelper.get_instance().execute_query(
+                "SELECT id, descricao FROM formas_pagamento ORDER BY descricao")
+            for _fp in (_fp_rows or []):
+                formas_pgto_map[_fp.get("descricao") or "N/A"] = _fp.get("id")
+        except Exception:
+            pass
+        combo_forma = ttk.Combobox(filtro_card, values=list(formas_pgto_map.keys()),
+                                    width=14, state="readonly", font=("Segoe UI", 9))
+        combo_forma.current(0)
+        combo_forma.pack(side="left", padx=4)
+        add_tooltip(combo_forma, "Filtrar vendas por forma de pagamento")
+
         # Label de resumo
         lbl_resumo = tk.Label(filtro_card, text="", bg=COR_GLASS, fg=COR_PRIMARIA,
                                font=("Segoe UI", 9, "bold"))
@@ -14641,6 +14658,7 @@ class PDVApp:
         def _buscar(event=None):
             busca = et_busca.get().strip().lower()
             status_f = combo_status.get()
+            forma_id_f = formas_pgto_map.get(combo_forma.get())
             data_ini_str = et_data_ini.get().strip()
             data_fim_str = et_data_fim.get().strip()
 
@@ -14670,6 +14688,13 @@ class PDVApp:
                 if status_f != "Todos":
                     sql += " AND v.status = %s"
                     params.append(status_f)
+                if forma_id_f is not None:
+                    # Vendas que possuem um pagamento nesta forma. EXISTS preserva
+                    # o GROUP_CONCAT (a coluna Pagamento continua mostrando todas
+                    # as formas da venda, mesmo em pagamentos mistos).
+                    sql += (" AND EXISTS (SELECT 1 FROM pagamentos_venda pv2 "
+                            "WHERE pv2.venda_id = v.id AND pv2.forma_pagamento_id = %s)")
+                    params.append(forma_id_f)
                 if d_ini:
                     sql += " AND DATE(v.data_venda) >= %s"
                     params.append(d_ini)
@@ -14741,6 +14766,10 @@ class PDVApp:
 
         # Carregar ao abrir (periodo de hoje)
         _buscar()
+
+        # Aplicar filtro automaticamente ao trocar Status ou Forma de Pagamento
+        combo_status.bind("<<ComboboxSelected>>", lambda e: _buscar())
+        combo_forma.bind("<<ComboboxSelected>>", lambda e: _buscar())
 
         # Botao buscar
         StyledButton(filtro_card, text=f"{Icons.SEARCH} Buscar",
@@ -14859,18 +14888,23 @@ class PDVApp:
             return
         def cancelar():
             db = DatabaseHelper.get_instance()
+            # Marca a venda como cancelada PRIMEIRO: assim ela deixa de contar
+            # imediatamente nos totais e no resumo por forma de pagamento, mesmo
+            # que a devolucao de estoque abaixo falhe por qualquer motivo.
+            db.execute_update(
+                "UPDATE vendas SET status = 'cancelada' WHERE id = %s", (venda_id,)
+            )
+            # Devolve o estoque dos itens da venda
             itens = db.execute_query(
                 "SELECT produto_id, quantidade FROM itens_venda WHERE venda_id = %s",
                 (venda_id,)
             )
             for item in itens:
-                db.execute_update(
-                    "UPDATE produtos SET estoque = estoque + %s WHERE id = %s",
-                    (item["quantidade"], item["produto_id"])
-                )
-            db.execute_update(
-                "UPDATE vendas SET status = 'cancelada' WHERE id = %s", (venda_id,)
-            )
+                if item.get("produto_id"):
+                    db.execute_update(
+                        "UPDATE produtos SET estoque = estoque + %s WHERE id = %s",
+                        (item["quantidade"], item["produto_id"])
+                    )
         def on_cancelado(_):
             AuditLogger.log("VENDA_CANCELADA",
                             f"Venda #{venda_id}",
@@ -17252,7 +17286,7 @@ class PDVApp:
                 "LEFT JOIN clientes c ON v.cliente_id = c.id "
                 "LEFT JOIN uso_armario_sauna u ON v.uso_armario_id = u.id "
                 "WHERE v.data_venda BETWEEN %s AND %s AND v.status = 'finalizada' "
-                "GROUP BY v.cliente_id, v.cliente_nome, c.nome ORDER BY total DESC", (di, df)
+                "GROUP BY cliente ORDER BY total DESC", (di, df)
             )
         def on_loaded(rows):
             linhas = [f"{'Cliente':<30} {'Qtd':>6} {'Total':>12}"]
