@@ -11686,9 +11686,31 @@ class PDVApp:
             return
 
         forma = self.formas_pagamento_list[idx]
+        tipo = (forma.get("tipo") or "").lower()
+
+        # Troco (pagar a mais) SOMENTE e permitido em Dinheiro. Para PIX,
+        # Credito, Debito e qualquer outra forma, o valor nao pode ultrapassar
+        # o saldo devedor.
+        total_pago_atual = sum(p.valor for p in self.pagamentos_venda)
+        saldo_restante = self.venda_total_liquido - total_pago_atual
+        if tipo != "dinheiro" and valor > saldo_restante + 0.005:
+            messagebox.showwarning(
+                "Troco nao permitido nesta forma",
+                f"A forma '{forma['descricao']}' nao aceita troco.\n\n"
+                f"Apenas DINHEIRO pode receber um valor maior que o devido "
+                f"e gerar troco.\n\n"
+                f"Saldo devedor: R$ {FormatUtils.format_money(max(0, saldo_restante))}\n"
+                f"Valor informado: R$ {FormatUtils.format_money(valor)}\n\n"
+                f"COMO RESOLVER:\n"
+                f"1. Informe no maximo R$ {FormatUtils.format_money(max(0, saldo_restante))} nesta forma; ou\n"
+                f"2. Use Dinheiro caso o cliente pague a mais (com troco).",
+                parent=dialog)
+            return
+
         pag = PagamentoVenda()
         pag.forma_pagamento_id = forma["id"]
         pag.forma_descricao = forma["descricao"]
+        pag.forma_tipo = tipo
         pag.valor = valor
         self.pagamentos_venda.append(pag)
         self._atualizar_pagamentos_ui()
@@ -11756,6 +11778,23 @@ class PDVApp:
             return
 
         troco = total_pago - self.venda_total_liquido
+
+        # Seguranca: troco so pode existir se houver pagamento em dinheiro.
+        # (O bloqueio principal ja ocorre em _add_pagamento; aqui e reforco.)
+        if troco > 0.005:
+            tem_dinheiro = any(
+                (getattr(p, "forma_tipo", "") or "").lower() == "dinheiro"
+                for p in self.pagamentos_venda
+            )
+            if not tem_dinheiro:
+                messagebox.showwarning(
+                    "Troco nao permitido",
+                    "So e possivel gerar troco quando ha pagamento em Dinheiro.\n\n"
+                    "As formas eletronicas (PIX, Credito, Debito, etc.) nao "
+                    "aceitam troco. Ajuste os valores para que o total pago "
+                    "seja exatamente o valor da venda.",
+                    parent=dialog)
+                return
 
         def salvar():
             db = DatabaseHelper.get_instance()
