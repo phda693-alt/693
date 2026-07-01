@@ -19459,6 +19459,10 @@ function enviarPedido() {{
                 # ESC ! 0x10 = double-height | 0x08 = enfase (negrito) => 0x18
                 dados_envio += b"\x1b\x4d\x00"  # ESC M 0 = Font A
                 dados_envio += b"\x1b\x21\x18"  # ESC ! double-height + enfase
+                # GS ! tambem (compatibilidade: algumas impressoras so obedecem
+                # este). Nibble alto=largura, baixo=altura. 0x01 = altura x2.
+                dados_envio += b"\x1d\x21\x01"  # GS ! double-height
+                dados_envio += b"\x1b\x45\x01"  # ESC E 1 = negrito ON
                 # Fonte mais alta exige mais espaco entre linhas p/ nao sobrepor
                 dados_envio += b"\x1b\x33\x40"  # ESC 3 = 64/180 inch
             elif modo_fonte == "Extra Grande":
@@ -19467,6 +19471,9 @@ function enviarPedido() {{
                 # ESC ! 0x10 (alt) | 0x20 (larg) | 0x08 (enfase) => 0x38
                 dados_envio += b"\x1b\x4d\x00"  # ESC M 0 = Font A
                 dados_envio += b"\x1b\x21\x38"  # ESC ! double-height+width+enfase
+                # GS ! 0x11 = largura x2 + altura x2 (compatibilidade)
+                dados_envio += b"\x1d\x21\x11"  # GS ! double-width + double-height
+                dados_envio += b"\x1b\x45\x01"  # ESC E 1 = negrito ON
                 dados_envio += b"\x1b\x33\x40"  # ESC 3 = 64/180 inch
             else:
                 # Font A (normal/padrao)
@@ -19772,6 +19779,22 @@ function enviarPedido() {{
                 for k, v in defaults.items():
                     if k not in saved:
                         saved[k] = v
+                # Migracao unica: aumenta a fonte das impressoes para instalacoes
+                # que ainda estavam num modo pequeno (padrao antigo). Ocorre uma
+                # unica vez (flag fonte_migrada_v2); se depois o usuario escolher
+                # outro modo, sua escolha e respeitada.
+                if not saved.get("fonte_migrada_v2"):
+                    modo_atual = str(saved.get("modo_fonte", "")).strip()
+                    if modo_atual in ("", "Normal", "Condensada"):
+                        saved["modo_fonte"] = "Grande"
+                        # Font A cabe no maximo ~48 colunas em 80mm; evita corte
+                        try:
+                            if int(float(saved.get("largura_papel", 42) or 42)) > 48:
+                                saved["largura_papel"] = 48
+                        except Exception:
+                            saved["largura_papel"] = 42
+                    saved["fonte_migrada_v2"] = True
+                    self._save_printer_config(saved)
                 return saved
         except Exception as e:
             print(f"Erro ao carregar config impressora: {e}")
