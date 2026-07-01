@@ -19358,7 +19358,7 @@ function enviarPedido() {{
 
 
 
-    def _enviar_para_servidor_impressao(self, texto, config):
+    def _enviar_cupom_servidor_fr3(self, texto, config):
         """Envia o cupom (texto ja formatado) para o Servidor de Impressao .fr3
         (print_server.py) via HTTP POST. O servidor preenche o modelo .fr3 e,
         se configurado, imprime. Retorna (sucesso, mensagem)."""
@@ -19433,7 +19433,7 @@ function enviarPedido() {{
         # Se habilitado, SUBSTITUI a impressao direta: envia o cupom para o
         # servidor de impressao local, que preenche o modelo .fr3 e imprime.
         if config.get("usar_servidor_impressao"):
-            return self._enviar_para_servidor_impressao(texto, config)
+            return self._enviar_cupom_servidor_fr3(texto, config)
 
         # Tipo PDF => salvar arquivo automaticamente
         if tipo == "PDF (Arquivo)":
