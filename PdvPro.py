@@ -19853,6 +19853,100 @@ function enviarPedido() {{
             _logger.warning(f"Falha ao gerar logo ESC/POS: {e}")
             return b""
 
+    def _imprimir_grafico_windows(self, texto, config):
+        """Imprime o cupom como IMAGEM via GDI (win32ui), desenhando o texto
+        com a fonte no tamanho EXATO escolhido.
+
+        Isto funciona em QUALQUER driver de impressora (inclusive quando a
+        impressora ignora os comandos ESC/POS ou quando a impressao cai no
+        Notepad), pois nao dependemos do firmware da impressora para o
+        tamanho da fonte: nos mesmos desenhamos as letras no tamanho pedido.
+
+        Retorna (sucesso: bool, mensagem: str).
+        """
+        try:
+            import win32ui, win32con, win32print
+            from PIL import Image, ImageDraw, ImageFont, ImageWin
+        except Exception as e:
+            return False, ("O modo grafico precisa dos pacotes 'pywin32' e "
+                           f"'Pillow' instalados.\n\nDetalhe: {e}")
+        try:
+            tam = str(config.get("tamanho_papel", "80mm"))
+            width_px = 576 if "80" in tam else 384
+            try:
+                fs = int(float(config.get("tamanho_fonte", 12) or 12))
+            except Exception:
+                fs = 12
+            # Tamanho da fonte em pixels (impressora termica ~203 dpi).
+            # O fator ~2.6 aproxima o numero de "pontos" a um tamanho visivel.
+            px = max(14, int(round(fs * 2.6)))
+
+            # Fonte monoespacada (tenta negrito primeiro para dar mais corpo)
+            fonte = None
+            for fp in (r"C:\Windows\Fonts\consolab.ttf", r"C:\Windows\Fonts\courbd.ttf",
+                       r"C:\Windows\Fonts\consola.ttf", r"C:\Windows\Fonts\cour.ttf",
+                       r"C:\Windows\Fonts\lucon.ttf"):
+                try:
+                    fonte = ImageFont.truetype(fp, px)
+                    break
+                except Exception:
+                    continue
+            if fonte is None:
+                fonte = ImageFont.load_default()
+
+            linhas = texto.split("\n")
+            tmp = Image.new("L", (10, 10), 255)
+            dtmp = ImageDraw.Draw(tmp)
+            try:
+                bbox = dtmp.textbbox((0, 0), "Ag", font=fonte)
+                line_h = (bbox[3] - bbox[1]) + max(2, int(px * 0.25))
+            except Exception:
+                line_h = px + 6
+
+            # Logo opcional no topo (imagem)
+            logo_img = None
+            if config.get("imprimir_logo") and (config.get("caminho_logo") or "").strip():
+                try:
+                    lg = Image.open(config["caminho_logo"].strip()).convert("L")
+                    if lg.width > width_px:
+                        nh = int(lg.height * width_px / lg.width)
+                        lg = lg.resize((width_px, nh))
+                    logo_img = lg
+                except Exception:
+                    logo_img = None
+
+            top = (logo_img.height + 10) if logo_img else 0
+            altura = top + line_h * max(1, len(linhas)) + 24
+            img = Image.new("L", (width_px, altura), 255)
+            draw = ImageDraw.Draw(img)
+            y = 0
+            if logo_img:
+                img.paste(logo_img, ((width_px - logo_img.width) // 2, 0))
+                y = logo_img.height + 10
+            for ln in linhas:
+                draw.text((0, y), ln.rstrip("\r"), font=fonte, fill=0)
+                y += line_h
+
+            printer = (config.get("nome_impressora") or "").strip() or win32print.GetDefaultPrinter()
+            hdc = win32ui.CreateDC()
+            hdc.CreatePrinterDC(printer)
+            hdc.StartDoc("PDV Pro Cupom")
+            hdc.StartPage()
+            try:
+                printable_w = hdc.GetDeviceCaps(win32con.HORZRES)
+            except Exception:
+                printable_w = width_px
+            escala = (printable_w / float(img.width)) if img.width else 1.0
+            dib = ImageWin.Dib(img.convert("RGB"))
+            dib.draw(hdc.GetHandleOutput(),
+                     (0, 0, int(img.width * escala), int(img.height * escala)))
+            hdc.EndPage()
+            hdc.EndDoc()
+            hdc.DeleteDC()
+            return True, f"Impresso (modo grafico) em: {printer}"
+        except Exception as e:
+            return False, f"Falha na impressao grafica: {e}"
+
     # ========================================================================
     # SISTEMA DE IMPRESSAO CENTRALIZADO
     # ========================================================================
@@ -19887,6 +19981,22 @@ function enviarPedido() {{
         # servidor de impressao local, que preenche o modelo .fr3 e imprime.
         if config.get("usar_servidor_impressao"):
             return self._enviar_cupom_servidor_fr3(texto, config)
+
+        # === Metodo GRAFICO (imagem) ===
+        # Desenha o cupom como imagem com a fonte no tamanho exato. Funciona
+        # em qualquer driver (mesmo quando o ESC/POS e ignorado). E a forma
+        # mais confiavel de controlar o tamanho da fonte impressa.
+        import platform as _plat_g
+        if (str(config.get("metodo_impressao", "")).lower().startswith("graf")
+                and _plat_g.system() == "Windows"):
+            _ult = (False, "Modo grafico indisponivel.")
+            for _ in range(num_copias):
+                _ult = self._imprimir_grafico_windows(texto, config)
+                if not _ult[0]:
+                    break
+            if _ult[0]:
+                return True, _ult[1]
+            _logger.warning(f"Impressao grafica falhou, tentando ESC/POS: {_ult[1]}")
 
         # Tipo PDF => salvar arquivo automaticamente
         if tipo == "PDF (Arquivo)":
@@ -20288,7 +20398,8 @@ function enviarPedido() {{
             "imprimir_automatico": False,
             "porta_impressora": "",
             "usar_servidor_impressao": False,
-            "servidor_impressao_url": "http://127.0.0.1:8899/print"
+            "servidor_impressao_url": "http://127.0.0.1:8899/print",
+            "metodo_impressao": "Texto (ESC/POS)"
         }
         try:
             if os.path.exists(PRINTER_CONFIG_FILE):
@@ -21348,6 +21459,23 @@ function enviarPedido() {{
                                              "http://127.0.0.1:8899/print"))
         et_servidor_url.grid(row=8, column=1, sticky="w", padx=5, pady=4)
 
+        # === Metodo de Impressao ===
+        tk.Label(card3, text="Metodo de Impressao:", bg=COR_GLASS, fg=COR_TEXTO,
+                 font=("Segoe UI", 10, "bold")).grid(row=9, column=0, sticky="w",
+                 padx=5, pady=(10, 4))
+        combo_metodo_imp = ttk.Combobox(
+            card3, values=["Texto (ESC/POS)", "Grafico (imagem)"],
+            width=20, state="readonly", font=("Segoe UI", 10))
+        combo_metodo_imp.set(config.get("metodo_impressao", "Texto (ESC/POS)"))
+        combo_metodo_imp.grid(row=9, column=1, sticky="w", padx=5, pady=(10, 4))
+        tk.Label(card3,
+                 text="Grafico (imagem): desenha o cupom com a fonte no tamanho exato e "
+                      "imprime como imagem.\nUse este modo se a fonte NAO aumenta no modo "
+                      "Texto (a impressora ignora ESC/POS).\nRequer pywin32 + Pillow.",
+                 bg=COR_CARD, fg=COR_TEXTO2, font=("Segoe UI", 8, "italic"),
+                 justify="left").grid(row=10, column=0, columnspan=2, sticky="w",
+                 padx=25, pady=(0, 4))
+
         # === CARD 4: Botoes de Acao ===
         card4 = CardFrame(content)
         card4.pack(fill="x", padx=20, pady=8)
@@ -21416,6 +21544,7 @@ function enviarPedido() {{
                 "imprimir_automatico": var_auto.get(),
                 "usar_servidor_impressao": var_servidor.get(),
                 "servidor_impressao_url": et_servidor_url.get().strip(),
+                "metodo_impressao": combo_metodo_imp.get(),
                 "fonte_migrada_v2": True
             }
 
