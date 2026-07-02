@@ -16910,6 +16910,12 @@ class PDVApp:
                          self.tree_contas, "contas_receber", parent=self.root),
                      color=COR_BOTAO_AZUL, width=14).pack(side="left", padx=5)
 
+        StyledButton(btn_frame, text=f"{Icons.IMPRESSORA} Imprimir Saldo Cliente",
+                     command=self.imprimir_saldo_cliente,
+                     color=COR_BOTAO_LARANJA, width=22).pack(side="left", padx=5)
+        add_tooltip(btn_frame.winfo_children()[-1],
+                    "Imprime o extrato/saldo de todas as contas do cliente selecionado")
+
         _cache_c = [None]
 
         def _preencher_contas(rows, filtro="", status_f="Todos"):
@@ -17051,6 +17057,111 @@ class PDVApp:
             self.show_contas_receber()
 
         self.run_async(receber, on_recebido)
+
+    def imprimir_saldo_cliente(self):
+        """Imprime o extrato/saldo de todas as contas a receber do cliente
+        da conta selecionada (usa o sistema de impressao central: respeita
+        tamanho de fonte, logo, corte e servidor .fr3)."""
+        sel = self.tree_contas.selection()
+        if not sel:
+            ToastManager.warning(
+                "Selecione uma conta do cliente para imprimir o saldo.")
+            return
+        try:
+            conta_id = self.tree_contas.item(sel[0])["values"][0]
+        except Exception:
+            ToastManager.warning("Selecao invalida.")
+            return
+
+        def tarefa():
+            db = DatabaseHelper.get_instance()
+            base = db.execute_query(
+                "SELECT cr.cliente_id, COALESCE(c.nome, 'N/A') as cliente_nome "
+                "FROM contas_receber cr LEFT JOIN clientes c ON cr.cliente_id = c.id "
+                "WHERE cr.id = %s", (conta_id,))
+            if not base:
+                return (False, "Conta nao encontrada.")
+            cid = base[0].get("cliente_id")
+            nome = base[0].get("cliente_nome") or "N/A"
+            if cid:
+                contas = db.execute_query(
+                    "SELECT cr.id, cr.valor_original, cr.valor_pago, "
+                    "cr.valor_pendente, cr.status, cr.data_vencimento "
+                    "FROM contas_receber cr WHERE cr.cliente_id = %s "
+                    "ORDER BY cr.id", (cid,))
+            else:
+                contas = db.execute_query(
+                    "SELECT cr.id, cr.valor_original, cr.valor_pago, "
+                    "cr.valor_pendente, cr.status, cr.data_vencimento "
+                    "FROM contas_receber cr LEFT JOIN clientes c "
+                    "ON cr.cliente_id = c.id WHERE COALESCE(c.nome,'N/A') = %s "
+                    "ORDER BY cr.id", (nome,))
+            if not contas:
+                return (False, "Nenhuma conta encontrada para o cliente.")
+            texto = self._montar_texto_saldo_cliente(nome, contas)
+            return self._imprimir_texto(texto)
+
+        def on_done(res):
+            ok, msg = res if res else (False, "Falha ao imprimir.")
+            if ok:
+                ToastManager.success("Saldo do cliente enviado para impressao.")
+            else:
+                self.show_error(msg)
+
+        self.run_async(tarefa, on_done)
+
+    def _montar_texto_saldo_cliente(self, nome, contas):
+        """Monta o texto do extrato de saldo do cliente para impressao."""
+        cfg = self._load_printer_config()
+        try:
+            largura = int(cfg.get("largura_papel", 48) or 48)
+        except Exception:
+            largura = 48
+        largura = max(24, min(largura, 64))
+        linha = "=" * largura
+        tracos = "-" * largura
+
+        def centro(t):
+            t = str(t)[:largura]
+            return t.center(largura)
+
+        L = []
+        L.append(centro("SALDO DO CLIENTE"))
+        L.append(linha)
+        L.append(f"Cliente: {nome}")
+        L.append("Data: " + datetime.datetime.now().strftime("%d/%m/%Y %H:%M"))
+        L.append(tracos)
+
+        tot_orig = tot_pago = tot_pend = 0.0
+        for c in contas:
+            vo = float(c.get("valor_original", 0) or 0)
+            vp = float(c.get("valor_pago", 0) or 0)
+            pe = float(c.get("valor_pendente", 0) or 0)
+            st = c.get("status", "") or ""
+            venc = str(c.get("data_vencimento", "") or "")
+            if venc and len(venc) >= 10:
+                try:
+                    venc = datetime.datetime.strptime(
+                        venc[:10], "%Y-%m-%d").strftime("%d/%m/%Y")
+                except Exception:
+                    pass
+            tot_orig += vo
+            tot_pago += vp
+            tot_pend += pe
+            L.append(f"Conta #{c.get('id')}  [{st}]")
+            L.append(f"  Original: R$ {FormatUtils.format_money(vo)}")
+            L.append(f"  Pago....: R$ {FormatUtils.format_money(vp)}")
+            L.append(f"  Pendente: R$ {FormatUtils.format_money(pe)}")
+            if venc and venc.lower() != "none":
+                L.append(f"  Vencimento: {venc}")
+            L.append(tracos)
+
+        L.append(f"TOTAL ORIGINAL : R$ {FormatUtils.format_money(tot_orig)}")
+        L.append(f"TOTAL PAGO.....: R$ {FormatUtils.format_money(tot_pago)}")
+        L.append(f"SALDO DEVEDOR..: R$ {FormatUtils.format_money(tot_pend)}")
+        L.append(linha)
+        L.append(centro("Documento nao fiscal"))
+        return "\n".join(L)
 
 
 
