@@ -27,7 +27,7 @@ import json
 import datetime
 import subprocess
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog, simpledialog
 
 try:
     import mysql.connector
@@ -66,6 +66,9 @@ class EditorBancoApp:
         self.pk_atual = None             # nome da coluna chave primaria
         self.linhas_originais = {}       # item_id -> tuple original de valores
         self.alteracoes = {}             # item_id -> {coluna: novo_valor}
+        self.dados_completos = []        # todas as linhas (para busca/filtro)
+        self.ent_busca = None            # campo de busca
+        self.combo_coluna = None         # combobox de coluna para busca
 
         self._carregar_config()
         self.tela_senha()
@@ -488,11 +491,40 @@ class EditorBancoApp:
                   relief="flat", cursor="hand2", padx=14, pady=4,
                   command=self.salvar_alteracoes).pack(
                       side="right", padx=14, pady=7)
+        tk.Button(toolbar, text="Limpar tabela",
+                  font=("Segoe UI", 11, "bold"), bg="#dc3545", fg="white",
+                  relief="flat", cursor="hand2", padx=12, pady=4,
+                  command=self.limpar_tabela).pack(
+                      side="right", padx=(0, 4), pady=7)
         tk.Button(toolbar, text="Recarregar",
                   font=("Segoe UI", 11), bg="#dddddd",
                   relief="flat", cursor="hand2", padx=10, pady=4,
                   command=lambda: self._exibir_dados_tabela(self.tabela_atual)
                   ).pack(side="right", padx=(0, 4), pady=7)
+
+        # Barra de busca
+        barra_busca = tk.Frame(dir_, bg="#f7f7f7")
+        barra_busca.pack(fill="x", padx=8, pady=(6, 0))
+        tk.Label(barra_busca, text="Buscar:", font=("Segoe UI", 10),
+                 bg="#f7f7f7").pack(side="left", padx=(6, 4))
+        self.ent_busca = tk.Entry(barra_busca, font=("Segoe UI", 11), width=30)
+        self.ent_busca.pack(side="left", ipady=2)
+        self.ent_busca.bind("<Return>", lambda e: self._buscar())
+        tk.Label(barra_busca, text="  na coluna:", font=("Segoe UI", 10),
+                 bg="#f7f7f7").pack(side="left")
+        self.combo_coluna = ttk.Combobox(barra_busca, font=("Segoe UI", 10),
+                                          state="readonly", width=22)
+        self.combo_coluna.pack(side="left", padx=4)
+        self.combo_coluna["values"] = ["Todas as colunas"]
+        self.combo_coluna.current(0)
+        tk.Button(barra_busca, text="Buscar", font=("Segoe UI", 10),
+                  bg="#2d6cdf", fg="white", relief="flat", cursor="hand2",
+                  padx=12, pady=2, command=self._buscar).pack(
+                      side="left", padx=4)
+        tk.Button(barra_busca, text="Limpar filtro", font=("Segoe UI", 10),
+                  bg="#dddddd", relief="flat", cursor="hand2",
+                  padx=10, pady=2, command=self._limpar_filtro).pack(
+                      side="left", padx=(0, 4))
 
         self.lbl_status = tk.Label(dir_, text="", font=("Segoe UI", 9),
                                    fg="#555", anchor="w")
@@ -556,6 +588,7 @@ class EditorBancoApp:
         self.lbl_tabela.config(text=f"Tabela: {tabela}")
         self.alteracoes = {}
         self.linhas_originais = {}
+        self.dados_completos = []
 
         # Limpar treeview
         self.tree.delete(*self.tree.get_children())
@@ -586,19 +619,132 @@ class EditorBancoApp:
                 self.tree.heading(c, text=titulo)
                 self.tree.column(c, width=140, minwidth=60, anchor="w")
 
-            # Inserir linhas
+            # Guardar todas as linhas (para busca/filtro)
             for reg in dados:
                 valores = ["" if v is None else str(v) for v in reg]
-                item = self.tree.insert("", tk.END, values=valores)
-                self.linhas_originais[item] = tuple(valores)
+                self.dados_completos.append(valores)
 
-            pk_txt = self.pk_atual if self.pk_atual else "NENHUMA (edicao desabilitada)"
-            self.lbl_status.config(
-                text=f"{len(dados)} registro(s) | Chave primaria: {pk_txt} "
-                     f"| Duplo clique numa celula para editar.")
+            # Atualizar combobox de colunas da busca
+            if self.combo_coluna is not None:
+                self.combo_coluna["values"] = ["Todas as colunas"] + colunas
+                self.combo_coluna.current(0)
+            if self.ent_busca is not None:
+                self.ent_busca.delete(0, tk.END)
+
+            # Renderizar linhas (sem filtro)
+            self._render_linhas()
         except Exception as e:
             messagebox.showerror("Erro",
                                  f"Nao foi possivel carregar a tabela:\n{e}")
+
+    def _render_linhas(self, filtro="", coluna=None):
+        """Insere no treeview as linhas de dados_completos que casam com o filtro."""
+        self.tree.delete(*self.tree.get_children())
+        self.linhas_originais = {}
+        self.alteracoes = {}
+
+        filtro = (filtro or "").strip().lower()
+        idx_coluna = None
+        if coluna and coluna in self.colunas_atual:
+            idx_coluna = self.colunas_atual.index(coluna)
+
+        mostrados = 0
+        for valores in self.dados_completos:
+            if filtro:
+                if idx_coluna is not None:
+                    alvo = str(valores[idx_coluna]).lower()
+                    if filtro not in alvo:
+                        continue
+                else:
+                    if not any(filtro in str(v).lower() for v in valores):
+                        continue
+            item = self.tree.insert("", tk.END, values=valores)
+            self.linhas_originais[item] = tuple(valores)
+            mostrados += 1
+
+        pk_txt = self.pk_atual if self.pk_atual else "NENHUMA (edicao desabilitada)"
+        if filtro:
+            alvo_txt = coluna if idx_coluna is not None else "todas as colunas"
+            self.lbl_status.config(
+                text=f"{mostrados} de {len(self.dados_completos)} registro(s) "
+                     f"(filtro: '{filtro}' em {alvo_txt}) | Chave primaria: {pk_txt}")
+        else:
+            self.lbl_status.config(
+                text=f"{mostrados} registro(s) | Chave primaria: {pk_txt} "
+                     f"| Duplo clique numa celula para editar.")
+
+    def _buscar(self):
+        if not self.tabela_atual:
+            return
+        if self.alteracoes:
+            if not messagebox.askyesno(
+                    "Alteracoes pendentes",
+                    "Ha alteracoes nao salvas. A busca vai descarta-las.\n"
+                    "Deseja continuar?"):
+                return
+        termo = self.ent_busca.get() if self.ent_busca else ""
+        col = self.combo_coluna.get() if self.combo_coluna else ""
+        coluna = None if col in ("", "Todas as colunas") else col
+        self._render_linhas(termo, coluna)
+
+    def _limpar_filtro(self):
+        if self.ent_busca is not None:
+            self.ent_busca.delete(0, tk.END)
+        if self.combo_coluna is not None and self.combo_coluna["values"]:
+            self.combo_coluna.current(0)
+        self._render_linhas()
+
+    # -------------------------------------------------------------- #
+    # Limpar todos os dados da tabela (TRUNCATE)                      #
+    # -------------------------------------------------------------- #
+    def limpar_tabela(self):
+        if not self.tabela_atual:
+            messagebox.showinfo("Atencao", "Selecione uma tabela primeiro.")
+            return
+
+        tabela = self.tabela_atual
+        total = len(self.dados_completos)
+
+        if not messagebox.askyesno(
+                "Confirmar limpeza",
+                f"Isso vai APAGAR TODOS os {total} registro(s) da tabela "
+                f"'{tabela}'.\n\nEssa acao NAO pode ser desfeita.\n\n"
+                f"Tem certeza que deseja continuar?",
+                icon="warning"):
+            return
+
+        # Segunda confirmacao com digitacao para evitar acidentes
+        confirma = simpledialog.askstring(
+            "Confirmacao final",
+            f"Para confirmar, digite o nome da tabela:\n\n{tabela}",
+            parent=self.root)
+        if confirma != tabela:
+            messagebox.showinfo("Cancelado",
+                                "Nome nao confere. Operacao cancelada.")
+            return
+
+        try:
+            cur = self.conn.cursor()
+            try:
+                cur.execute(f"TRUNCATE TABLE `{tabela}`")
+            except Exception:
+                # Fallback (ex.: tabela com FK que impede TRUNCATE)
+                cur.execute(f"DELETE FROM `{tabela}`")
+            self.conn.commit()
+            cur.close()
+            messagebox.showinfo(
+                "Concluido",
+                f"Todos os dados da tabela '{tabela}' foram apagados.")
+            self._exibir_dados_tabela(tabela)
+        except Exception as e:
+            try:
+                self.conn.rollback()
+            except Exception:
+                pass
+            messagebox.showerror(
+                "Erro",
+                f"Nao foi possivel limpar a tabela:\n{e}")
+
 
     # -------------------------------------------------------------- #
     # Edicao de celula (entry sobreposto)                            #
