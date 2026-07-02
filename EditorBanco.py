@@ -450,6 +450,18 @@ class EditorBancoApp:
                   relief="flat", bg="#1b4fa8", fg="white", cursor="hand2",
                   command=self.tela_selecionar_banco).pack(
                       side="right", padx=20, pady=11)
+        tk.Button(topo, text="SQL Interativo", font=("Segoe UI", 10),
+                  relief="flat", bg="#6f42c1", fg="white", cursor="hand2",
+                  command=self.abrir_sql_interativo).pack(
+                      side="right", padx=(0, 4), pady=11)
+        tk.Button(topo, text="Restaurar", font=("Segoe UI", 10),
+                  relief="flat", bg="#fd7e14", fg="white", cursor="hand2",
+                  command=self.restaurar_banco).pack(
+                      side="right", padx=(0, 4), pady=11)
+        tk.Button(topo, text="Backup", font=("Segoe UI", 10),
+                  relief="flat", bg="#17a2b8", fg="white", cursor="hand2",
+                  command=self.backup_banco).pack(
+                      side="right", padx=(0, 4), pady=11)
 
         # Corpo dividido: esquerda (tabelas) / direita (dados)
         painel = tk.PanedWindow(self.root, orient="horizontal",
@@ -495,6 +507,11 @@ class EditorBancoApp:
                   font=("Segoe UI", 11, "bold"), bg="#dc3545", fg="white",
                   relief="flat", cursor="hand2", padx=12, pady=4,
                   command=self.limpar_tabela).pack(
+                      side="right", padx=(0, 4), pady=7)
+        tk.Button(toolbar, text="Clonar registro",
+                  font=("Segoe UI", 11, "bold"), bg="#8e44ad", fg="white",
+                  relief="flat", cursor="hand2", padx=12, pady=4,
+                  command=self.clonar_registro).pack(
                       side="right", padx=(0, 4), pady=7)
         tk.Button(toolbar, text="Recarregar",
                   font=("Segoe UI", 11), bg="#dddddd",
@@ -745,6 +762,338 @@ class EditorBancoApp:
                 "Erro",
                 f"Nao foi possivel limpar a tabela:\n{e}")
 
+    # -------------------------------------------------------------- #
+    # Clonar / copiar registro                                       #
+    # -------------------------------------------------------------- #
+    def clonar_registro(self):
+        if not self.tabela_atual:
+            messagebox.showinfo("Atencao", "Selecione uma tabela primeiro.")
+            return
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showinfo(
+                "Atencao",
+                "Selecione (clique) a linha que deseja clonar.")
+            return
+        if len(sel) > 1:
+            messagebox.showinfo(
+                "Atencao", "Selecione apenas UMA linha para clonar.")
+            return
+
+        item = sel[0]
+        valores = list(self.tree.item(item, "values"))
+
+        if not messagebox.askyesno(
+                "Clonar registro",
+                "Deseja criar uma copia (clone) desta linha na tabela "
+                f"'{self.tabela_atual}'?"):
+            return
+
+        # Descobrir colunas auto_increment para nao copiar (deixa o banco gerar)
+        colunas_incluir = []
+        valores_incluir = []
+        try:
+            cur = self.conn.cursor()
+            cur.execute(f"SHOW COLUMNS FROM `{self.tabela_atual}`")
+            info_cols = cur.fetchall()  # (Field, Type, Null, Key, Default, Extra)
+            auto_cols = set()
+            for row in info_cols:
+                field = row[0]
+                extra = (row[5] or "").lower() if len(row) > 5 else ""
+                if "auto_increment" in extra:
+                    auto_cols.add(field)
+
+            for idx, coluna in enumerate(self.colunas_atual):
+                # Pula colunas auto_increment (inclusive a PK auto)
+                if coluna in auto_cols:
+                    continue
+                val = valores[idx] if idx < len(valores) else ""
+                colunas_incluir.append(coluna)
+                valores_incluir.append(None if val == "" else val)
+
+            if not colunas_incluir:
+                messagebox.showwarning(
+                    "Nao foi possivel clonar",
+                    "Todas as colunas sao auto_increment; nada para copiar.")
+                cur.close()
+                return
+
+            cols_sql = ", ".join(f"`{c}`" for c in colunas_incluir)
+            placeholders = ", ".join(["%s"] * len(colunas_incluir))
+            sql = (f"INSERT INTO `{self.tabela_atual}` "
+                   f"({cols_sql}) VALUES ({placeholders})")
+            cur.execute(sql, valores_incluir)
+            self.conn.commit()
+            novo_id = cur.lastrowid
+            cur.close()
+
+            msg = "Registro clonado com sucesso!"
+            if novo_id:
+                msg += f"\nNovo ID gerado: {novo_id}"
+            messagebox.showinfo("Sucesso", msg)
+            self._exibir_dados_tabela(self.tabela_atual)
+        except Exception as e:
+            try:
+                self.conn.rollback()
+            except Exception:
+                pass
+            messagebox.showerror(
+                "Erro ao clonar",
+                f"Nao foi possivel clonar o registro:\n{e}\n\n"
+                "Dica: se houver colunas UNIQUE (alem da PK), o valor\n"
+                "duplicado pode impedir a copia.")
+
+    # -------------------------------------------------------------- #
+    # Backup e Restauracao do banco                                  #
+    # -------------------------------------------------------------- #
+    def backup_banco(self):
+        if not self.banco_atual:
+            messagebox.showinfo("Atencao", "Nenhum banco aberto.")
+            return
+        # Reaproveita a rotina de backup (pede pasta, mysqldump/manual)
+        self._fazer_backup(self.banco_atual)
+
+    def restaurar_banco(self):
+        if not self.banco_atual:
+            messagebox.showinfo("Atencao", "Nenhum banco aberto.")
+            return
+
+        arquivo = filedialog.askopenfilename(
+            title="Escolha o arquivo .sql para restaurar",
+            filetypes=[("Arquivos SQL", "*.sql"), ("Todos", "*.*")])
+        if not arquivo:
+            return
+
+        if not messagebox.askyesno(
+                "Confirmar restauracao",
+                f"Isso vai EXECUTAR o script:\n{arquivo}\n\n"
+                f"no banco '{self.banco_atual}'.\n\n"
+                "Dados existentes podem ser SOBRESCRITOS ou APAGADOS.\n"
+                "Recomendamos fazer um Backup antes.\n\n"
+                "Deseja continuar?",
+                icon="warning"):
+            return
+
+        try:
+            with open(arquivo, "r", encoding="utf-8") as f:
+                conteudo = f.read()
+        except Exception as e:
+            messagebox.showerror("Erro",
+                                 f"Nao foi possivel ler o arquivo:\n{e}")
+            return
+
+        # Executa os comandos do script (separados por ';')
+        try:
+            cur = self.conn.cursor()
+            cur.execute(f"USE `{self.banco_atual}`")
+            executados = 0
+            erros = []
+            for comando in self._separar_comandos_sql(conteudo):
+                cmd = comando.strip()
+                if not cmd or cmd.startswith("--"):
+                    continue
+                try:
+                    cur.execute(cmd)
+                    # Consome resultados se houver
+                    try:
+                        cur.fetchall()
+                    except Exception:
+                        pass
+                    executados += 1
+                except Exception as e:
+                    erros.append(str(e))
+            self.conn.commit()
+            cur.close()
+
+            if erros:
+                messagebox.showwarning(
+                    "Restauracao concluida com avisos",
+                    f"{executados} comando(s) executado(s).\n"
+                    f"{len(erros)} erro(s):\n\n" + "\n".join(erros[:8]))
+            else:
+                messagebox.showinfo(
+                    "Sucesso",
+                    f"Restauracao concluida!\n"
+                    f"{executados} comando(s) executado(s).")
+            # Atualiza listas e tabela atual
+            self._carregar_lista_tabelas()
+            if self.tabela_atual:
+                self._exibir_dados_tabela(self.tabela_atual)
+        except Exception as e:
+            try:
+                self.conn.rollback()
+            except Exception:
+                pass
+            messagebox.showerror("Erro na restauracao",
+                                 f"Falha ao restaurar:\n{e}")
+
+    @staticmethod
+    def _separar_comandos_sql(script):
+        """Separa comandos por ';' respeitando aspas simples/duplas e comentarios."""
+        comandos = []
+        atual = []
+        aspas = None  # ' ou "
+        i = 0
+        n = len(script)
+        while i < n:
+            ch = script[i]
+            # Comentario de linha --
+            if aspas is None and ch == "-" and i + 1 < n and script[i + 1] == "-":
+                # Pula ate o fim da linha
+                while i < n and script[i] != "\n":
+                    i += 1
+                continue
+            if aspas is None and ch in ("'", '"'):
+                aspas = ch
+                atual.append(ch)
+            elif aspas is not None and ch == aspas:
+                # Verifica escape por barra
+                if i > 0 and script[i - 1] == "\\":
+                    atual.append(ch)
+                else:
+                    aspas = None
+                    atual.append(ch)
+            elif aspas is None and ch == ";":
+                comandos.append("".join(atual))
+                atual = []
+            else:
+                atual.append(ch)
+            i += 1
+        if "".join(atual).strip():
+            comandos.append("".join(atual))
+        return comandos
+
+    # -------------------------------------------------------------- #
+    # SQL Interativo                                                 #
+    # -------------------------------------------------------------- #
+    def abrir_sql_interativo(self):
+        if not self.conn:
+            messagebox.showinfo("Atencao", "Sem conexao com o MySQL.")
+            return
+
+        win = tk.Toplevel(self.root)
+        win.title(f"SQL Interativo - {self.banco_atual or ''}")
+        win.geometry("900x600")
+        self._centralizar(win, 900, 600)
+        win.transient(self.root)
+
+        topo = tk.Frame(win, bg="#6f42c1", height=44)
+        topo.pack(fill="x")
+        topo.pack_propagate(False)
+        tk.Label(topo, text="SQL Interativo", font=("Segoe UI", 13, "bold"),
+                 bg="#6f42c1", fg="white").pack(side="left", padx=16)
+        tk.Label(topo, text=f"Banco: {self.banco_atual or '(nenhum)'}",
+                 font=("Segoe UI", 10), bg="#6f42c1", fg="white").pack(
+                     side="right", padx=16)
+
+        # Area de entrada do codigo
+        tk.Label(win, text="Digite o comando MySQL abaixo:",
+                 font=("Segoe UI", 10), anchor="w").pack(
+                     fill="x", padx=12, pady=(10, 2))
+        txt = tk.Text(win, height=8, font=("Consolas", 11), wrap="none")
+        txt.pack(fill="x", padx=12)
+        txt.focus_set()
+
+        botoes = tk.Frame(win)
+        botoes.pack(fill="x", padx=12, pady=8)
+
+        lbl_info = tk.Label(win, text="", font=("Segoe UI", 9),
+                            fg="#555", anchor="w")
+        lbl_info.pack(fill="x", padx=12)
+
+        # Area de resultado (Treeview)
+        cont_res = tk.Frame(win)
+        cont_res.pack(expand=True, fill="both", padx=12, pady=(4, 12))
+        vsb = ttk.Scrollbar(cont_res, orient="vertical")
+        hsb = ttk.Scrollbar(cont_res, orient="horizontal")
+        tree_res = ttk.Treeview(cont_res, show="headings",
+                                yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        vsb.config(command=tree_res.yview)
+        hsb.config(command=tree_res.xview)
+        tree_res.grid(row=0, column=0, sticky="nsew")
+        vsb.grid(row=0, column=1, sticky="ns")
+        hsb.grid(row=1, column=0, sticky="ew")
+        cont_res.rowconfigure(0, weight=1)
+        cont_res.columnconfigure(0, weight=1)
+
+        def executar():
+            sql = txt.get("1.0", tk.END).strip()
+            if not sql:
+                lbl_info.config(text="Digite um comando antes de executar.",
+                                fg="red")
+                return
+            # Remove ; final para execucao unica
+            comandos = [c for c in self._separar_comandos_sql(sql)
+                        if c.strip() and not c.strip().startswith("--")]
+            if not comandos:
+                return
+
+            tree_res.delete(*tree_res.get_children())
+            tree_res["columns"] = ()
+
+            try:
+                cur = self.conn.cursor()
+                if self.banco_atual:
+                    cur.execute(f"USE `{self.banco_atual}`")
+                total_afetadas = 0
+                ultimo_com_resultado = None
+                colunas = None
+                linhas = None
+
+                for cmd in comandos:
+                    cur.execute(cmd)
+                    if cur.description:  # SELECT/SHOW/DESCRIBE etc.
+                        colunas = [d[0] for d in cur.description]
+                        linhas = cur.fetchall()
+                        ultimo_com_resultado = cmd
+                    else:
+                        total_afetadas += cur.rowcount
+
+                self.conn.commit()
+                cur.close()
+
+                if colunas is not None:
+                    tree_res["columns"] = colunas
+                    for c in colunas:
+                        tree_res.heading(c, text=c)
+                        tree_res.column(c, width=140, minwidth=60, anchor="w")
+                    for reg in linhas:
+                        vals = ["" if v is None else str(v) for v in reg]
+                        tree_res.insert("", tk.END, values=vals)
+                    lbl_info.config(
+                        text=f"{len(linhas)} linha(s) retornada(s).",
+                        fg="green")
+                else:
+                    lbl_info.config(
+                        text=f"Comando(s) executado(s). "
+                             f"Linhas afetadas: {total_afetadas}.",
+                        fg="green")
+
+                # Se alterou dados, atualiza a tela principal
+                self._carregar_lista_tabelas()
+                if self.tabela_atual:
+                    self._exibir_dados_tabela(self.tabela_atual)
+            except Exception as e:
+                try:
+                    self.conn.rollback()
+                except Exception:
+                    pass
+                lbl_info.config(text=f"ERRO: {e}", fg="red")
+                messagebox.showerror("Erro no SQL", str(e), parent=win)
+
+        tk.Button(botoes, text="Executar (F5)", font=("Segoe UI", 11, "bold"),
+                  bg="#28a745", fg="white", relief="flat", cursor="hand2",
+                  padx=16, pady=4, command=executar).pack(side="left")
+        tk.Button(botoes, text="Limpar", font=("Segoe UI", 11),
+                  bg="#dddddd", relief="flat", cursor="hand2",
+                  padx=12, pady=4,
+                  command=lambda: txt.delete("1.0", tk.END)).pack(
+                      side="left", padx=6)
+        tk.Label(botoes,
+                 text="Dica: aceita varios comandos separados por ';'",
+                 font=("Segoe UI", 9), fg="#777").pack(side="left", padx=10)
+
+        win.bind("<F5>", lambda e: executar())
 
     # -------------------------------------------------------------- #
     # Edicao de celula (entry sobreposto)                            #
