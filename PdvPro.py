@@ -11264,10 +11264,23 @@ class PDVApp:
                      font=("Segoe UI", 13, "bold")).pack(anchor="w", pady=(4, 2))
             lbl_cont = tk.Label(body, text=f"Selecionadas: 0 / {n}", bg=COR_FUNDO,
                                 fg=COR_ALERTA, font=("Segoe UI", 10, "bold"))
-            lbl_cont.pack(anchor="w", pady=(0, 8))
+            lbl_cont.pack(anchor="w", pady=(0, 6))
+
+            # Barra de busca (filtra as proteinas em tempo real)
+            busca_frame = tk.Frame(body, bg=COR_FUNDO)
+            busca_frame.pack(fill="x", pady=(0, 6))
+            tk.Label(busca_frame, text=f"{Icons.SEARCH}", bg=COR_FUNDO,
+                     fg=COR_TEXTO2, font=("Segoe UI", 11)).pack(side="left", padx=(2, 4))
+            et_busca_prot = StyledEntry(busca_frame)
+            et_busca_prot.pack(side="left", fill="x", expand=True)
+            add_tooltip(et_busca_prot, "Digite para filtrar as proteinas")
+            lbl_vazio = tk.Label(body, text="", bg=COR_FUNDO, fg=COR_TEXTO2,
+                                 font=("Segoe UI", 9, "italic"))
+            lbl_vazio.pack(anchor="w")
 
             inner = _scroll_area(body)
             prot_vars = {}
+            cb_widgets = []
 
             def _atualizar_contador():
                 sel = [pid for pid, (v, _d) in prot_vars.items() if v.get()]
@@ -11282,7 +11295,7 @@ class PDVApp:
                 _atualizar_contador()
 
             cols = 2
-            for i, p in enumerate(proteinas):
+            for p in proteinas:
                 var = tk.IntVar(value=0)
                 prot_vars[p["id"]] = (var, p["descricao"])
                 cb = tk.Checkbutton(
@@ -11291,9 +11304,29 @@ class PDVApp:
                     bg=COR_FUNDO, fg=COR_TEXTO, selectcolor=COR_CARD,
                     activebackground=COR_FUNDO, activeforeground=COR_PRIMARIA,
                     font=("Segoe UI", 10), anchor="w")
-                cb.grid(row=i // cols, column=i % cols, sticky="w", padx=8, pady=2)
+                cb_widgets.append(((p["descricao"] or "").lower(), cb))
             for c in range(cols):
                 inner.grid_columnconfigure(c, weight=1)
+
+            def _filtrar_prot(*_):
+                termo = et_busca_prot.get().strip().lower()
+                for _d, cb in cb_widgets:
+                    cb.grid_forget()
+                vis = 0
+                for desc, cb in cb_widgets:
+                    if not termo or termo in desc:
+                        cb.grid(row=vis // cols, column=vis % cols,
+                                sticky="w", padx=8, pady=2)
+                        vis += 1
+                lbl_vazio.config(
+                    text="" if vis else "Nenhuma proteina encontrada para a busca.")
+
+            et_busca_prot.bind("<KeyRelease>", _filtrar_prot)
+            _filtrar_prot()  # layout inicial (mostra todas)
+            try:
+                et_busca_prot.focus_set()
+            except Exception:
+                pass
 
             def avancar():
                 sel = [(pid, d) for pid, (v, d) in prot_vars.items() if v.get()]
