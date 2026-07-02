@@ -16865,6 +16865,32 @@ class PDVApp:
                                 fg=COR_ERRO, font=("Segoe UI", 9, "bold"))
         lbl_total_c.pack(side="right", padx=12)
 
+        # Barra de botoes FIXADA no rodape (empacotada antes da tabela para
+        # ficar sempre visivel, mesmo em telas menores).
+        btn_frame = tk.Frame(content, bg=COR_FUNDO)
+        btn_frame.pack(side="bottom", fill="x", pady=5)
+
+        StyledButton(btn_frame, text=f"{Icons.MONEY} Receber Pagamento",
+                     command=self.receber_conta,
+                     color=COR_BOTAO_VERDE, width=20).pack(side="left", padx=5)
+        add_tooltip(btn_frame.winfo_children()[-1],
+                    "Registrar pagamento da conta selecionada")
+
+        StyledButton(btn_frame, text=f"{Icons.REFRESH} Atualizar",
+                     command=lambda: _carregar(),
+                     color=COR_FUNDO3, width=10).pack(side="left", padx=5)
+
+        StyledButton(btn_frame, text=f"{Icons.EXPORT} Exportar CSV",
+                     command=lambda: DataExporter.export_treeview_csv(
+                         self.tree_contas, "contas_receber", parent=self.root),
+                     color=COR_BOTAO_AZUL, width=14).pack(side="left", padx=5)
+
+        StyledButton(btn_frame, text=f"{Icons.IMPRESSORA} Imprimir Saldo Cliente",
+                     command=self.imprimir_saldo_cliente,
+                     color=COR_BOTAO_LARANJA, width=22).pack(side="left", padx=5)
+        add_tooltip(btn_frame.winfo_children()[-1],
+                    "Imprime o extrato/saldo de todas as contas do cliente selecionado")
+
         # Treeview
         tree_frame = tk.Frame(content, bg=COR_FUNDO)
         tree_frame.pack(fill="both", expand=True)
@@ -16891,30 +16917,6 @@ class PDVApp:
         self.tree_contas.configure(yscrollcommand=vsb_c.set)
         self.tree_contas.pack(side="left", fill="both", expand=True)
         vsb_c.pack(side="right", fill="y")
-
-        btn_frame = tk.Frame(content, bg=COR_FUNDO)
-        btn_frame.pack(fill="x", pady=5)
-
-        StyledButton(btn_frame, text=f"{Icons.MONEY} Receber Pagamento",
-                     command=self.receber_conta,
-                     color=COR_BOTAO_VERDE, width=20).pack(side="left", padx=5)
-        add_tooltip(btn_frame.winfo_children()[-1],
-                    "Registrar pagamento da conta selecionada")
-
-        StyledButton(btn_frame, text=f"{Icons.REFRESH} Atualizar",
-                     command=lambda: _carregar(),
-                     color=COR_FUNDO3, width=10).pack(side="left", padx=5)
-
-        StyledButton(btn_frame, text=f"{Icons.EXPORT} Exportar CSV",
-                     command=lambda: DataExporter.export_treeview_csv(
-                         self.tree_contas, "contas_receber", parent=self.root),
-                     color=COR_BOTAO_AZUL, width=14).pack(side="left", padx=5)
-
-        StyledButton(btn_frame, text=f"{Icons.IMPRESSORA} Imprimir Saldo Cliente",
-                     command=self.imprimir_saldo_cliente,
-                     color=COR_BOTAO_LARANJA, width=22).pack(side="left", padx=5)
-        add_tooltip(btn_frame.winfo_children()[-1],
-                    "Imprime o extrato/saldo de todas as contas do cliente selecionado")
 
         _cache_c = [None]
 
