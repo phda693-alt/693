@@ -19537,50 +19537,53 @@ function enviarPedido() {{
                     dados_envio += b"\x1b\x61\x00"   # ESC a 0 = alinhar a esquerda
                     dados_envio += b"\n"
 
-            # Selecionar fonte conforme configuracao
-            # ESC M n: 0=Font A (normal, 12x24), 1=Font B (condensada, 9x17)
-            # ESC ! n: Bit 0=Font B, Bit 3=Emphasized, Bit 4=Double-height, Bit 5=Double-width
-            if modo_fonte == "Condensada":
-                # Font B (condensada) - mais caracteres por linha
-                dados_envio += b"\x1b\x4d\x01"  # ESC M 1 = Font B
-                dados_envio += b"\x1b\x21\x01"  # ESC ! 0x01 = Font B mode
-            elif modo_fonte == "Comprimida":
-                # Font B + sem enfase = mais compacto possivel
-                dados_envio += b"\x1b\x4d\x01"  # ESC M 1 = Font B
-                dados_envio += b"\x1b\x21\x01"  # ESC ! 0x01 = Font B mode
-                # ESC 3 n = Set line spacing to n/180 inch (menor = mais compacto)
-                dados_envio += b"\x1b\x33\x12"  # 18/180 = 0.1 inch
-            elif modo_fonte == "Grande":
-                # Font A com ALTURA dobrada: fonte maior e mais legivel mantendo
-                # a MESMA largura de colunas (o layout do cupom nao muda).
-                # ESC ! 0x10 = double-height | 0x08 = enfase (negrito) => 0x18
-                dados_envio += b"\x1b\x4d\x00"  # ESC M 0 = Font A
-                dados_envio += b"\x1b\x21\x18"  # ESC ! double-height + enfase
-                # GS ! tambem (compatibilidade: algumas impressoras so obedecem
-                # este). Nibble alto=largura, baixo=altura. 0x01 = altura x2.
-                dados_envio += b"\x1d\x21\x01"  # GS ! double-height
-                dados_envio += b"\x1b\x45\x01"  # ESC E 1 = negrito ON
-                # Fonte mais alta exige mais espaco entre linhas p/ nao sobrepor
-                dados_envio += b"\x1b\x33\x40"  # ESC 3 = 64/180 inch
-            elif modo_fonte == "Extra Grande":
-                # Font A com ALTURA e LARGURA dobradas: fonte bem maior, porem
-                # cabe metade das colunas (ver preset de colunas).
-                # ESC ! 0x10 (alt) | 0x20 (larg) | 0x08 (enfase) => 0x38
-                dados_envio += b"\x1b\x4d\x00"  # ESC M 0 = Font A
-                dados_envio += b"\x1b\x21\x38"  # ESC ! double-height+width+enfase
-                # GS ! 0x11 = largura x2 + altura x2 (compatibilidade)
-                dados_envio += b"\x1d\x21\x11"  # GS ! double-width + double-height
-                dados_envio += b"\x1b\x45\x01"  # ESC E 1 = negrito ON
-                dados_envio += b"\x1b\x33\x40"  # ESC 3 = 64/180 inch
+            # ================= FONTE / TAMANHO DA IMPRESSAO =================
+            # "Modo da Fonte" define a familia (Font A normal x Font B
+            # condensada) e presets. "Tamanho da Fonte" define a AMPLIACAO
+            # (altura) via GS ! -> agora controla de fato o tamanho impresso.
+            try:
+                tam_fonte = int(float(config.get("tamanho_fonte", 12) or 12))
+            except Exception:
+                tam_fonte = 12
+            # Numero -> multiplicador de ALTURA (mantem as colunas/largura)
+            if tam_fonte <= 12:
+                mult_h = 1
+            elif tam_fonte <= 18:
+                mult_h = 2
+            elif tam_fonte <= 26:
+                mult_h = 3
             else:
-                # Font A (normal/padrao)
-                dados_envio += b"\x1b\x4d\x00"  # ESC M 0 = Font A
-                dados_envio += b"\x1b\x21\x00"  # ESC ! 0x00 = Font A mode
+                mult_h = 4
+            mult_w = 1  # largura padrao (preserva o numero de colunas)
 
-            # ESC 2 = Set default line spacing (apenas modos de tamanho normal;
-            # os modos maiores/comprimida ja definiram o proprio espacamento)
-            if modo_fonte not in ("Comprimida", "Grande", "Extra Grande"):
-                dados_envio += b"\x1b\x32"
+            condensada = modo_fonte in ("Condensada", "Comprimida")
+            # Presets do "Modo da Fonte" definem um piso de ampliacao
+            if modo_fonte == "Grande":
+                mult_h = max(mult_h, 2)
+            elif modo_fonte == "Extra Grande":
+                mult_h = max(mult_h, 2)
+                mult_w = max(mult_w, 2)   # dobra tambem a largura (metade das colunas)
+
+            mult_h = max(1, min(8, mult_h))
+            mult_w = max(1, min(8, mult_w))
+
+            # Familia: Font B (condensada) x Font A (normal)
+            dados_envio += b"\x1b\x4d" + (b"\x01" if condensada else b"\x00")  # ESC M
+            # Ampliacao: GS ! (nibble alto = largura, baixo = altura)
+            gs_n = ((mult_w - 1) << 4) | (mult_h - 1)
+            dados_envio += b"\x1d\x21" + bytes([gs_n])
+            # Negrito quando a fonte esta ampliada (mais corpo/legibilidade)
+            if mult_h >= 2 or mult_w >= 2:
+                dados_envio += b"\x1b\x45\x01"  # ESC E 1 = negrito ON
+            else:
+                dados_envio += b"\x1b\x45\x00"  # ESC E 0 = negrito OFF
+            # Espacamento entre linhas conforme a altura
+            if modo_fonte == "Comprimida" and mult_h == 1:
+                dados_envio += b"\x1b\x33\x12"  # compacto (18/180")
+            elif mult_h >= 2:
+                dados_envio += b"\x1b\x33\x40"  # 64/180" p/ fonte alta nao sobrepor
+            else:
+                dados_envio += b"\x1b\x32"      # espacamento padrao
 
         dados_envio += texto_bytes
 
@@ -19855,7 +19858,7 @@ function enviarPedido() {{
             "tamanho_papel": "80mm",
             "largura_papel": 42,
             "modo_fonte": "Grande",
-            "tamanho_fonte": 10,
+            "tamanho_fonte": 12,
             "corte_automatico": True,
             "abrir_gaveta": False,
             "imprimir_logo": False,
@@ -20802,12 +20805,16 @@ function enviarPedido() {{
         et_largura.insert(0, str(config.get("largura_papel", 48)))
         et_largura.grid(row=4, column=1, sticky="w", padx=5, pady=4)
 
-        # Tamanho da Fonte (preview) - agora na row 5
-        tk.Label(card2, text="Tamanho da Fonte (preview):", bg=COR_GLASS, fg=COR_TEXTO,
+        # Tamanho da Fonte (agora afeta a IMPRESSAO) - row 5
+        tk.Label(card2, text="Tamanho da Fonte (impressao):", bg=COR_GLASS, fg=COR_TEXTO,
                  font=("Segoe UI", 10)).grid(row=5, column=0, sticky="w", padx=5, pady=4)
         et_fonte = StyledEntry(card2, width=10)
-        et_fonte.insert(0, str(config.get("tamanho_fonte", 8)))
+        et_fonte.insert(0, str(config.get("tamanho_fonte", 12)))
         et_fonte.grid(row=5, column=1, sticky="w", padx=5, pady=4)
+        add_tooltip(et_fonte,
+                    "Controla o tamanho impresso (altura):\n"
+                    "ate 12 = normal | 13-18 = 2x | 19-26 = 3x | 27+ = 4x.\n"
+                    "A largura/colunas nao muda (use 'Extra Grande' p/ dobrar a largura).")
 
         # Margem Esquerda
         tk.Label(card2, text="Margem Esquerda (colunas):", bg=COR_GLASS, fg=COR_TEXTO,
@@ -21159,12 +21166,12 @@ function enviarPedido() {{
                 et_porta.delete(0, tk.END)
                 combo_codepage.set("UTF-8")
                 combo_tamanho_papel.set("80mm")
-                combo_modo_fonte.set("Condensada")
+                combo_modo_fonte.set("Grande")
                 lbl_fonte_info.config(text="")
                 et_largura.delete(0, tk.END)
-                et_largura.insert(0, "48")
+                et_largura.insert(0, "42")
                 et_fonte.delete(0, tk.END)
-                et_fonte.insert(0, "8")
+                et_fonte.insert(0, "12")
                 et_margem_esq.delete(0, tk.END)
                 et_margem_esq.insert(0, "0")
                 et_margem_dir.delete(0, tk.END)
