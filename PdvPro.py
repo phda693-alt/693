@@ -4864,6 +4864,19 @@ class DatabaseHelper:
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """
 
+        tables["entradas_caixa"] = """
+            CREATE TABLE IF NOT EXISTS entradas_caixa (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                caixa_id INT DEFAULT NULL,
+                descricao VARCHAR(200) DEFAULT NULL,
+                valor DECIMAL(10,2) DEFAULT 0,
+                origem VARCHAR(40) DEFAULT NULL,
+                conta_receber_id INT DEFAULT NULL,
+                operador_nome VARCHAR(100) DEFAULT NULL,
+                data DATETIME DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """
+
         tables["comandas"] = """
             CREATE TABLE IF NOT EXISTS comandas (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -6561,6 +6574,7 @@ class CupomGenerator:
                                       valor_fechamento, data_abertura, data_fechamento,
                                       total_vendas, qtd_vendas, total_vales, qtd_vales,
                                       total_sangrias=0, qtd_sangrias=0,
+                                      total_entradas=0, qtd_entradas=0,
                                       pagamentos_resumo=None, empresa=None,
                                       colunas=48, margem_esq=0, margem_dir=0, espacamento=1):
         """Gera o texto do cupom de FECHAMENTO DE CAIXA para impressao.
@@ -6662,11 +6676,21 @@ class CupomGenerator:
                 _add_right(f"Total Sangrias: R$ {FormatUtils.format_money(total_sangrias)}")
                 sb.append(line_sep)
 
+            # === ENTRADAS / RECEBIMENTOS (contas a receber -> credito no caixa) ===
+            if qtd_entradas > 0:
+                _add_center("ENTRADAS / RECEBIMENTOS")
+                sb.append(line_sep)
+                _add_wrap(f"Quantidade: {qtd_entradas}")
+                _add_right(f"Total Entradas: R$ {FormatUtils.format_money(total_entradas)}")
+                sb.append(line_sep)
+
             # === TOTAIS ===
             _add_center("TOTALIZACAO")
             sb.append(line_sep)
             _add_right(f"Valor Abertura: R$ {FormatUtils.format_money(valor_abertura)}")
             _add_right(f"(+) Vendas: R$ {FormatUtils.format_money(total_vendas)}")
+            if total_entradas > 0:
+                _add_right(f"(+) Entradas/Receb.: R$ {FormatUtils.format_money(total_entradas)}")
             if total_vales > 0:
                 _add_right(f"(-) Vales/Debitos: R$ {FormatUtils.format_money(total_vales)}")
             if total_sangrias > 0:
@@ -6675,7 +6699,7 @@ class CupomGenerator:
             sb.append(line_sep)
 
             # Diferenca (se houver)
-            esperado = float(valor_abertura) + float(total_vendas) - float(total_vales) - float(total_sangrias)
+            esperado = float(valor_abertura) + float(total_vendas) + float(total_entradas) - float(total_vales) - float(total_sangrias)
             diferenca = float(valor_fechamento) - esperado
             if abs(diferenca) > 0.01:
                 if diferenca > 0:
@@ -9828,6 +9852,12 @@ class PDVApp:
                 initialvalue=pendente, minvalue=0.01, parent=dialog)
             if not valor:
                 return
+            if not Session.caixa_id:
+                self.show_error(
+                    "Abra o caixa antes de receber.\n\n"
+                    "O recebimento entra como credito (entrada) no caixa atual.")
+                return
+            caixa_id_receb = Session.caixa_id
             def receber():
                 db = DatabaseHelper.get_instance()
                 novo_pendente = pendente - valor
@@ -9839,9 +9869,16 @@ class PDVApp:
                     "status = %s WHERE id = %s",
                     (valor, valor, status, conta_id)
                 )
+                db.execute_update(
+                    "INSERT INTO entradas_caixa (caixa_id, descricao, valor, origem, "
+                    "conta_receber_id, operador_nome) VALUES (%s,%s,%s,'conta_receber',%s,%s)",
+                    (caixa_id_receb,
+                     f"Recebimento conta #{conta_id} - {cliente_nome}",
+                     valor, conta_id, getattr(Session, "user_nome", "") or "")
+                )
                 return status
             def on_recebido(status):
-                msg = (f"Pagamento de R$ {FormatUtils.format_money(valor)} registrado!"
+                msg = (f"Recebido R$ {FormatUtils.format_money(valor)} (credito no caixa)!"
                        + (" Conta QUITADA!" if status == "quitada" else ""))
                 ToastManager.success(msg)
                 _carregar()
@@ -12467,7 +12504,19 @@ class PDVApp:
                     f"  Sangrias: {qtd_sang}  |  "
                     f"Total: R$ {FormatUtils.format_money(tot_sang)}")
 
-            if qtd_vales > 0 or qtd_sang > 0:
+            # Entradas / Recebimentos (credito no caixa)
+            rows_e = db.execute_query(
+                "SELECT COUNT(*) as qtd, COALESCE(SUM(valor),0) as total "
+                "FROM entradas_caixa WHERE caixa_id = %s", (caixa_id,)
+            )
+            qtd_ent = int(rows_e[0]["qtd"]) if rows_e else 0
+            tot_ent = float(rows_e[0]["total"]) if rows_e else 0.0
+            if qtd_ent > 0:
+                resumo.append(
+                    f"  Entradas/Receb.: {qtd_ent}  |  "
+                    f"Total: R$ {FormatUtils.format_money(tot_ent)}  (credito)")
+
+            if qtd_vales > 0 or qtd_sang > 0 or qtd_ent > 0:
                 resumo.append(sep)
 
             # Ultimas 10 vendas
@@ -12599,7 +12648,15 @@ class PDVApp:
             total_sangrias = float(rows_s[0]["total"]) if rows_s else 0
             qtd_sangrias = int(rows_s[0]["qtd"]) if rows_s else 0
 
-            valor_fechamento = valor_abertura + total_vendas - total_vales - total_sangrias
+            # Entradas (recebimentos de contas a receber = credito no caixa)
+            rows_e = db.execute_query(
+                "SELECT COUNT(*) as qtd, COALESCE(SUM(valor),0) as total FROM entradas_caixa WHERE caixa_id = %s",
+                (caixa_id_fechando,)
+            )
+            total_entradas = float(rows_e[0]["total"]) if rows_e else 0
+            qtd_entradas = int(rows_e[0]["qtd"]) if rows_e else 0
+
+            valor_fechamento = valor_abertura + total_vendas + total_entradas - total_vales - total_sangrias
 
             # Resumo por forma de pagamento
             pag_rows = db.execute_query(
@@ -12642,6 +12699,8 @@ class PDVApp:
                 "qtd_vales": qtd_vales,
                 "total_sangrias": total_sangrias,
                 "qtd_sangrias": qtd_sangrias,
+                "total_entradas": total_entradas,
+                "qtd_entradas": qtd_entradas,
                 "pagamentos_resumo": pagamentos_resumo,
                 "empresa": empresa,
                 "data_abertura": caixa_data.get("data_abertura", ""),
@@ -12668,6 +12727,8 @@ class PDVApp:
                 qtd_vales=result["qtd_vales"],
                 total_sangrias=result.get("total_sangrias", 0),
                 qtd_sangrias=result.get("qtd_sangrias", 0),
+                total_entradas=result.get("total_entradas", 0),
+                qtd_entradas=result.get("qtd_entradas", 0),
                 pagamentos_resumo=result["pagamentos_resumo"],
                 empresa=result["empresa"],
                 colunas=printer_cfg.get("largura_papel", 48),
@@ -17209,6 +17270,12 @@ class PDVApp:
         if not sel:
             ToastManager.warning("Selecione uma conta.")
             return
+        if not Session.caixa_id:
+            self.show_error(
+                "Abra o caixa antes de receber.\n\n"
+                "O recebimento da conta entra como CREDITO (entrada) no caixa "
+                "atual, por isso e necessario ter um caixa aberto.")
+            return
         conta_id = self.tree_contas.item(sel[0])["values"][0]
         cliente_nome = self.tree_contas.item(sel[0])["values"][1]
         pendente = FormatUtils.parse_money(
@@ -17225,6 +17292,8 @@ class PDVApp:
         if not valor:
             return
 
+        caixa_id_receb = Session.caixa_id
+
         def receber():
             db = DatabaseHelper.get_instance()
             novo_pendente = pendente - valor
@@ -17237,15 +17306,25 @@ class PDVApp:
                 "WHERE id = %s",
                 (valor, valor, status, conta_id)
             )
+            # Entrada (credito positivo) no caixa referente ao recebimento
+            db.execute_update(
+                "INSERT INTO entradas_caixa (caixa_id, descricao, valor, origem, "
+                "conta_receber_id, operador_nome) VALUES (%s,%s,%s,'conta_receber',%s,%s)",
+                (caixa_id_receb,
+                 f"Recebimento conta #{conta_id} - {cliente_nome}",
+                 valor, conta_id, getattr(Session, "user_nome", "") or "")
+            )
             return status
 
         def on_recebido(status):
-            msg = (f"Pagamento de R$ {FormatUtils.format_money(valor)} registrado!"
+            msg = (f"Recebido R$ {FormatUtils.format_money(valor)} "
+                   f"(credito no caixa)!"
                    + (" Conta QUITADA!" if status == "quitada" else ""))
             ToastManager.success(msg)
             AuditLogger.log("CONTA_RECEBIDA",
                             f"Conta #{conta_id} | Cliente: {cliente_nome} | "
-                            f"Valor: R$ {FormatUtils.format_money(valor)} | Status: {status}",
+                            f"Valor: R$ {FormatUtils.format_money(valor)} | Status: {status} | "
+                            f"Entrada no caixa #{caixa_id_receb}",
                             usuario=Session.user_login)
             self.show_contas_receber()
 
