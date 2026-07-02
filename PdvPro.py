@@ -19853,6 +19853,71 @@ function enviarPedido() {{
             _logger.warning(f"Falha ao gerar logo ESC/POS: {e}")
             return b""
 
+    def _render_cupom_imagem(self, texto, config, width_px=576):
+        """Renderiza o cupom (texto) numa imagem PIL, com a fonte dimensionada
+        para PREENCHER a largura conforme o numero de colunas (Largura do
+        Papel): menos colunas = fonte maior. Usada tanto na impressao grafica
+        quanto na PREVIA da tela (o que se ve = o que sai no papel).
+        Retorna a imagem PIL (modo 'L') ou None se o Pillow faltar."""
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+        except Exception:
+            return None
+        try:
+            try:
+                cols = int(float(config.get("largura_papel", 48) or 48))
+            except Exception:
+                cols = 48
+            cols = max(16, min(cols, 64))
+            # Monospace ~0.6*px de largura -> px que preenche a largura
+            px = max(14, int((float(width_px) / cols) / 0.6))
+            fonte = None
+            for fp in (r"C:\Windows\Fonts\consolab.ttf", r"C:\Windows\Fonts\courbd.ttf",
+                       r"C:\Windows\Fonts\consola.ttf", r"C:\Windows\Fonts\cour.ttf",
+                       r"C:\Windows\Fonts\lucon.ttf",
+                       "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"):
+                try:
+                    fonte = ImageFont.truetype(fp, px)
+                    break
+                except Exception:
+                    continue
+            if fonte is None:
+                fonte = ImageFont.load_default()
+            tmp = Image.new("L", (10, 10), 255)
+            dt = ImageDraw.Draw(tmp)
+            try:
+                bb = dt.textbbox((0, 0), "Ag", font=fonte)
+                ch = bb[3] - bb[1]
+            except Exception:
+                ch = px
+            line_h = int(ch * 1.15) + 2
+            linhas = texto.split("\n")
+            logo_img = None
+            if config.get("imprimir_logo") and (config.get("caminho_logo") or "").strip():
+                try:
+                    lg = Image.open(config["caminho_logo"].strip()).convert("L")
+                    if lg.width > width_px:
+                        nh = int(lg.height * width_px / lg.width)
+                        lg = lg.resize((width_px, nh))
+                    logo_img = lg
+                except Exception:
+                    logo_img = None
+            top = (logo_img.height + 10) if logo_img else 0
+            altura = top + line_h * max(1, len(linhas)) + int(line_h * 1.5)
+            img = Image.new("L", (width_px, altura), 255)
+            draw = ImageDraw.Draw(img)
+            y = 0
+            if logo_img:
+                img.paste(logo_img, ((width_px - logo_img.width) // 2, 0))
+                y = logo_img.height + 10
+            for ln in linhas:
+                draw.text((0, y), ln.rstrip("\r"), font=fonte, fill=0)
+                y += line_h
+            return img
+        except Exception as e:
+            _logger.warning(f"Falha ao renderizar imagem do cupom: {e}")
+            return None
+
     def _imprimir_grafico_windows(self, texto, config):
         """Imprime o cupom como IMAGEM via GDI (win32ui), desenhando o texto
         com a fonte dimensionada para PREENCHER a largura do papel conforme o
@@ -19919,63 +19984,17 @@ function enviarPedido() {{
             # Usa a largura do dispositivo quando plausivel (evita paginas A4)
             width_px = dev_w if 200 <= dev_w <= 1300 else padrao_w
 
-            # Numero de colunas define o tamanho da fonte (para preencher a
-            # largura). Menos colunas => caracteres maiores.
+            # Numero de colunas define o tamanho da fonte (menos colunas =
+            # fonte maior). A renderizacao e feita por _render_cupom_imagem,
+            # a MESMA usada na previa da tela (o que voce ve = o que sai).
             try:
                 cols = int(float(config.get("largura_papel", 48) or 48))
             except Exception:
                 cols = 48
             cols = max(16, min(cols, 64))
-            # Monospace ~0.6*px de largura por caractere -> px que preenche a largura
-            px = max(14, int((float(width_px) / cols) / 0.6))
-
-            fonte = None
-            for fp in (r"C:\Windows\Fonts\consolab.ttf", r"C:\Windows\Fonts\courbd.ttf",
-                       r"C:\Windows\Fonts\consola.ttf", r"C:\Windows\Fonts\cour.ttf",
-                       r"C:\Windows\Fonts\lucon.ttf"):
-                try:
-                    fonte = ImageFont.truetype(fp, px)
-                    break
-                except Exception:
-                    continue
-            if fonte is None:
-                fonte = ImageFont.load_default()
-
-            # Altura de linha proporcional a fonte (entrelinha natural)
-            tmp = Image.new("L", (10, 10), 255)
-            dtmp = ImageDraw.Draw(tmp)
-            try:
-                bbox = dtmp.textbbox((0, 0), "Ag", font=fonte)
-                ch = bbox[3] - bbox[1]
-            except Exception:
-                ch = px
-            line_h = int(ch * 1.15) + 2
-
-            linhas = texto.split("\n")
-
-            # Logo opcional no topo (imagem)
-            logo_img = None
-            if config.get("imprimir_logo") and (config.get("caminho_logo") or "").strip():
-                try:
-                    lg = Image.open(config["caminho_logo"].strip()).convert("L")
-                    if lg.width > width_px:
-                        nh = int(lg.height * width_px / lg.width)
-                        lg = lg.resize((width_px, nh))
-                    logo_img = lg
-                except Exception:
-                    logo_img = None
-
-            top = (logo_img.height + 10) if logo_img else 0
-            altura = top + line_h * max(1, len(linhas)) + int(line_h * 1.5)
-            img = Image.new("L", (width_px, altura), 255)
-            draw = ImageDraw.Draw(img)
-            y = 0
-            if logo_img:
-                img.paste(logo_img, ((width_px - logo_img.width) // 2, 0))
-                y = logo_img.height + 10
-            for ln in linhas:
-                draw.text((0, y), ln.rstrip("\r"), font=fonte, fill=0)
-                y += line_h
+            img = self._render_cupom_imagem(texto, config, width_px)
+            if img is None:
+                return False, "Falha ao gerar a imagem do cupom (Pillow indisponivel)."
 
             hdc.StartDoc("PDV Pro Cupom")
             hdc.StartPage()
@@ -21698,6 +21717,32 @@ function enviarPedido() {{
             text_area.pack(fill="both", expand=True, padx=15, pady=5)
             text_area.insert("1.0", texto_cupom)
             text_area.config(state="disabled")
+
+            # Se o metodo for GRAFICO, mostra a PREVIA REAL (imagem) que sera
+            # impressa - controlada pela Largura do Papel (colunas). Assim o
+            # que se ve na tela e igual ao que sai no papel.
+            try:
+                if str(cfg.get("metodo_impressao", "")).lower().startswith("graf"):
+                    from PIL import ImageTk
+                    _tam = str(cfg.get("tamanho_papel", "80mm"))
+                    _wpx = 576 if "80" in _tam else 384
+                    _img = self._render_cupom_imagem(texto_cupom, cfg, _wpx)
+                    if _img is not None:
+                        text_area.pack_forget()
+                        _disp_w = 480
+                        _esc = _disp_w / float(_img.width)
+                        _img_disp = _img.resize((_disp_w, max(1, int(_img.height * _esc))))
+                        _photo = ImageTk.PhotoImage(_img_disp)
+                        _cv = tk.Canvas(preview, bg="white", highlightthickness=0)
+                        _vsb = ttk.Scrollbar(preview, orient="vertical", command=_cv.yview)
+                        _cv.configure(yscrollcommand=_vsb.set,
+                                      scrollregion=(0, 0, _disp_w, _img_disp.height))
+                        _cv.create_image(0, 0, anchor="nw", image=_photo)
+                        _cv.image = _photo  # mantem referencia
+                        _vsb.pack(side="right", fill="y")
+                        _cv.pack(fill="both", expand=True, padx=15, pady=5)
+            except Exception as _epv:
+                _logger.warning(f"Previa grafica falhou: {_epv}")
 
             # Label de status
             lbl_status_teste = tk.Label(preview, text="", bg=COR_FUNDO, fg=COR_TEXTO2,
