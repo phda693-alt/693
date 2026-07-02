@@ -119,7 +119,7 @@ FR3_EMBUTIDO = r'''<?xml version="1.0" encoding="utf-8"?>
       <TfrxMemoView Name="MemoConteudo" AllowVectorExport="1" Left="0"
         Top="0.000000000000000000" Width="264.567100000000000000"
         Height="18.897650000000000000" Font.Charset="0" Font.Color="0"
-        Font.Height="-19" Font.Name="Courier New" Font.Style="0"
+        Font.Height="-16" Font.Name="Courier New" Font.Style="1"
         StretchMode="smActualHeight" WordWrap="0" Memo.Text="[[CONTEUDO]]"/>
     </TfrxMasterData>
     <TfrxReportSummary Name="ReportSummary1" Height="30.236240000000000000"
