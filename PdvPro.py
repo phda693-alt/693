@@ -19874,9 +19874,41 @@ function enviarPedido() {{
                            f"'Pillow' instalados.\n\nDetalhe: {e}")
         hdc = None
         try:
-            printer = (config.get("nome_impressora") or "").strip() or win32print.GetDefaultPrinter()
-            hdc = win32ui.CreateDC()
-            hdc.CreatePrinterDC(printer)
+            # Abre o contexto da impressora (tenta a configurada e, se falhar,
+            # a impressora padrao do Windows).
+            nome_cfg = (config.get("nome_impressora") or "").strip()
+            candidatos = []
+            if nome_cfg:
+                candidatos.append(nome_cfg)
+            try:
+                padrao = win32print.GetDefaultPrinter()
+                if padrao and padrao not in candidatos:
+                    candidatos.append(padrao)
+            except Exception:
+                pass
+            printer = None
+            erro_dc = None
+            for cand in candidatos:
+                try:
+                    hdc = win32ui.CreateDC()
+                    hdc.CreatePrinterDC(cand)
+                    printer = cand
+                    break
+                except Exception as e:
+                    erro_dc = e
+                    try:
+                        if hdc is not None:
+                            hdc.DeleteDC()
+                    except Exception:
+                        pass
+                    hdc = None
+            if hdc is None or printer is None:
+                return False, (
+                    "Nao foi possivel abrir a impressora no modo grafico.\n"
+                    f"Impressora configurada: '{nome_cfg or '(padrao)'}'.\n"
+                    f"Detalhe: {erro_dc}\n\n"
+                    "Verifique o nome exato da impressora em Configuracoes de "
+                    "Impressora (deve ser igual ao do Windows).")
             # Largura imprimivel em PONTOS (dots) reais do dispositivo
             try:
                 dev_w = int(hdc.GetDeviceCaps(win32con.HORZRES))
@@ -20011,7 +20043,10 @@ function enviarPedido() {{
                     break
             if _ult[0]:
                 return True, _ult[1]
-            _logger.warning(f"Impressao grafica falhou, tentando ESC/POS: {_ult[1]}")
+            # Nao volta silenciosamente ao ESC/POS: mostra o erro real para
+            # o operador poder corrigir (senao parece que "nada muda").
+            return False, ("Modo GRAFICO de impressao falhou.\n\n"
+                           f"{_ult[1]}")
 
         # Tipo PDF => salvar arquivo automaticamente
         if tipo == "PDF (Arquivo)":
