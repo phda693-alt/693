@@ -19855,12 +19855,14 @@ function enviarPedido() {{
 
     def _imprimir_grafico_windows(self, texto, config):
         """Imprime o cupom como IMAGEM via GDI (win32ui), desenhando o texto
-        com a fonte no tamanho EXATO escolhido.
+        com a fonte dimensionada para PREENCHER a largura do papel conforme o
+        numero de colunas configurado.
 
-        Isto funciona em QUALQUER driver de impressora (inclusive quando a
-        impressora ignora os comandos ESC/POS ou quando a impressao cai no
-        Notepad), pois nao dependemos do firmware da impressora para o
-        tamanho da fonte: nos mesmos desenhamos as letras no tamanho pedido.
+        Funciona em QUALQUER driver (mesmo quando o ESC/POS e ignorado), pois
+        nos mesmos desenhamos as letras. Para AUMENTAR a fonte, diminua o
+        numero de colunas (Largura do Papel): menos colunas = fonte maior.
+        A imagem e impressa em resolucao NATIVA (1:1 em pontos do
+        dispositivo), sem re-escala horizontal, para o tamanho ser fiel.
 
         Retorna (sucesso: bool, mensagem: str).
         """
@@ -19870,18 +19872,31 @@ function enviarPedido() {{
         except Exception as e:
             return False, ("O modo grafico precisa dos pacotes 'pywin32' e "
                            f"'Pillow' instalados.\n\nDetalhe: {e}")
+        hdc = None
         try:
-            tam = str(config.get("tamanho_papel", "80mm"))
-            width_px = 576 if "80" in tam else 384
+            printer = (config.get("nome_impressora") or "").strip() or win32print.GetDefaultPrinter()
+            hdc = win32ui.CreateDC()
+            hdc.CreatePrinterDC(printer)
+            # Largura imprimivel em PONTOS (dots) reais do dispositivo
             try:
-                fs = int(float(config.get("tamanho_fonte", 12) or 12))
+                dev_w = int(hdc.GetDeviceCaps(win32con.HORZRES))
             except Exception:
-                fs = 12
-            # Tamanho da fonte em pixels (impressora termica ~203 dpi).
-            # O fator ~2.6 aproxima o numero de "pontos" a um tamanho visivel.
-            px = max(14, int(round(fs * 2.6)))
+                dev_w = 0
+            tam = str(config.get("tamanho_papel", "80mm"))
+            padrao_w = 576 if "80" in tam else 384
+            # Usa a largura do dispositivo quando plausivel (evita paginas A4)
+            width_px = dev_w if 200 <= dev_w <= 1300 else padrao_w
 
-            # Fonte monoespacada (tenta negrito primeiro para dar mais corpo)
+            # Numero de colunas define o tamanho da fonte (para preencher a
+            # largura). Menos colunas => caracteres maiores.
+            try:
+                cols = int(float(config.get("largura_papel", 48) or 48))
+            except Exception:
+                cols = 48
+            cols = max(16, min(cols, 64))
+            # Monospace ~0.6*px de largura por caractere -> px que preenche a largura
+            px = max(14, int((float(width_px) / cols) / 0.6))
+
             fonte = None
             for fp in (r"C:\Windows\Fonts\consolab.ttf", r"C:\Windows\Fonts\courbd.ttf",
                        r"C:\Windows\Fonts\consola.ttf", r"C:\Windows\Fonts\cour.ttf",
@@ -19894,14 +19909,17 @@ function enviarPedido() {{
             if fonte is None:
                 fonte = ImageFont.load_default()
 
-            linhas = texto.split("\n")
+            # Altura de linha proporcional a fonte (entrelinha natural)
             tmp = Image.new("L", (10, 10), 255)
             dtmp = ImageDraw.Draw(tmp)
             try:
                 bbox = dtmp.textbbox((0, 0), "Ag", font=fonte)
-                line_h = (bbox[3] - bbox[1]) + max(2, int(px * 0.25))
+                ch = bbox[3] - bbox[1]
             except Exception:
-                line_h = px + 6
+                ch = px
+            line_h = int(ch * 1.15) + 2
+
+            linhas = texto.split("\n")
 
             # Logo opcional no topo (imagem)
             logo_img = None
@@ -19916,7 +19934,7 @@ function enviarPedido() {{
                     logo_img = None
 
             top = (logo_img.height + 10) if logo_img else 0
-            altura = top + line_h * max(1, len(linhas)) + 24
+            altura = top + line_h * max(1, len(linhas)) + int(line_h * 1.5)
             img = Image.new("L", (width_px, altura), 255)
             draw = ImageDraw.Draw(img)
             y = 0
@@ -19927,25 +19945,22 @@ function enviarPedido() {{
                 draw.text((0, y), ln.rstrip("\r"), font=fonte, fill=0)
                 y += line_h
 
-            printer = (config.get("nome_impressora") or "").strip() or win32print.GetDefaultPrinter()
-            hdc = win32ui.CreateDC()
-            hdc.CreatePrinterDC(printer)
             hdc.StartDoc("PDV Pro Cupom")
             hdc.StartPage()
-            try:
-                printable_w = hdc.GetDeviceCaps(win32con.HORZRES)
-            except Exception:
-                printable_w = width_px
-            escala = (printable_w / float(img.width)) if img.width else 1.0
             dib = ImageWin.Dib(img.convert("RGB"))
-            dib.draw(hdc.GetHandleOutput(),
-                     (0, 0, int(img.width * escala), int(img.height * escala)))
+            # 1:1 em pontos do dispositivo (sem re-escala horizontal)
+            dib.draw(hdc.GetHandleOutput(), (0, 0, img.width, img.height))
             hdc.EndPage()
             hdc.EndDoc()
-            hdc.DeleteDC()
-            return True, f"Impresso (modo grafico) em: {printer}"
+            return True, f"Impresso (modo grafico, {cols} colunas) em: {printer}"
         except Exception as e:
             return False, f"Falha na impressao grafica: {e}"
+        finally:
+            try:
+                if hdc is not None:
+                    hdc.DeleteDC()
+            except Exception:
+                pass
 
     # ========================================================================
     # SISTEMA DE IMPRESSAO CENTRALIZADO
