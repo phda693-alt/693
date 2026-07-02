@@ -10529,6 +10529,7 @@ class PDVApp:
         self.clear_container()
         self.carrinho = []
         self._armario_pendente = None
+        self._editando_venda_id = None
         self.venda_cliente_id = 0
         self.venda_cliente_nome = "Cliente nao informado"
         self.venda_vendedor_id = 0
@@ -10556,8 +10557,9 @@ class PDVApp:
         btn_voltar.pack(side="left", padx=10, pady=5)
         add_tooltip(btn_voltar, "Voltar ao Menu Principal (F10)")
 
-        tk.Label(top, text="▶ Nova Venda", bg=COR_FUNDO2, fg=COR_PRIMARIA,
-                 font=("Segoe UI", 14, "bold")).pack(side="left", padx=10)
+        self._lbl_titulo_venda = tk.Label(top, text="▶ Nova Venda", bg=COR_FUNDO2,
+                 fg=COR_PRIMARIA, font=("Segoe UI", 14, "bold"))
+        self._lbl_titulo_venda.pack(side="left", padx=10)
         tk.Label(top, text="Ctrl+Z=Desfazer  |  Enter=Adicionar  |  F10=Menu",
                  bg=COR_FUNDO2, fg=COR_TEXTO2,
                  font=("Segoe UI", 8)).pack(side="left", padx=10)
@@ -11847,23 +11849,64 @@ class PDVApp:
                             nome_cliente_venda = nome_armario
                 except Exception:
                     pass
-            venda_id = db.execute_update(
-                "INSERT INTO vendas (cliente_id, cliente_nome, vendedor_id, entregador_id, caixa_id, "
-                "total_bruto, desconto_tipo, desconto_valor, acrescimo_tipo, acrescimo_valor, "
-                "total_liquido, valor_recebido, troco, observacao, status, uso_armario_id, "
-                "para_entrega, taxa_entrega, bairro_entrega, endereco_entrega, celular_whatsapp, status_entrega) "
-                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'finalizada',%s,%s,%s,%s,%s,%s,%s)",
-                (self.venda_cliente_id, nome_cliente_venda, self.venda_vendedor_id, self.venda_entregador_id,
-                 Session.caixa_id, self.venda_total_bruto, self.venda_desconto_tipo,
-                 self.venda_desconto_valor, self.venda_acrescimo_tipo, self.venda_acrescimo_valor,
-                 self.venda_total_liquido, total_pago, troco, self.venda_observacao, uso_armario_id_venda,
-                 1 if getattr(self, "venda_para_entrega", False) else 0,
-                 (self.venda_taxa_entrega or 0) if getattr(self, "venda_para_entrega", False) else 0,
-                 getattr(self, "venda_bairro_entrega", "") or None,
-                 getattr(self, "venda_endereco_entrega", "") or None,
-                 getattr(self, "venda_celular_whatsapp", "") or None,
-                 "pendente" if getattr(self, "venda_para_entrega", False) else None)
-            )
+            editando_id = getattr(self, "_editando_venda_id", None)
+            if editando_id:
+                # === EDICAO: regravar na MESMA venda (mesmo id) ===
+                venda_id = int(editando_id)
+                # Reverter o estoque dos itens antigos antes de substitui-los
+                itens_antigos = db.execute_query(
+                    "SELECT produto_id, quantidade FROM itens_venda WHERE venda_id = %s",
+                    (venda_id,)
+                ) or []
+                for _ia in itens_antigos:
+                    if _ia.get("produto_id"):
+                        db.execute_update(
+                            "UPDATE produtos SET estoque = estoque + %s WHERE id = %s",
+                            (_ia["quantidade"], _ia["produto_id"])
+                        )
+                # Remover itens, pagamentos e contas a receber antigos desta venda
+                db.execute_update("DELETE FROM itens_venda WHERE venda_id = %s", (venda_id,))
+                db.execute_update("DELETE FROM pagamentos_venda WHERE venda_id = %s", (venda_id,))
+                db.execute_update("DELETE FROM contas_receber WHERE venda_id = %s", (venda_id,))
+                # Atualizar a venda mantendo o mesmo id (data_venda e caixa_id
+                # originais sao preservados de proposito).
+                db.execute_update(
+                    "UPDATE vendas SET cliente_id=%s, cliente_nome=%s, vendedor_id=%s, "
+                    "entregador_id=%s, total_bruto=%s, desconto_tipo=%s, desconto_valor=%s, "
+                    "acrescimo_tipo=%s, acrescimo_valor=%s, total_liquido=%s, valor_recebido=%s, "
+                    "troco=%s, observacao=%s, status='finalizada', para_entrega=%s, taxa_entrega=%s, "
+                    "bairro_entrega=%s, endereco_entrega=%s, celular_whatsapp=%s, status_entrega=%s "
+                    "WHERE id=%s",
+                    (self.venda_cliente_id, nome_cliente_venda, self.venda_vendedor_id,
+                     self.venda_entregador_id, self.venda_total_bruto, self.venda_desconto_tipo,
+                     self.venda_desconto_valor, self.venda_acrescimo_tipo, self.venda_acrescimo_valor,
+                     self.venda_total_liquido, total_pago, troco, self.venda_observacao,
+                     1 if getattr(self, "venda_para_entrega", False) else 0,
+                     (self.venda_taxa_entrega or 0) if getattr(self, "venda_para_entrega", False) else 0,
+                     getattr(self, "venda_bairro_entrega", "") or None,
+                     getattr(self, "venda_endereco_entrega", "") or None,
+                     getattr(self, "venda_celular_whatsapp", "") or None,
+                     "pendente" if getattr(self, "venda_para_entrega", False) else None,
+                     venda_id)
+                )
+            else:
+                venda_id = db.execute_update(
+                    "INSERT INTO vendas (cliente_id, cliente_nome, vendedor_id, entregador_id, caixa_id, "
+                    "total_bruto, desconto_tipo, desconto_valor, acrescimo_tipo, acrescimo_valor, "
+                    "total_liquido, valor_recebido, troco, observacao, status, uso_armario_id, "
+                    "para_entrega, taxa_entrega, bairro_entrega, endereco_entrega, celular_whatsapp, status_entrega) "
+                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'finalizada',%s,%s,%s,%s,%s,%s,%s)",
+                    (self.venda_cliente_id, nome_cliente_venda, self.venda_vendedor_id, self.venda_entregador_id,
+                     Session.caixa_id, self.venda_total_bruto, self.venda_desconto_tipo,
+                     self.venda_desconto_valor, self.venda_acrescimo_tipo, self.venda_acrescimo_valor,
+                     self.venda_total_liquido, total_pago, troco, self.venda_observacao, uso_armario_id_venda,
+                     1 if getattr(self, "venda_para_entrega", False) else 0,
+                     (self.venda_taxa_entrega or 0) if getattr(self, "venda_para_entrega", False) else 0,
+                     getattr(self, "venda_bairro_entrega", "") or None,
+                     getattr(self, "venda_endereco_entrega", "") or None,
+                     getattr(self, "venda_celular_whatsapp", "") or None,
+                     "pendente" if getattr(self, "venda_para_entrega", False) else None)
+                )
 
             for item in self.carrinho:
                 db.execute_update(
@@ -11902,6 +11945,8 @@ class PDVApp:
 
         def on_saved(venda_id):
             dialog.destroy()
+            era_edicao = getattr(self, "_editando_venda_id", None)
+            self._editando_venda_id = None
             # Gerar cupom
             venda = Venda()
             venda.id = venda_id
@@ -14769,6 +14814,13 @@ class PDVApp:
                      color=COR_BOTAO_AZUL, width=12).pack(side="left", padx=5)
         add_tooltip(btn_frame.winfo_children()[-1], "Ver cupom da venda selecionada")
 
+        StyledButton(btn_frame, text=f"{Icons.EDIT} Reabrir/Editar",
+                     command=self.reabrir_venda_historico,
+                     color=COR_BOTAO_LARANJA, width=15).pack(side="left", padx=5)
+        add_tooltip(btn_frame.winfo_children()[-1],
+                    "Reabrir a venda para editar itens/pagamento/cliente/entrega e "
+                    "regravar no MESMO numero")
+
         StyledButton(btn_frame, text=f"{Icons.CROSS} Cancelar Venda",
                      command=self.cancelar_venda_historico,
                      color=COR_ERRO, width=15).pack(side="left", padx=5)
@@ -15064,6 +15116,145 @@ class PDVApp:
             ToastManager.info(f"Venda #{venda_id} cancelada. Estoque devolvido.")
             self.show_historico()
         self.run_async(cancelar, on_cancelado)
+
+    def reabrir_venda_historico(self):
+        """Reabre uma venda finalizada para edicao. O operador pode adicionar/
+        remover produtos, trocar a forma de pagamento, o cliente e os dados de
+        entrega; ao finalizar, a venda e regravada com o MESMO id."""
+        sel = self.tree_historico.selection()
+        if not sel:
+            self.show_error("Selecione uma venda para reabrir.")
+            return
+        venda_id = self.tree_historico.item(sel[0])["values"][0]
+        status = self.tree_historico.item(sel[0])["values"][4]
+        if str(status).lower() == "cancelada":
+            ToastManager.warning(
+                "Nao e possivel reabrir uma venda cancelada.")
+            return
+        if not messagebox.askyesno(
+                "Reabrir / Editar Venda",
+                f"Reabrir a venda #{venda_id} para edicao?\n\n"
+                "Voce podera adicionar/remover produtos, trocar a forma de "
+                "pagamento, o cliente e os dados de entrega.\n\n"
+                f"Ao finalizar, a venda sera REGRAVADA no mesmo numero (#{venda_id}), "
+                "e o estoque sera ajustado automaticamente.\n\n"
+                "(E necessario ter um caixa aberto para regravar.)"):
+            return
+
+        def load():
+            db = DatabaseHelper.get_instance()
+            vr_rows = db.execute_query("SELECT * FROM vendas WHERE id = %s", (venda_id,))
+            if not vr_rows:
+                return None
+            itens = db.execute_query(
+                "SELECT * FROM itens_venda WHERE venda_id = %s", (venda_id,)) or []
+            return {"venda": vr_rows[0], "itens": itens}
+
+        def on_loaded(data):
+            if not data:
+                self.show_error("Venda nao encontrada.")
+                return
+            # Exige caixa aberto (para poder regravar) e so entao popula a tela
+            self._verificar_caixa_aberto_para_venda(
+                callback_sucesso=lambda: self._popular_venda_edicao(venda_id, data),
+                origem=f"editar venda #{venda_id}")
+
+        self.run_async(load, on_loaded)
+
+    def _popular_venda_edicao(self, venda_id, data):
+        """Abre a tela de venda ja preenchida com os dados da venda que esta
+        sendo editada."""
+        vr = data["venda"]
+        # Renderiza a tela de venda (reseta o estado, incl. _editando_venda_id)
+        self._show_venda_ui()
+        # Ativa o modo edicao
+        self._editando_venda_id = venda_id
+
+        # Cliente
+        self.venda_cliente_id = vr.get("cliente_id") or 0
+        self.venda_cliente_nome = (vr.get("cliente_nome") or "").strip() or "Cliente nao informado"
+        try:
+            self.lbl_cliente_venda.config(text=self.venda_cliente_nome)
+        except Exception:
+            pass
+        self.venda_vendedor_id = vr.get("vendedor_id") or 0
+        self.venda_entregador_id = vr.get("entregador_id") or 0
+
+        # Itens -> carrinho
+        self.carrinho = []
+        for ir in data["itens"]:
+            item = ItemVenda()
+            item.produto_id = ir.get("produto_id") or 0
+            item.descricao_produto = ir.get("descricao_produto") or ""
+            item.quantidade = float(ir.get("quantidade") or 1)
+            item.preco_unitario = float(ir.get("preco_unitario") or 0)
+            item.desconto = float(ir.get("desconto") or 0)
+            item.total = float(ir.get("total") or 0)
+            self.carrinho.append(item)
+        self.atualizar_tree_carrinho()
+
+        # Desconto / acrescimo: repovoados como "Valor (R$)" para preservar o
+        # total exato (o percentual original nao e armazenado, apenas o valor).
+        try:
+            self.combo_desc_tipo.set("Valor (R$)")
+            self.et_desconto.delete(0, tk.END)
+            self.et_desconto.insert(0, FormatUtils.format_money(float(vr.get("desconto_valor") or 0)))
+        except Exception:
+            pass
+        try:
+            self.combo_acre_tipo.set("Valor (R$)")
+            self.et_acrescimo.delete(0, tk.END)
+            self.et_acrescimo.insert(0, FormatUtils.format_money(float(vr.get("acrescimo_valor") or 0)))
+        except Exception:
+            pass
+
+        # Observacao
+        try:
+            self.et_obs_venda.delete("1.0", tk.END)
+            self.et_obs_venda.insert("1.0", vr.get("observacao") or "")
+        except Exception:
+            pass
+
+        # Entrega
+        if int(vr.get("para_entrega") or 0) == 1:
+            self.venda_para_entrega = True
+            self.venda_taxa_entrega = float(vr.get("taxa_entrega") or 0)
+            self.venda_bairro_entrega = vr.get("bairro_entrega") or ""
+            self.venda_endereco_entrega = vr.get("endereco_entrega") or ""
+            self.venda_celular_whatsapp = vr.get("celular_whatsapp") or ""
+            try:
+                self._var_entrega.set(1)
+                self._toggle_entrega()
+            except Exception:
+                pass
+            try:
+                self.et_endereco_entrega.delete(0, tk.END)
+                self.et_endereco_entrega.insert(0, self.venda_endereco_entrega)
+            except Exception:
+                pass
+            try:
+                self.et_whatsapp_entrega.delete(0, tk.END)
+                self.et_whatsapp_entrega.insert(0, self.venda_celular_whatsapp)
+            except Exception:
+                pass
+            try:
+                if self.venda_bairro_entrega:
+                    self.lbl_bairro_entrega.config(
+                        text=f"{self.venda_bairro_entrega}  "
+                             f"(R$ {FormatUtils.format_money(self.venda_taxa_entrega)})")
+            except Exception:
+                pass
+
+        self.atualizar_totais_venda()
+
+        # Titulo indicando modo edicao
+        try:
+            self._lbl_titulo_venda.config(
+                text=f"{Icons.EDIT} Editando Venda #{venda_id}", fg=COR_ALERTA)
+        except Exception:
+            pass
+        ToastManager.info(
+            f"Venda #{venda_id} reaberta. Edite e finalize para regravar no mesmo numero.")
 
 
     # ========================================================================
