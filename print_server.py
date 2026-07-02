@@ -55,6 +55,9 @@ DEFAULT_CONFIG = {
     "fastreport_args": ["{fr3}", "/print", "/silent"],
     "impressao_raw_fallback": True,     # se nao houver runner, imprime texto cru
     "nome_impressora": "",              # impressora p/ o fallback RAW (vazio = padrao)
+    "corte_automatico": True,           # cortar o papel ao final da impressao
+    "corte_tipo": "parcial",            # "parcial" (com avanco) ou "total"
+    "avanco_linhas_corte": 4,           # linhas em branco antes do corte
     "log_verboso": True,
 }
 
@@ -226,10 +229,27 @@ def imprimir_fr3(cfg, fr3_path, texto):
     return True, "Arquivo .fr3 gerado (sem runner configurado)."
 
 
+def _comando_corte(cfg):
+    """Retorna os bytes ESC/POS de avanco + corte do papel, conforme config."""
+    if not cfg.get("corte_automatico", True):
+        return b""
+    try:
+        avanco = int(cfg.get("avanco_linhas_corte", 4) or 0)
+    except Exception:
+        avanco = 4
+    dados = b"\n" * max(0, avanco)
+    if str(cfg.get("corte_tipo", "parcial")).lower().startswith("t"):
+        dados += b"\x1d\x56\x00"       # GS V 0  = corte TOTAL
+    else:
+        dados += b"\x1d\x56\x42\x00"   # GS V 66 0 = corte PARCIAL (com avanco)
+    return dados
+
+
 def _imprimir_raw(cfg, texto):
     sistema = platform.system()
     nome_impressora = (cfg.get("nome_impressora") or "").strip()
-    dados = (texto + "\n\n\n\n").encode("utf-8", errors="replace")
+    # Texto + avanco/corte do papel ao final
+    dados = texto.encode("utf-8", errors="replace") + _comando_corte(cfg)
     try:
         if sistema == "Windows":
             import win32print  # requer pywin32
