@@ -34,7 +34,12 @@ import subprocess
 import platform
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
+# Diretorio da aplicacao (compativel com PyInstaller .exe): quando "congelado"
+# (--onefile), usa a pasta do executavel, e nao a pasta temporaria de extracao.
+if getattr(sys, "frozen", False):
+    APP_DIR = os.path.dirname(sys.executable)
+else:
+    APP_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE = os.path.join(APP_DIR, "print_server_config.json")
 TEMPLATE_FILE = os.path.join(APP_DIR, "cupom.fr3")
 LOG_FILE = os.path.join(APP_DIR, "print_server.log")
