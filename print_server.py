@@ -55,7 +55,7 @@ DEFAULT_CONFIG = {
     "titulo_padrao": "CUPOM NAO FISCAL",
     "manter_arquivos": True,            # manter os .fr3 gerados
     "max_arquivos": 500,                # limpa os mais antigos alem deste limite
-    "impressao_automatica": False,      # imprimir automaticamente ao receber
+    "impressao_automatica": True,       # imprimir automaticamente ao receber
     "fastreport_runner": "",            # ex.: C:/FR/FRPrint.exe  (recebe o .fr3)
     "fastreport_args": ["{fr3}", "/print", "/silent"],
     "impressao_raw_fallback": True,     # se nao houver runner, imprime texto cru
