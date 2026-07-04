@@ -88,7 +88,12 @@ def carregar_config():
 
 def log(msg):
     linha = f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}"
-    print(linha, flush=True)
+    # Em modo sem console (.exe --noconsole) sys.stdout pode ser None, entao
+    # o print() e protegido para nao derrubar o servidor.
+    try:
+        print(linha, flush=True)
+    except Exception:
+        pass
     try:
         with open(LOG_FILE, "a", encoding="utf-8") as f:
             f.write(linha + "\n")

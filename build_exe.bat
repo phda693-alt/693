@@ -64,9 +64,9 @@ rem   2) print_server.exe  (servidor de impressao - com console)
 rem ============================================================
 echo.
 echo ------------------------------------------------------------
-echo  [2/2] Gerando print_server.exe (servidor de impressao)...
+echo  [2/2] Gerando print_server.exe (servidor de impressao, sem console)...
 echo ------------------------------------------------------------
-%PY% -m PyInstaller --noconfirm --clean --onefile ^
+%PY% -m PyInstaller --noconfirm --clean --onefile --noconsole ^
   --name print_server ^
   --hidden-import win32print ^
   print_server.py
@@ -91,6 +91,10 @@ echo.
 echo Dica: mantenha PdvPro.exe, print_server.exe e cupom.fr3 na
 echo       mesma pasta. Os arquivos de configuracao/log serao
 echo       criados ao lado dos executaveis.
+echo.
+echo O print_server.exe roda SEM console (em segundo plano). Os registros
+echo ficam no arquivo print_server.log (mesma pasta). Para encerra-lo, use
+echo o Gerenciador de Tarefas (finalize "print_server.exe").
 echo.
 pause
 endlocal
