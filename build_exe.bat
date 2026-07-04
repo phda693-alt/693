@@ -38,6 +38,12 @@ if exist dist rmdir /s /q dist
 if exist PdvPro.spec del /q PdvPro.spec
 if exist print_server.spec del /q print_server.spec
 
+rem ---- Icones (usados se os arquivos .ico existirem) ----
+set "ICON_PDV="
+if exist "pdvpro.ico" set "ICON_PDV=--icon pdvpro.ico"
+set "ICON_SRV="
+if exist "print_server.ico" set "ICON_SRV=--icon print_server.ico"
+
 rem ============================================================
 rem   1) PdvPro.exe  (aplicacao com interface - sem console)
 rem ============================================================
@@ -46,6 +52,7 @@ echo  [1/2] Gerando PdvPro.exe (interface grafica)...
 echo ------------------------------------------------------------
 %PY% -m PyInstaller --noconfirm --clean --onefile --noconsole ^
   --name PdvPro ^
+  %ICON_PDV% ^
   --collect-all mysql.connector ^
   --hidden-import PIL._tkinter_finder ^
   --hidden-import win32print ^
@@ -68,6 +75,7 @@ echo  [2/2] Gerando print_server.exe (servidor de impressao, sem console)...
 echo ------------------------------------------------------------
 %PY% -m PyInstaller --noconfirm --clean --onefile --noconsole ^
   --name print_server ^
+  %ICON_SRV% ^
   --hidden-import win32print ^
   print_server.py
 if errorlevel 1 (
