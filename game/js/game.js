@@ -208,6 +208,8 @@ const THEMES = {
   volcano:{ sky: ["#340c0c", "#5a1410", "#1a0605"], glow: "#ff7a3b", hill: ["#4a1210", "#240806"], accent: "#ff9c5c", ground: ["#4a1a12", "#26100a"] },
   crypt:  { sky: ["#1a1a24", "#2a2438", "#0c0c14"], glow: "#8affc0", hill: ["#24242f", "#12121a"], accent: "#9dffb8", ground: ["#2a2a38", "#161620"] },
   sky:    { sky: ["#1b3a6b", "#3f6fb0", "#8fc0f0"], glow: "#ffffff", hill: ["#5a86c0", "#3a5f96"], accent: "#ffffff", ground: ["#6a9fd6", "#3f6fb0"] },
+  storm:  { sky: ["#0e1622", "#1c2a3e", "#080d16"], glow: "#8fb4ff", hill: ["#182437", "#0c1420"], accent: "#bcd4ff", ground: ["#20304a", "#101828"] },
+  peak:   { sky: ["#4a7ec0", "#8fc0f0", "#e8f4ff"], glow: "#ffffff", hill: ["#c8e0f5", "#9fc4e8"], accent: "#ffffff", ground: ["#dcecfa", "#a8cbe8"] },
 };
 
 function drawBackground(theme, level, t) {
@@ -245,6 +247,9 @@ function drawBackground(theme, level, t) {
     ctx.beginPath(); ctx.arc(px, m.y, m.r, 0, Math.PI * 2); ctx.fill();
   }
   ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+
+  // efeitos de cenário animado (vulcão, raios, ventania, neve, brasas)
+  drawAmbient(theme, level, t);
 }
 
 function drawHills(scrollX, baseY, amp, color, width, step, alpha) {
@@ -260,6 +265,106 @@ function drawHills(scrollX, baseY, amp, color, width, step, alpha) {
   }
   ctx.lineTo(VW + 50, VH); ctx.closePath(); ctx.fill();
   ctx.globalAlpha = 1;
+}
+
+/* ---------- Clima / cenário animado ---------- */
+const THEME_WEATHER = { volcano: "ash", cavern: "ash", frost: "snow", storm: "storm", sky: "wind", peak: "wind" };
+const weather = { type: "none", flash: 0, flashCd: 4, boltX: 0 };
+let rainDrops = [], snowFlakes = [], windStreaks = [], embers = [], volcanoes = [];
+function initWeather(level) {
+  weather.type = level.weather || THEME_WEATHER[level.theme] || "none";
+  weather.flash = 0; weather.flashCd = rand(2, 5); weather.boltX = VW / 2;
+  rainDrops = []; snowFlakes = []; windStreaks = []; embers = []; volcanoes = [];
+  for (let i = 0; i < 140; i++) rainDrops.push({ x: rand(0, VW), y: rand(0, VH), len: rand(12, 24), sp: rand(16, 24) });
+  for (let i = 0; i < 100; i++) snowFlakes.push({ x: rand(0, VW), y: rand(0, VH), r: rand(1.2, 3.4), sw: rand(0.4, 1.3), ph: rand(0, 6), sp: rand(0.6, 1.6) });
+  for (let i = 0; i < 26; i++) windStreaks.push({ x: rand(0, VW), y: rand(0, VH), len: rand(50, 140), sp: rand(7, 13), a: rand(0.05, 0.16) });
+  for (let i = 0; i < 46; i++) embers.push({ x: rand(0, VW), y: rand(0, VH), r: rand(1, 3.2), sp: rand(0.5, 1.6), drift: rand(-0.5, 0.5), ph: rand(0, 6) });
+  // vulcões ao fundo em cenários de fogo
+  if (level.theme === "volcano" || level.theme === "cavern" || level.weather === "ash") {
+    volcanoes.push({ wx: level.width * 0.35, erupt: 0, cd: rand(3, 6) });
+    volcanoes.push({ wx: level.width * 0.72, erupt: 0, cd: rand(4, 8) });
+  }
+}
+function updateWeather(dt) {
+  const w = weather.type;
+  if (w === "storm") {
+    weather.flashCd -= dt;
+    if (weather.flash > 0) weather.flash -= dt * 3;
+    if (weather.flashCd <= 0) { weather.flash = 1; weather.flashCd = rand(2.5, 6); weather.boltX = rand(VW * 0.15, VW * 0.85); camera.shake = Math.max(camera.shake, 5); }
+    for (const r of rainDrops) { r.y += r.sp; r.x -= r.sp * 0.35; if (r.y > VH) { r.y = -10; r.x = rand(0, VW + 200); } if (r.x < -20) r.x = VW + 20; }
+  }
+  if (w === "snow") for (const s of snowFlakes) { s.ph += dt * 2; s.y += s.sp; s.x += Math.sin(s.ph) * 0.6; if (s.y > VH) { s.y = -8; s.x = rand(0, VW); } }
+  if (w === "wind") for (const s of windStreaks) { s.x -= s.sp; if (s.x < -s.len) { s.x = VW + rand(0, 100); s.y = rand(0, VH); } }
+  if (w === "ash") for (const e of embers) { e.ph += dt * 2; e.y -= e.sp; e.x += Math.sin(e.ph) * e.drift; if (e.y < -10) { e.y = VH + 10; e.x = rand(0, VW); } }
+  for (const v of volcanoes) { v.cd -= dt; if (v.erupt > 0) v.erupt -= dt; if (v.cd <= 0) { v.erupt = 1.2; v.cd = rand(4, 9); } }
+}
+function drawVolcano(v, level, t) {
+  const x = v.wx - camera.x * 0.2;
+  const sx = ((x % (level.width)) + level.width) % level.width; // não repete fora da fase, usa direto
+  const px = v.wx - camera.x * 0.2;
+  if (px < -300 || px > VW + 300) return;
+  const baseY = VH * 0.76, w = 240, h = 200;
+  // montanha
+  const g = ctx.createLinearGradient(0, baseY - h, 0, baseY);
+  g.addColorStop(0, "#3a1408"); g.addColorStop(1, "#160805");
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.moveTo(px - w, baseY); ctx.lineTo(px - 34, baseY - h); ctx.lineTo(px + 34, baseY - h); ctx.lineTo(px + w, baseY); ctx.closePath(); ctx.fill();
+  // cratera brilhante
+  const glow = 0.4 + v.erupt * 0.6;
+  ctx.fillStyle = `rgba(255,120,40,${glow})`; ctx.shadowColor = "#ff7a3b"; ctx.shadowBlur = 30 + v.erupt * 30;
+  ctx.beginPath(); ctx.ellipse(px, baseY - h + 4, 34, 10, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0;
+  // lava escorrendo
+  ctx.strokeStyle = `rgba(255,90,30,${0.5 + v.erupt * 0.4})`; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(px - 10, baseY - h + 6); ctx.quadraticCurveTo(px - 40, baseY - h / 2, px - 30, baseY); ctx.stroke();
+  // erupção: jato de lava
+  if (v.erupt > 0) {
+    for (let i = 0; i < 3; i++) {
+      const a = -Math.PI / 2 + rand(-0.5, 0.5);
+      spawnParticle({ x: px + camera.sx + rand(-20, 20), y: baseY - h + camera.sy, vx: Math.cos(a) * rand(2, 5), vy: Math.sin(a) * rand(4, 8), g: 0.2, r: rand(2, 5), color: "#ff7a3b", life: 1.2, maxLife: 1.2, glow: true });
+    }
+  }
+}
+function drawAmbient(theme, level, t) {
+  const w = weather.type;
+  // vulcões ao fundo
+  for (const v of volcanoes) drawVolcano(v, level, t);
+  // brasas subindo
+  if (w === "ash") {
+    for (const e of embers) {
+      ctx.globalAlpha = 0.5; ctx.fillStyle = e.ph % 2 < 1 ? "#ff9c5c" : "#ffcf8a";
+      ctx.shadowColor = "#ff7a3b"; ctx.shadowBlur = 6;
+      ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+  }
+  // neve
+  if (w === "snow") {
+    ctx.fillStyle = "#ffffff";
+    for (const s of snowFlakes) { ctx.globalAlpha = 0.35 + s.sw * 0.4; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill(); }
+    ctx.globalAlpha = 1;
+  }
+  // ventania (nuvens/riscos horizontais)
+  if (w === "wind") {
+    ctx.strokeStyle = "#ffffff"; ctx.lineCap = "round";
+    for (const s of windStreaks) { ctx.globalAlpha = s.a; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.quadraticCurveTo(s.x + s.len / 2, s.y - 6, s.x + s.len, s.y); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+  }
+  // tempestade: chuva + relâmpagos
+  if (w === "storm") {
+    ctx.strokeStyle = "rgba(180,210,255,0.5)"; ctx.lineWidth = 1.6; ctx.lineCap = "round";
+    for (const r of rainDrops) { ctx.beginPath(); ctx.moveTo(r.x, r.y); ctx.lineTo(r.x - r.len * 0.35, r.y + r.len); ctx.stroke(); }
+    if (weather.flash > 0) {
+      ctx.fillStyle = `rgba(200,220,255,${clamp(weather.flash, 0, 1) * 0.45})`;
+      ctx.fillRect(0, 0, VW, VH);
+      // raio ramificado
+      ctx.strokeStyle = "#eaf2ff"; ctx.shadowColor = "#bcd4ff"; ctx.shadowBlur = 24; ctx.lineWidth = 3;
+      let bx = weather.boltX, by = 0;
+      ctx.beginPath(); ctx.moveTo(bx, by);
+      for (let s = 0; s < 8; s++) { bx += rand(-40, 40); by += VH / 8; ctx.lineTo(bx, by); }
+      ctx.stroke(); ctx.shadowBlur = 0;
+    }
+  }
 }
 
 /* ---------- Plataformas ---------- */
@@ -662,6 +767,8 @@ function drawEnemy(en, sx, sy) {
     case "reaper": return drawReaper(en, sx, sy);
     case "mage": return drawMage(en, sx, sy);
     case "slime": return drawSlime(en, sx, sy);
+    case "titan": return drawTitan(en, sx, sy);
+    case "dragon": return drawDragon(en, sx, sy);
     default: return drawShade(en, sx, sy);
   }
 }
@@ -777,13 +884,13 @@ const player = {
   hp: 100, maxHp: 100, energy: 100, maxEnergy: 100,
   walkPhase: 0, attackTimer: 0, attackCd: 0,
   dashTimer: 0, dashCd: 0, invuln: 0, dead: false,
-  novaCd: 0, novaTimer: 0, beamCd: 0, gliding: false,
+  novaCd: 0, novaTimer: 0, beamCd: 0, gliding: false, powerCd: 0,
   defense: 0, dmgMult: 1, rangeMult: 1,
   reset(x, y) {
     this.x = x; this.y = y; this.vx = 0; this.vy = 0;
     this.hp = this.maxHp; this.energy = this.maxEnergy;
     this.dead = false; this.invuln = 0; this.jumps = 0;
-    this.novaCd = 0; this.novaTimer = 0; this.beamCd = 0; this.gliding = false;
+    this.novaCd = 0; this.novaTimer = 0; this.beamCd = 0; this.gliding = false; this.powerCd = 0;
   },
   get hitbox() { return { x: this.x, y: this.y, w: this.w, h: this.h }; },
 };
@@ -857,6 +964,9 @@ function playerUpdate(dt, level) {
     p.novaCd = 1.4; p.energy -= 45; p.novaTimer = 0.4;
     doNova(level);
   }
+
+  // PODERES DE CHEFÃO (teclas 1-4, desbloqueados ao vencer chefões)
+  useBossPowers(dt, level);
 
   // timers
   if (p.dashCd > 0) p.dashCd -= dt;
@@ -1118,6 +1228,53 @@ function enemyUpdate(en, dt, level) {
     }
     moveWithCollision(en, level);
     if (aabb(en, player.hitbox)) hurtPlayer(12, en.facing);
+  } else if (en.type === "titan") {
+    // Titã: avança pesado; investe e às vezes pisa criando onda de choque
+    const dx = (player.x + player.w / 2) - (en.x + en.w / 2);
+    en.facing = dx > 0 ? 1 : -1;
+    en.vy += GRAV; if (en.vy > 16) en.vy = 16;
+    if (en.chargeCd > 0) en.chargeCd -= dt;
+    if (en.stompCd > 0) en.stompCd -= dt;
+    if (en.charging > 0) {
+      en.charging -= dt; en.vx = en.facing * 6.5;
+      if (Math.random() < 0.4) spawnParticle({ x: en.x + en.w / 2, y: en.y + en.h, vx: rand(-1.5, 1.5), vy: 0, g: 0, r: rand(3, 6), color: "#ff9c5c", life: 0.4, maxLife: 0.4, glow: true });
+    } else {
+      if (Math.abs(dx) < 120 && en.stompCd <= 0 && en.onGround) {
+        // pisão: onda de choque
+        en.stompCd = rand(3, 5); camera.shake = 14;
+        burst(en.x + en.w / 2, en.y + en.h, "#ffcf8a", 26, { glow: true, max: 8, up: 2 });
+        for (const s of [-1, 1]) level.projectiles.push({ x: en.x + en.w / 2, y: en.y + en.h - 8, vx: s * 5, vy: -1, r: 12, color: "#ffcf8a", from: "enemy", ground: true, life: 1.1 });
+      } else if (Math.abs(dx) < 320 && en.chargeCd <= 0 && en.onGround) {
+        en.charging = 0.7; en.chargeCd = rand(3, 5);
+      } else { en.vx += en.facing * 0.12; en.vx = clamp(en.vx, -1.3, 1.3); }
+    }
+    moveWithCollision(en, level);
+    if (en.onGround && !willBeGrounded(en, level) && en.charging <= 0) { en.vx = -en.vx; en.x += en.vx * 2; }
+    if (aabb(en, player.hitbox)) hurtPlayer(en.charging > 0 ? 28 : 20, en.facing);
+  } else if (en.type === "dragon") {
+    // Dragão: paira, cospe fogo em leque e mergulha
+    const tx = player.x + player.w / 2, ty = player.y + player.h / 2;
+    en.facing = tx > (en.x + en.w / 2) ? 1 : -1;
+    if (en.breatheCd > 0) en.breatheCd -= dt;
+    if (en.diveCd > 0) en.diveCd -= dt;
+    if (en.diving > 0) {
+      en.diving -= dt; en.x += en.vx; en.y += en.vy; en.vy += 0.2; en.baseY = en.y;
+      if (en.diving <= 0) en.diveCd = rand(3, 5);
+    } else {
+      en.x = lerp(en.x, tx - en.w / 2, 0.02);
+      en.baseY = lerp(en.baseY, ty - 160, 0.02);
+      en.y = en.baseY + Math.sin(en.phase) * 16;
+      if (en.diveCd <= 0 && Math.abs(tx - (en.x + en.w / 2)) < 200) {
+        const a = Math.atan2(ty - (en.y + en.h / 2), tx - (en.x + en.w / 2));
+        en.vx = Math.cos(a) * 9; en.vy = Math.sin(a) * 9; en.diving = 0.55;
+      } else if (en.breatheCd <= 0 && Math.abs(tx - en.x) < 520) {
+        en.breatheCd = rand(1.8, 3);
+        const base = Math.atan2(ty - (en.y + en.h / 2), tx - (en.x + en.w / 2));
+        for (let s = -1; s <= 1; s++) level.projectiles.push({ x: en.x + en.w / 2, y: en.y + en.h / 2, vx: Math.cos(base + s * 0.2) * 5, vy: Math.sin(base + s * 0.2) * 5, r: 9, color: "#ff7a3b", from: "enemy", dmg: 14, life: 3 });
+        burst(en.x + en.w / 2, en.y + en.h / 2, "#ff9c5c", 8, { glow: true, max: 5, g: 0 });
+      }
+    }
+    if (aabb(en, player.hitbox)) hurtPlayer(en.diving > 0 ? 20 : 14, en.facing);
   }
 }
 
@@ -1130,6 +1287,8 @@ function willBeGrounded(en, level) {
 function bossUpdate(b, dt, level) {
   if (b.dead) return;
   if (b.kind === "gorvax") return bossUpdateGorvax(b, dt, level);
+  if (b.kind === "tempestas") return bossUpdateTempestas(b, dt, level);
+  if (b.kind === "ignis") return bossUpdateIgnis(b, dt, level);
   b.phaseT += dt;
   if (b.hurtTimer > 0) b.hurtTimer -= dt;
   b.stateT -= dt;
@@ -1304,6 +1463,8 @@ function drawGorvax(b, sx, sy) {
 /* Dispatch de desenho do chefão */
 function drawBoss(b, sx, sy) {
   if (b.kind === "gorvax") return drawGorvax(b, sx, sy);
+  if (b.kind === "tempestas") return drawTempestas(b, sx, sy);
+  if (b.kind === "ignis") return drawIgnis(b, sx, sy);
   return drawNox(b, sx, sy);
 }
 
@@ -1467,6 +1628,10 @@ function makeEnemy(type, x, y) {
   if (type === "mage") return { type, x, y, baseY: y, w: 40, h: 54, vx: 0, vy: 0, facing: -1, hp: 50, maxHp: 50, phase: rand(0, 6), hurtTimer: 0, castCd: rand(1, 2), castT: 0, teleT: 0, teleCd: rand(2.5, 4), dead: false };
   // Limo: pula em direção ao jogador
   if (type === "slime") return { type, x, y, w: 48, h: 40, vx: 0, vy: 0, facing: -1, hp: 45, maxHp: 45, phase: rand(0, 6), hurtTimer: 0, onGround: false, hopCd: rand(0.4, 1.2), dead: false };
+  // Titã: golem GIGANTE, muito resistente, avança e investe com pisão
+  if (type === "titan") return { type, x, y, w: 110, h: 132, vx: 0, vy: 0, facing: -1, hp: 360, maxHp: 360, phase: rand(0, 6), hurtTimer: 0, onGround: false, dead: false, chargeCd: rand(2.5, 4.5), charging: 0, stompCd: rand(2, 4), big: true };
+  // Dragão: criatura voadora GRANDE que mergulha e cospe fogo
+  if (type === "dragon") return { type, x, y, baseY: y, w: 128, h: 92, vx: 0, vy: 0, facing: -1, hp: 240, maxHp: 240, phase: rand(0, 6), hurtTimer: 0, breatheCd: rand(1.5, 3), diveCd: rand(3, 5), diving: 0, dead: false, big: true };
   return { type: "shade", x, y, w: 40, h: 56, vx: 0, vy: 0, facing: -1, hp: 40, maxHp: 40, phase: rand(0, 6), hurtTimer: 0, onGround: false, dead: false };
 }
 
@@ -1489,9 +1654,12 @@ function buildLevel(def) {
     fragments: (def.fragments || []).map((f) => ({ x: f[0], y: f[1], baseY: f[1], phase: rand(0, 6), taken: false })),
     coins: (def.coins || []).map((c) => makeCoin(c[0], c[1], c[2] || 1, false)),
     merchants: (def.merchants || []).map((m) => ({ x: m[0], y: m[1], near: false })),
+    weather: def.weather || null,
+    vertical: !!def.vertical,
     projectiles: [],
     slashes: [],
     novas: [],
+    fx: [],
     boss: null,
     collected: 0,
     intro: def.intro,
@@ -1641,9 +1809,9 @@ const LEVELS = [
     merchants: [[1050, 680]],
   },
   {
-    theme: "frost", name: "Abismo Gélido", chapter: "Capítulo IV",
+    theme: "frost", name: "Abismo Gélido", chapter: "Capítulo IV", weather: "snow",
     width: 4200, height: 1100, spawn: { x: 70, y: 560 },
-    intro: "No <b>Abismo Gélido</b>, lâminas de gelo giram nas passagens estreitas. Sentinelas e morcegos vigiam cada fragmento.",
+    intro: "No <b>Abismo Gélido</b> cai neve eterna. Lâminas de gelo giram nas passagens estreitas e o vento uiva entre os picos.",
     goal: { x: 4080, y: 640 },
     platforms: [
       [0, 700, 600, 400], [760, 620, 200, 30], [1050, 700, 500, 400],
@@ -1657,6 +1825,8 @@ const LEVELS = [
     ],
     enemies: [["turret", 802, 566], ["shade", 1200, 644], ["bat", 1500, 360], ["turret", 3302, 546], ["bat", 2500, 340], ["spitter", 2700, 654], ["bat", 3700, 380]],
     fragments: [[760, 560], [2000, 460], [2300, 580], [3300, 540], [1300, 640], [3900, 640]],
+    coins: [[240, 640], [340, 640], [1300, 620], [2000, 440, 10], [2700, 620], [3900, 620, 25]],
+    merchants: [[440, 644]],
   },
   {
     theme: "cavern", name: "Caverna do Colosso", chapter: "Capítulo V — Guardião de Pedra", boss: "gorvax",
@@ -1669,7 +1839,7 @@ const LEVELS = [
     fragments: [],
   },
   {
-    theme: "volcano", name: "Forja das Sombras", chapter: "Capítulo VI",
+    theme: "volcano", name: "Forja das Sombras", chapter: "Capítulo VI", weather: "ash",
     width: 4400, height: 1100, spawn: { x: 70, y: 600 },
     intro: "A <b>Forja das Sombras</b> arde sob a cidadela. Golems despertam da lava e o ar queima — mas o Coração de Luz está perto.",
     goal: { x: 4280, y: 640 },
@@ -1684,9 +1854,9 @@ const LEVELS = [
       ["lava", 2900, 980, 750, 120], ["saw", 1350, 674, 170, "x", 1.7],
       ["saw", 3800, 674, 190, "x", 1.9], ["spike", 300, 694, 90],
     ],
-    enemies: [["shade", 400, 664], ["brute", 1300, 638], ["bat", 1800, 360], ["turret", 2082, 646], ["spitter", 2600, 674], ["bat", 3100, 360], ["brute", 3750, 638]],
+    enemies: [["shade", 400, 664], ["titan", 1250, 588], ["bat", 1800, 360], ["turret", 2082, 646], ["spitter", 2600, 674], ["bat", 3100, 360], ["brute", 3750, 638]],
     fragments: [[850, 600], [1750, 540], [2200, 640], [3050, 560], [3400, 640], [4050, 640]],
-    coins: [[200, 680], [300, 680], [2200, 680], [2300, 680], [3700, 680], [3800, 680], [3900, 680]],
+    coins: [[200, 680], [300, 680], [2200, 680], [2300, 680, 10], [3700, 680], [3800, 680], [3900, 680, 25]],
     merchants: [[500, 680]],
   },
   {
@@ -1707,8 +1877,27 @@ const LEVELS = [
     merchants: [[1250, 680]],
   },
   {
-    theme: "sky", name: "Jardins Suspensos", chapter: "Capítulo VIII",
-    width: 4500, height: 1150, spawn: { x: 70, y: 600 },
+    theme: "sky", name: "Ascensão às Nuvens", chapter: "Capítulo VIII — Rumo ao Céu", weather: "wind", vertical: true,
+    width: 1400, height: 2620, spawn: { x: 100, y: 2360 },
+    intro: "Para alcançar os reinos flutuantes, é preciso <b>subir até as nuvens</b>. Escale as ilhas suspensas sem cair no vazio — o vento sopra forte lá em cima.",
+    goal: { x: 1130, y: 280 },
+    platforms: [
+      [0, 2460, 1400, 160],
+      [180, 2280, 220, 26], [460, 2150, 220, 26], [740, 2020, 220, 26], [1020, 1890, 220, 26],
+      [740, 1760, 220, 26], [460, 1630, 220, 26], [180, 1500, 220, 26], [460, 1370, 220, 26],
+      [740, 1240, 220, 26], [1020, 1110, 220, 26], [740, 980, 220, 26], [460, 850, 220, 26],
+      [180, 720, 220, 26], [460, 590, 220, 26], [740, 460, 220, 26], [1000, 330, 260, 26],
+    ],
+    movers: [["mover", 1080, 1600, 120, 22, 0, -160, 1.0], ["mover", 120, 940, 120, 22, 0, -150, 1.1]],
+    hazards: [["saw", 620, 1240, 120, "x", 1.5]],
+    enemies: [["wisp", 600, 2000], ["bat", 900, 1650], ["reaper", 520, 1300], ["wisp", 900, 950], ["bat", 320, 650], ["reaper", 1000, 430]],
+    fragments: [[290, 2260], [850, 2000], [290, 1480], [1130, 1090], [290, 700], [850, 440]],
+    coins: [[290, 2260], [560, 2130], [850, 2000, 10], [290, 1480], [1130, 1090, 10], [560, 830], [290, 700], [1120, 310, 25]],
+    merchants: [[320, 2440]],
+  },
+  {
+    theme: "sky", name: "Jardins Suspensos", chapter: "Capítulo IX",
+    width: 4500, height: 1150, spawn: { x: 70, y: 600 }, weather: "wind",
     intro: "Acima das nuvens, os <b>Jardins Suspensos</b> flutuam entre ilhas de luz. Não olhe para baixo, herói — um passo em falso é o abismo.",
     goal: { x: 4360, y: 660 },
     platforms: [
@@ -1726,9 +1915,19 @@ const LEVELS = [
     merchants: [[120, 680]],
   },
   {
-    theme: "citadel", name: "Fortaleza Estelar", chapter: "Capítulo IX",
+    theme: "storm", name: "Pico da Tempestade", chapter: "Capítulo X — Senhor da Tempestade", boss: "tempestas", weather: "storm",
+    width: 1800, height: 950, spawn: { x: 120, y: 600 },
+    intro: "No cume varrido por raios, <b>TEMPESTAS</b>, o Senhor da Tempestade, domina os céus. Derrote-o para absorver o poder do relâmpago.",
+    platforms: [
+      [0, 780, 1800, 120], [140, 600, 240, 28], [1420, 600, 240, 28], [760, 500, 300, 28],
+    ],
+    enemies: [],
+    fragments: [],
+  },
+  {
+    theme: "citadel", name: "Fortaleza Estelar", chapter: "Capítulo XI", weather: "storm",
     width: 4600, height: 1100, spawn: { x: 70, y: 600 },
-    intro: "A <b>Fortaleza Estelar</b> guarda os portões da cidadela. Todos os horrores de Nöx aguardam. Este é o último respiro antes do fim.",
+    intro: "A <b>Fortaleza Estelar</b> guarda os portões da cidadela. Titãs e dragões patrulham as muralhas sob o trovão. Este é o último respiro antes do fim.",
     goal: { x: 4480, y: 600 },
     platforms: [
       [0, 720, 640, 380], [820, 640, 220, 30], [1140, 720, 520, 380],
@@ -1737,13 +1936,78 @@ const LEVELS = [
     ],
     movers: [["mover", 660, 720, 130, 22, 150, 0, 1.3], ["mover", 2960, 640, 120, 22, 0, -130, 1.1]],
     hazards: [["spike", 300, 694, 90], ["saw", 1350, 674, 170, "x", 1.7], ["spike", 2500, 694, 100], ["saw", 3760, 674, 180, "x", 1.9]],
-    enemies: [["brute", 400, 638], ["mage", 900, 600], ["reaper", 1500, 440], ["turret", 2082, 626], ["spitter", 2600, 674], ["bat", 3100, 380], ["mage", 3400, 620], ["brute", 4000, 638], ["reaper", 3600, 440]],
+    enemies: [["titan", 380, 588], ["mage", 900, 600], ["reaper", 1500, 440], ["turret", 2082, 626], ["spitter", 2600, 674], ["dragon", 3100, 320], ["mage", 3400, 620], ["brute", 4000, 638], ["reaper", 3600, 440]],
     fragments: [[820, 580], [1760, 540], [2080, 620], [3040, 540], [3360, 620], [4200, 660]],
-    coins: [[200, 680], [320, 680], [1200, 680], [1300, 680], [2500, 680], [2600, 680], [3800, 680], [3900, 680], [4000, 680]],
+    coins: [[200, 680], [320, 680], [1200, 680], [1300, 680, 10], [2500, 680], [2600, 680], [3800, 680], [3900, 680], [4000, 680, 25]],
     merchants: [[450, 680]],
   },
   {
-    theme: "citadel", name: "Cidadela das Sombras", chapter: "Capítulo X — O Confronto Final", boss: "nox",
+    theme: "volcano", name: "Núcleo Vulcânico", chapter: "Capítulo XII — Descida ao Fogo", weather: "ash", vertical: true,
+    width: 1400, height: 2500, spawn: { x: 80, y: 2280 },
+    intro: "As <b>entranhas do vulcão</b> fervem. Escale as pontes de obsidiana enquanto as brasas sobem e a lava borbulha lá embaixo.",
+    goal: { x: 1130, y: 210 },
+    platforms: [
+      [0, 2360, 1400, 140],
+      [180, 2200, 220, 26], [460, 2070, 220, 26], [740, 1940, 220, 26], [1020, 1810, 220, 26],
+      [740, 1680, 220, 26], [460, 1550, 220, 26], [180, 1420, 220, 26], [460, 1290, 220, 26],
+      [740, 1160, 220, 26], [1020, 1030, 220, 26], [740, 900, 220, 26], [460, 770, 220, 26],
+      [180, 640, 220, 26], [460, 510, 220, 26], [740, 380, 220, 26], [1000, 260, 260, 26],
+    ],
+    movers: [["mover", 1080, 1500, 120, 22, 0, -160, 1.0]],
+    hazards: [["lava", 520, 2344, 700, 30], ["saw", 620, 1160, 120, "x", 1.6], ["saw", 620, 900, 120, "x", 1.7]],
+    enemies: [["spitter", 280, 2154], ["bat", 800, 1800], ["reaper", 600, 1400], ["spitter", 560, 1244], ["bat", 900, 1000], ["reaper", 300, 600]],
+    fragments: [[290, 2180], [850, 1920], [290, 1400], [1130, 1010], [290, 620], [850, 360]],
+    coins: [[290, 2180], [850, 1920, 10], [560, 1530], [290, 1400], [1130, 1010, 10], [290, 620], [850, 360, 25]],
+    merchants: [[300, 2360]],
+  },
+  {
+    theme: "volcano", name: "Coração do Vulcão", chapter: "Capítulo XIII — Coração do Vulcão", boss: "ignis", weather: "ash",
+    width: 1800, height: 950, spawn: { x: 120, y: 600 },
+    intro: "No coração incandescente, <b>IGNIS</b> desperta da lava. Vença o Coração do Vulcão e domine a Chuva de Meteoros.",
+    platforms: [
+      [0, 780, 1800, 120], [140, 600, 240, 28], [1420, 600, 240, 28], [760, 520, 300, 28],
+    ],
+    enemies: [],
+    fragments: [],
+  },
+  {
+    theme: "peak", name: "Escadaria Celeste", chapter: "Capítulo XIV — A Escadaria Celeste", weather: "wind", vertical: true,
+    width: 1400, height: 2500, spawn: { x: 80, y: 2280 },
+    intro: "Acima de todas as nuvens ergue-se a <b>Escadaria Celeste</b>. Suba entre dragões e ventos cortantes até o teto do mundo.",
+    goal: { x: 1140, y: 210 },
+    platforms: [
+      [0, 2360, 1400, 140],
+      [200, 2200, 220, 26], [500, 2070, 220, 26], [800, 1940, 220, 26], [1040, 1810, 220, 26],
+      [760, 1680, 220, 26], [460, 1550, 220, 26], [180, 1420, 220, 26], [460, 1290, 220, 26],
+      [760, 1160, 220, 26], [1040, 1030, 220, 26], [760, 900, 220, 26], [460, 770, 220, 26],
+      [180, 640, 220, 26], [480, 510, 220, 26], [780, 380, 220, 26], [1000, 260, 260, 26],
+    ],
+    movers: [["mover", 120, 1500, 120, 22, 0, -160, 1.05]],
+    hazards: [["saw", 640, 1160, 120, "x", 1.7]],
+    enemies: [["reaper", 500, 2000], ["bat", 900, 1650], ["dragon", 600, 1200], ["wisp", 300, 900], ["reaper", 1000, 550], ["bat", 500, 340]],
+    fragments: [[300, 2180], [880, 1920], [280, 1400], [1130, 1010], [280, 620], [860, 360]],
+    coins: [[300, 2180], [880, 1920, 10], [560, 1530], [280, 1400], [1130, 1010, 10], [280, 620], [860, 360, 25]],
+    merchants: [[300, 2360]],
+  },
+  {
+    theme: "citadel", name: "Muralhas da Cidadela", chapter: "Capítulo XV — As Muralhas", weather: "storm",
+    width: 4800, height: 1100, spawn: { x: 70, y: 600 },
+    intro: "As <b>Muralhas da Cidadela</b> fervilham com a legião de Nöx sob a tempestade. Titãs e dragões defendem o portão final.",
+    goal: { x: 4680, y: 600 },
+    platforms: [
+      [0, 720, 700, 380], [880, 640, 220, 30], [1200, 720, 560, 380],
+      [1860, 600, 220, 30], [2200, 680, 240, 30], [2540, 720, 560, 380],
+      [3200, 600, 220, 30], [3540, 680, 240, 30], [3880, 720, 920, 380],
+    ],
+    movers: [["mover", 720, 720, 140, 22, 150, 0, 1.3], ["mover", 3120, 640, 120, 22, 0, -130, 1.1]],
+    hazards: [["spike", 320, 694, 90], ["saw", 1420, 674, 180, "x", 1.8], ["saw", 2800, 674, 180, "x", 1.9], ["spike", 3600, 694, 100]],
+    enemies: [["titan", 420, 588], ["reaper", 1000, 440], ["dragon", 1900, 320], ["turret", 2202, 626], ["spitter", 2700, 674], ["mage", 3200, 560], ["titan", 3900, 588], ["dragon", 3400, 320]],
+    fragments: [[880, 580], [1860, 540], [2200, 620], [3200, 540], [3540, 620], [4400, 660]],
+    coins: [[200, 680], [320, 680, 10], [1300, 680], [2600, 680], [2700, 680, 10], [3900, 680], [4000, 680, 25]],
+    merchants: [[460, 680]],
+  },
+  {
+    theme: "citadel", name: "Cidadela das Sombras", chapter: "Capítulo XVI — O Confronto Final", boss: "nox",
     width: 1600, height: 900, spawn: { x: 120, y: 600 },
     intro: "No trono da <b>Cidadela das Sombras</b>, <b>NÖX</b> aguarda — o Devorador de Luz que roubou o Coração. Chegou a hora de reacender o mundo.",
     platforms: [
@@ -1763,13 +2027,25 @@ function makeBoss(kind, x, y) {
   };
   if (kind === "gorvax") {
     return Object.assign(base, {
-      w: 150, h: 150, hp: 440, maxHp: 440,
+      w: 150, h: 150, hp: 440, maxHp: 440, power: "quake",
       name: "GORVAX", subtitle: "O Colosso de Pedra", color: "#e0a35f", eye: "#ffcf8a",
+    });
+  }
+  if (kind === "tempestas") {
+    return Object.assign(base, {
+      w: 130, h: 150, hp: 540, maxHp: 540, power: "storm",
+      name: "TEMPESTAS", subtitle: "O Senhor da Tempestade", color: "#bcd4ff", eye: "#eaf2ff",
+    });
+  }
+  if (kind === "ignis") {
+    return Object.assign(base, {
+      w: 140, h: 150, hp: 580, maxHp: 580, power: "meteor",
+      name: "IGNIS", subtitle: "O Coração do Vulcão", color: "#ff9c5c", eye: "#ffd24a",
     });
   }
   // padrão: Nöx
   return Object.assign(base, {
-    w: 120, h: 170, hp: 620, maxHp: 620,
+    w: 120, h: 170, hp: 680, maxHp: 680, power: "void",
     name: "NÖX", subtitle: "O Devorador de Luz", color: "#ff5c93", eye: "#ff2e63",
   });
 }
@@ -1783,6 +2059,7 @@ const fragCount = document.getElementById("frag-count");
 const fragTotal = document.getElementById("frag-total");
 const coinCount = document.getElementById("coin-count");
 const stageName = document.getElementById("stage-name");
+const powersHud = document.getElementById("powers-hud");
 const bossBar = document.getElementById("boss-bar");
 const bossFill = document.getElementById("boss-fill");
 const hud = document.getElementById("hud");
@@ -1794,6 +2071,17 @@ function updateHUD(level) {
   fragTotal.textContent = level.fragments.length;
   if (coinCount) coinCount.textContent = profile.coins;
   stageName.textContent = level.name;
+  if (powersHud) {
+    let h = "";
+    for (const id in BOSS_POWERS) {
+      if (profile.powers[id]) {
+        const bp = BOSS_POWERS[id];
+        const ready = player.energy >= bp.cost;
+        h += `<span class="pw" style="color:${bp.color};opacity:${ready ? 1 : 0.4}">[${bp.key}] ${bp.name}</span>`;
+      }
+    }
+    powersHud.innerHTML = h;
+  }
 }
 
 // Retrato animado da Aurora no HUD
@@ -1880,6 +2168,7 @@ let goalReached = false;
 let bossIntroT = 0;
 let victoryT = 0;
 let bossDownT = 0;
+let lastUnlockedPower = null;
 
 function showOverlay(html) { overlay.innerHTML = html; overlay.classList.remove("gone"); }
 function hideOverlay() { overlay.classList.add("gone"); }
@@ -1892,14 +2181,14 @@ function menuScreen() {
       <div class="title">AURORA</div>
       <div class="subtitle">A Guardiã da Luz</div>
       <p class="story">O mundo de <b>Lumina</b> mergulhou nas trevas quando <b>Nöx</b> despedaçou o Coração de Luz.
-      Escolha seu herói, atravesse <b>10 reinos corrompidos</b>, colete moedas, equipe-se nas <b>lojas</b>
-      e enfrente dois chefões para reacender o mundo.</p>
+      Escolha seu herói, atravesse <b>16 reinos</b> (escale até as nuvens!), colete moedas, equipe-se em <b>lojas que mudam a cada fase</b>,
+      e derrote <b>4 chefões</b> — a cada um vencido você <b>absorve o poder dele</b>.</p>
       <div class="btn-row">
         <button class="btn" id="btn-start">▶ Escolher Herói</button>
       </div>
       <div class="controls-hint">
-        <b>🎮 Controle USB suportado!</b> &nbsp; Teclado: Mover <kbd>←</kbd><kbd>→</kbd>/<kbd>A</kbd><kbd>D</kbd> • Pular <kbd>Espaço</kbd> • Planar (segure o pulo)<br>
-        Atacar <kbd>K</kbd> • Feixe <kbd>U</kbd> • Nova <kbd>O</kbd> • Dash <kbd>L</kbd> • Loja <kbd>E</kbd> • Pausar <kbd>P</kbd>
+        <b>🎮 Controle USB suportado!</b> &nbsp; Mover <kbd>←</kbd><kbd>→</kbd>/<kbd>A</kbd><kbd>D</kbd> • Pular <kbd>Espaço</kbd> • Planar (segure o pulo)<br>
+        Atacar <kbd>K</kbd> • Feixe <kbd>U</kbd> • Nova <kbd>O</kbd> • Dash <kbd>L</kbd> • Loja <kbd>E</kbd> • Poderes de chefão <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> • Pausar <kbd>P</kbd>
       </div>
     </div>`);
   document.getElementById("btn-start").onclick = heroSelectScreen;
@@ -1934,7 +2223,7 @@ function heroSelectScreen() {
     const hero = card.getAttribute("data-hero");
     const cv = card.querySelector(".hero-canvas");
     drawHeroPreview(cv, hero);
-    card.querySelector(".hero-pick").onclick = () => { profile.hero = hero; applyLoadout(); startLevel(0); };
+    card.querySelector(".hero-pick").onclick = () => { profile.hero = hero; resetProfile(); applyLoadout(); startLevel(0); };
   });
   document.getElementById("btn-back").onclick = menuScreen;
 }
@@ -1983,6 +2272,7 @@ function beginPlay(idx) {
   levelIndex = idx;
   level = buildLevel(LEVELS[idx]);
   initMotes();
+  initWeather(level);
   applyLoadout();
   player.reset(level.spawn.x, level.spawn.y);
   camera.x = level.spawn.x - VW / 2; camera.y = 0;
@@ -2026,9 +2316,14 @@ function levelClear() {
   if (levelIndex >= LEVELS.length - 1) return; // último é boss -> vitória
   state = "levelclear";
   hud.classList.add("hidden");
-  const info = level.isBoss
+  let info = level.isBoss
     ? `<b>${level.boss ? level.boss.name : "O chefão"}</b> foi derrotado! A luz avança pelas terras corrompidas.`
-    : `Fragmentos de luz: <b>${level.collected} / ${level.fragments.length}</b> ✦<br>A escuridão recua. Aurora segue adiante.`;
+    : `Fragmentos de luz: <b>${level.collected} / ${level.fragments.length}</b> ✦<br>A escuridão recua. ${HEROES[profile.hero].name} segue adiante.`;
+  if (level.isBoss && lastUnlockedPower) {
+    const bp = BOSS_POWERS[lastUnlockedPower];
+    info += `<br><br><span style="color:${bp.color}">✨ Novo poder absorvido: <b>${bp.name}</b> — tecla <kbd>${bp.key}</kbd>!</span>`;
+    lastUnlockedPower = null;
+  }
   showOverlay(`
     <div class="card">
       <div class="chapter">${level.isBoss ? "Chefão Derrotado" : "Fase Concluída"}</div>
@@ -2107,6 +2402,8 @@ function render(t, dt) {
     if (level.boss && !level.boss.dead) drawBoss(level.boss, level.boss.x - camera.sx, level.boss.y - camera.sy);
     // ondas de Nova
     drawNovas(level);
+    // efeitos de poder (raios, meteoros)
+    drawFx(level);
     // slashes
     drawSlashes(level, dt);
     // projéteis
@@ -2154,6 +2451,7 @@ function loop() {
 
   pollGamepad();
   if (consume("p")) togglePause();
+  if (level && (state === "playing" || state === "bossdown")) updateWeather(dt);
 
   if (state === "playing" && !paused && level) {
     // update
@@ -2166,13 +2464,19 @@ function loop() {
       else bossUpdate(level.boss, dt, level);
       bossFill.style.width = clamp(level.boss.hp / level.boss.maxHp * 100, 0, 100) + "%";
       if (level.boss.dead && state === "playing") {
-        state = "bossdown"; bossDownT = 2.4;
+        state = "bossdown"; bossDownT = 2.8;
         camera.shake = 20;
         burst(level.boss.x + level.boss.w / 2, level.boss.y + level.boss.h / 2, "#ffe08a", 90, { glow: true, max: 10, maxLife: 1.8 });
+        // o herói absorve o poder do chefão
+        if (level.boss.power && !profile.powers[level.boss.power]) {
+          profile.powers[level.boss.power] = true;
+          lastUnlockedPower = level.boss.power;
+        } else lastUnlockedPower = null;
       }
     }
     updateProjectiles(dt, level);
     updateNovas(dt, level);
+    updateFx(dt, level);
     updateCollectibles(dt, level);
     updateCoins(dt, level);
     updateParticles(dt);
@@ -2222,6 +2526,15 @@ const profile = {
   coins: 0,
   owned: {},                                   // { itemId: true }
   equipped: { outfit: null, armor: null, weapon: null, equip: null },
+  powers: {},                                  // poderes de chefão desbloqueados { quake, storm, meteor, void }
+};
+
+// Poderes concedidos ao derrotar cada chefão (tecla, custo, nome)
+const BOSS_POWERS = {
+  quake:  { key: "1", cost: 40, name: "Terremoto", color: "#e0a35f", boss: "GORVAX" },
+  storm:  { key: "2", cost: 45, name: "Tempestade de Raios", color: "#bcd4ff", boss: "TEMPESTAS" },
+  meteor: { key: "3", cost: 45, name: "Chuva de Meteoros", color: "#ff7a3b", boss: "IGNIS" },
+  void:   { key: "4", cost: 55, name: "Colapso do Vazio", color: "#c98cff", boss: "NÖX" },
 };
 
 const HEROES = {
@@ -2255,7 +2568,37 @@ const SHOP_ITEMS = [
     desc: "+1 pulo (pulo triplo)." },
   { id: "equip_core",    name: "Núcleo de Energia",  type: "equip", price: 80, energy: 60,
     desc: "+60 de energia máxima." },
+  // ---- ITENS EXTRA (rotacionam entre as fases) ----
+  { id: "outfit_frost",  name: "Manto Glacial",     type: "outfit", price: 60, energy: 22,
+    desc: "Vestes de gelo eterno.", garmentTop: "#8fd8ff", garment: "#3f8fd0", garmentDark: "#1e4f80", accent: "#eaffff" },
+  { id: "outfit_storm",  name: "Vestes da Tempestade", type: "outfit", price: 90, energy: 30,
+    desc: "Crepitam com raios.", garmentTop: "#6a8fd0", garment: "#2f4a80", garmentDark: "#141e40", accent: "#bcd4ff" },
+  { id: "armor_crystal", name: "Armadura de Cristal", type: "armor", price: 130, maxHp: 100, defense: 0.28,
+    desc: "+100 vida, 28% defesa.", plate: "#9df0ff" },
+  { id: "armor_dragon",  name: "Escamas de Dragão",  type: "armor", price: 210, maxHp: 160, defense: 0.40,
+    desc: "+160 vida, 40% defesa.", plate: "#ff9c5c" },
+  { id: "weapon_spear",  name: "Lança Estelar",     type: "weapon", price: 95, dmg: 1.6, range: 1.45,
+    desc: "+60% dano, alcance longo." },
+  { id: "weapon_hammer", name: "Martelo do Trovão",  type: "weapon", price: 165, dmg: 2.3, range: 1.15,
+    desc: "+130% de dano brutal." },
+  { id: "equip_ring",    name: "Anel de Vigor",     type: "equip", price: 110, maxHp: 60,
+    desc: "+60 de vida máxima." },
+  { id: "equip_wings",   name: "Asas Etéreas",      type: "equip", price: 150, jumps: 2, energy: 30,
+    desc: "+2 pulos e +30 energia." },
 ];
+
+// Estoque da loja muda a cada fase (janela rotativa sobre o catálogo)
+function shopStock(idx) {
+  const n = SHOP_ITEMS.length, size = 8, start = (idx * 3) % n;
+  const set = new Set();
+  for (let i = 0; i < size; i++) set.add(SHOP_ITEMS[(start + i) % n].id);
+  // garante ao menos 1 item já equipado/possuído visível para reequipar
+  for (const t of ["outfit", "armor", "weapon", "equip"]) {
+    const eq = profile.equipped[t];
+    if (eq) set.add(eq);
+  }
+  return set;
+}
 
 function itemById(id) { return SHOP_ITEMS.find((i) => i.id === id) || null; }
 
@@ -2414,9 +2757,10 @@ function updateCoins(dt, level) {
     } else {
       c.y = c.baseY + Math.sin(c.phase) * 4;
     }
-    if (!c.taken && aabb({ x: c.x - 13, y: c.y - 13, w: 26, h: 26 }, player.hitbox)) {
+    const rr = c.value >= 25 ? 22 : c.value >= 5 ? 16 : 13;
+    if (!c.taken && aabb({ x: c.x - rr, y: c.y - rr, w: rr * 2, h: rr * 2 }, player.hitbox)) {
       c.taken = true; profile.coins += c.value;
-      burst(c.x, c.y, "#ffd24a", 10, { glow: true, max: 5 });
+      burst(c.x, c.y, c.value >= 5 ? "#ffe08a" : "#ffd24a", c.value >= 5 ? 22 : 10, { glow: true, max: c.value >= 5 ? 7 : 5 });
       updateHUD(level);
     }
   }
@@ -2424,19 +2768,29 @@ function updateCoins(dt, level) {
 function drawCoin(c) {
   if (c.taken) return;
   const x = c.x - camera.sx, y = c.y - camera.sy;
+  const big = c.value >= 5;
+  const huge = c.value >= 25;
+  const R = huge ? 17 : big ? 13 : 9;
   const sw = Math.abs(Math.cos(c.phase)) * 0.8 + 0.2; // giro (largura)
-  const glow = ctx.createRadialGradient(x, y, 1, x, y, 16);
-  glow.addColorStop(0, "rgba(255,210,74,0.5)"); glow.addColorStop(1, "transparent");
-  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(x, y, 16, 0, Math.PI * 2); ctx.fill();
+  const glow = ctx.createRadialGradient(x, y, 1, x, y, R + 10);
+  glow.addColorStop(0, big ? "rgba(255,224,138,0.65)" : "rgba(255,210,74,0.5)"); glow.addColorStop(1, "transparent");
+  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(x, y, R + 10, 0, Math.PI * 2); ctx.fill();
   ctx.save(); ctx.translate(x, y);
-  const g = ctx.createLinearGradient(-9, 0, 9, 0);
-  g.addColorStop(0, "#c8901a"); g.addColorStop(0.5, "#ffe08a"); g.addColorStop(1, "#c8901a");
-  ctx.fillStyle = g; ctx.shadowColor = "#ffd24a"; ctx.shadowBlur = 8;
-  ctx.beginPath(); ctx.ellipse(0, 0, 9 * sw, 9, 0, 0, Math.PI * 2); ctx.fill();
+  const g = ctx.createLinearGradient(-R, 0, R, 0);
+  if (huge) { g.addColorStop(0, "#7a3ad0"); g.addColorStop(0.5, "#e0b0ff"); g.addColorStop(1, "#7a3ad0"); }
+  else if (big) { g.addColorStop(0, "#b8860a"); g.addColorStop(0.5, "#fff2c9"); g.addColorStop(1, "#b8860a"); }
+  else { g.addColorStop(0, "#c8901a"); g.addColorStop(0.5, "#ffe08a"); g.addColorStop(1, "#c8901a"); }
+  ctx.fillStyle = g; ctx.shadowColor = huge ? "#c98cff" : "#ffd24a"; ctx.shadowBlur = big ? 14 : 8;
+  ctx.beginPath(); ctx.ellipse(0, 0, R * sw, R, 0, 0, Math.PI * 2); ctx.fill();
+  // aro
+  if (big) { ctx.strokeStyle = huge ? "#fff0ff" : "#fff6df"; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, 0, R * sw, R, 0, 0, Math.PI * 2); ctx.stroke(); }
   ctx.shadowBlur = 0;
-  ctx.fillStyle = "#a86f10"; ctx.font = "bold 9px Poppins, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  if (sw > 0.6) ctx.fillText("✦", 0, 0);
-  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  if (sw > 0.55) {
+    ctx.fillStyle = huge ? "#3a1060" : "#a86f10";
+    ctx.font = `bold ${big ? 12 : 9}px Poppins, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(big ? String(c.value) : "✦", 0, 0);
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  }
   ctx.restore();
 }
 
@@ -2491,15 +2845,18 @@ function closeShop() {
 }
 function renderShop() {
   const cats = [["outfit", "👗 Roupas"], ["armor", "🛡️ Armaduras"], ["weapon", "⚔️ Armas"], ["equip", "🔧 Equipamentos"]];
+  const stock = shopStock(levelIndex);
   let html = `<div class="card shop-card">
     <div class="shop-head">
-      <div class="chapter" style="margin:0">Loja do Mercador</div>
+      <div class="chapter" style="margin:0">Loja do Mercador <span style="opacity:.7;font-size:12px">· estoque desta fase</span></div>
       <div class="shop-coins">✦ <b>${profile.coins}</b></div>
     </div>
     <div class="shop-grid">`;
   for (const [type, label] of cats) {
+    const items = SHOP_ITEMS.filter((i) => i.type === type && stock.has(i.id));
+    if (!items.length) continue;
     html += `<div class="shop-cat">${label}</div>`;
-    for (const it of SHOP_ITEMS.filter((i) => i.type === type)) {
+    for (const it of items) {
       const owned = !!profile.owned[it.id];
       const equipped = profile.equipped[it.type] === it.id;
       const canBuy = !owned && profile.coins >= it.price;
@@ -2616,6 +2973,297 @@ function drawSlime(e, sx, sy) {
   ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(-6, -23, 1.2, 0, Math.PI * 2); ctx.arc(8, -23, 1.2, 0, Math.PI * 2); ctx.fill();
   // boca
   ctx.strokeStyle = "#0a2b18"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(0, -14, 4, 0.15, Math.PI - 0.15); ctx.stroke();
+  ctx.restore();
+}
+
+/* ---------- Titã (golem gigante) ---------- */
+function drawTitan(e, sx, sy) {
+  const cx = sx + e.w / 2, cy = sy + e.h / 2;
+  const hurt = e.hurtTimer > 0;
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(e.facing, 1);
+  ctx.fillStyle = "rgba(0,0,0,0.34)";
+  ctx.beginPath(); ctx.ellipse(0, e.h / 2 - 2, 52, 11, 0, 0, Math.PI * 2); ctx.fill();
+  const rock = ctx.createLinearGradient(0, -66, 0, 66);
+  rock.addColorStop(0, hurt ? "#ffc0a0" : "#7a5238"); rock.addColorStop(1, hurt ? "#e08060" : "#2e1c12");
+  // pernas
+  ctx.fillStyle = hurt ? "#e08060" : "#2e1c12";
+  roundRect(ctx, -36, 20, 28, 44, 8); ctx.fill();
+  roundRect(ctx, 8, 20, 28, 44, 8); ctx.fill();
+  // braços enormes
+  ctx.fillStyle = rock;
+  roundRect(ctx, -62, -40, 26, 70, 12); ctx.fill();
+  roundRect(ctx, 36, -40, 26, 70, 12); ctx.fill();
+  // punhos
+  ctx.fillStyle = hurt ? "#ffd0b0" : "#3a2418";
+  ctx.beginPath(); ctx.arc(-49, 34, 16, 0, Math.PI * 2); ctx.arc(49, 34, 16, 0, Math.PI * 2); ctx.fill();
+  // corpo
+  ctx.fillStyle = rock;
+  roundRect(ctx, -46, -50, 92, 78, 16); ctx.fill();
+  // fissuras de lava
+  ctx.strokeStyle = e.charging > 0 ? "#ff7a3b" : "#ff9c5c"; ctx.lineWidth = 3.5; ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 14;
+  ctx.beginPath(); ctx.moveTo(-24, -34); ctx.lineTo(-8, -6); ctx.lineTo(-20, 18); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(18, -30); ctx.lineTo(6, -2); ctx.lineTo(22, 20); ctx.stroke();
+  ctx.shadowBlur = 0;
+  // cabeça
+  ctx.fillStyle = rock; roundRect(ctx, -26, -82, 52, 36, 10); ctx.fill();
+  // olhos
+  const eye = hurt ? "#fff" : "#ff7a3b";
+  ctx.fillStyle = eye; ctx.shadowColor = eye; ctx.shadowBlur = 14;
+  ctx.beginPath(); ctx.rect(-18, -70, 12, 7); ctx.rect(6, -70, 12, 7); ctx.fill();
+  ctx.shadowBlur = 0;
+  // boca/dentes
+  ctx.fillStyle = "#160a05"; ctx.fillRect(-16, -54, 32, 6);
+  ctx.fillStyle = rock; for (let i = -13; i < 15; i += 6) { ctx.fillRect(i, -54, 3, 6); }
+  ctx.restore();
+}
+
+/* ---------- Dragão (voador grande) ---------- */
+function drawDragon(e, sx, sy) {
+  const cx = sx + e.w / 2, cy = sy + e.h / 2;
+  const hurt = e.hurtTimer > 0;
+  const flap = Math.sin(e.phase * 4) * 0.5;
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(e.facing, 1);
+  const col = hurt ? "#ffc0a0" : "#5a2a18";
+  const belly = hurt ? "#ffe0c0" : "#c26a2a";
+  // asas
+  ctx.fillStyle = col;
+  for (const s of [-1, 1]) {
+    ctx.save(); ctx.scale(1, s); ctx.rotate(flap);
+    ctx.beginPath(); ctx.moveTo(-6, 0);
+    ctx.quadraticCurveTo(-40, -34, -66, -12);
+    ctx.quadraticCurveTo(-44, -6, -50, 10);
+    ctx.quadraticCurveTo(-30, 2, -6, 8);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  // cauda
+  ctx.strokeStyle = col; ctx.lineWidth = 12; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(-30, 6); ctx.quadraticCurveTo(-58, 12 + Math.sin(e.phase) * 6, -70, 0); ctx.stroke();
+  // corpo
+  const bg = ctx.createLinearGradient(0, -20, 0, 24);
+  bg.addColorStop(0, col); bg.addColorStop(1, belly);
+  ctx.fillStyle = bg;
+  ctx.beginPath(); ctx.ellipse(0, 4, 34, 22, 0, 0, Math.PI * 2); ctx.fill();
+  // pescoço + cabeça
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.moveTo(20, -6); ctx.quadraticCurveTo(46, -20, 52, -6); ctx.quadraticCurveTo(60, 2, 50, 10); ctx.quadraticCurveTo(36, 6, 20, 10); ctx.closePath(); ctx.fill();
+  // focinho
+  ctx.fillStyle = belly; ctx.beginPath(); ctx.moveTo(48, -6); ctx.lineTo(64, -2); ctx.lineTo(48, 6); ctx.closePath(); ctx.fill();
+  // chifres
+  ctx.strokeStyle = "#ffd0a0"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(44, -12); ctx.lineTo(40, -24); ctx.stroke();
+  // olho
+  const eye = hurt ? "#fff" : "#ffd24a";
+  ctx.fillStyle = eye; ctx.shadowColor = "#ff7a3b"; ctx.shadowBlur = 10;
+  ctx.beginPath(); ctx.arc(46, -4, 3.4, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0; ctx.fillStyle = "#3a1000";
+  ctx.beginPath(); ctx.arc(47, -4, 1.4, 0, Math.PI * 2); ctx.fill();
+  // brasa na boca
+  if (e.breatheCd < 0.5) { ctx.fillStyle = "#ff7a3b"; ctx.shadowColor = "#ff7a3b"; ctx.shadowBlur = 12; ctx.beginPath(); ctx.arc(62, 0, 4, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; }
+  ctx.restore();
+}
+
+/* =========================================================
+   PODERES DE CHEFÃO (desbloqueados ao vencer chefões)
+   ========================================================= */
+function resetProfile() {
+  profile.coins = 0; profile.owned = {}; profile.powers = {};
+  profile.equipped = { outfit: null, armor: null, weapon: null, equip: null };
+}
+function enemiesInView(level, pad) {
+  pad = pad || 200; const arr = [];
+  for (const en of level.enemies) { if (en.dead) continue; const sx = en.x - camera.x; if (sx > -pad && sx < VW + pad) arr.push(en); }
+  return arr;
+}
+function firePower(id, level) {
+  const bp = BOSS_POWERS[id];
+  if (!profile.powers[id] || player.powerCd > 0 || player.energy < bp.cost) return false;
+  player.powerCd = 0.7; player.energy -= bp.cost;
+  if (id === "quake") doQuake(level);
+  else if (id === "storm") doStorm(level);
+  else if (id === "meteor") doMeteor(level);
+  else if (id === "void") doVoid(level);
+  return true;
+}
+function useBossPowers(dt, level) {
+  if (player.powerCd > 0) player.powerCd -= dt;
+  for (const id in BOSS_POWERS) { if (consume(BOSS_POWERS[id].key)) firePower(id, level); }
+  // botão touch "★": dispara o primeiro poder disponível
+  if (consume("power")) { for (const id in BOSS_POWERS) { if (firePower(id, level)) break; } }
+}
+function doQuake(level) {
+  const cx = player.x + player.w / 2, cy = player.y + player.h / 2;
+  level.novas.push({ x: cx, y: cy, r: 0, max: 280, t: 0.5 });
+  camera.shake = 16; burst(cx, cy, "#e0a35f", 42, { glow: true, max: 9 });
+  const R = 280;
+  for (const en of level.enemies) { if (en.dead) continue; const ex = en.x + en.w / 2, ey = en.y + en.h / 2; if (Math.hypot(ex - cx, ey - cy) < R + Math.max(en.w, en.h) / 2) { damageEnemy(en, 80 * player.dmgMult, ex > cx ? 1 : -1, level); en.vy = -8; } }
+  if (level.boss && !level.boss.dead && Math.hypot(level.boss.x - cx, level.boss.y - cy) < R + 120) damageEnemy(level.boss, 60, 1, level);
+}
+function doStorm(level) {
+  camera.shake = 8; weather.flash = Math.max(weather.flash, 0.8);
+  const targets = enemiesInView(level, 160);
+  if (level.boss && !level.boss.dead) targets.push(level.boss);
+  for (const en of targets) { const x = en.x + en.w / 2, y = en.y + en.h / 2; level.fx.push({ type: "bolt", x, y, t: 0.35 }); damageEnemy(en, (en.boss ? 50 : 60) * player.dmgMult, 1, level); burst(x, y, "#bcd4ff", 14, { glow: true, max: 6 }); }
+}
+function doMeteor(level) {
+  camera.shake = 10;
+  const targets = enemiesInView(level, 160);
+  if (level.boss && !level.boss.dead) targets.push(level.boss);
+  for (const en of targets) { const x = en.x + en.w / 2, y = en.y + en.h / 2; level.fx.push({ type: "meteor", x, y, t: 0.5 }); damageEnemy(en, (en.boss ? 55 : 70) * player.dmgMult, 1, level); burst(x, y, "#ff7a3b", 16, { glow: true, max: 7 }); }
+  for (let i = 0; i < 6; i++) level.fx.push({ type: "meteor", x: camera.x + rand(0, VW), y: camera.y + rand(240, 620), t: rand(0.3, 0.6) });
+}
+function doVoid(level) {
+  const cx = player.x + player.w / 2, cy = player.y + player.h / 2;
+  level.novas.push({ x: cx, y: cy, r: 0, max: 440, t: 0.6 });
+  camera.shake = 20; burst(cx, cy, "#c98cff", 64, { glow: true, max: 11, maxLife: 1.4 });
+  const targets = enemiesInView(level, 300);
+  if (level.boss && !level.boss.dead) targets.push(level.boss);
+  for (const en of targets) damageEnemy(en, (en.boss ? 70 : 110) * player.dmgMult, en.x + en.w / 2 > cx ? 1 : -1, level);
+}
+function updateFx(dt, level) {
+  if (!level.fx) return;
+  for (let i = level.fx.length - 1; i >= 0; i--) { level.fx[i].t -= dt; if (level.fx[i].t <= 0) level.fx.splice(i, 1); }
+}
+function drawFx(level) {
+  if (!level.fx) return;
+  for (const f of level.fx) {
+    const a = clamp(f.t / 0.4, 0, 1);
+    if (f.type === "bolt") {
+      const x = f.x - camera.sx, y1 = f.y - camera.sy, y0 = y1 - 460;
+      ctx.strokeStyle = `rgba(210,230,255,${a})`; ctx.shadowColor = "#bcd4ff"; ctx.shadowBlur = 22; ctx.lineWidth = 4; ctx.lineCap = "round";
+      let bx = x, by = y0; ctx.beginPath(); ctx.moveTo(bx, by);
+      for (let s = 0; s < 9; s++) { bx += rand(-16, 16); by += (y1 - y0) / 9; ctx.lineTo(bx, by); }
+      ctx.stroke(); ctx.shadowBlur = 0;
+    } else if (f.type === "meteor") {
+      const frac = clamp(f.t / 0.5, 0, 1); // 1 (alto) -> 0 (impacto)
+      const tx = f.x - camera.sx, ty = f.y - camera.sy;
+      const hx = tx - 120 * frac, hy = ty - 300 * frac;
+      ctx.strokeStyle = `rgba(255,150,60,${a})`; ctx.lineWidth = 6; ctx.lineCap = "round"; ctx.shadowColor = "#ff7a3b"; ctx.shadowBlur = 18;
+      ctx.beginPath(); ctx.moveTo(hx - 40 * frac, hy - 100 * frac); ctx.lineTo(hx, hy); ctx.stroke();
+      ctx.fillStyle = "#ffcf8a"; ctx.beginPath(); ctx.arc(hx, hy, 8, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+    }
+  }
+}
+
+/* =========================================================
+   CHEFÕES: Tempestas (tempestade) e Ignis (vulcão)
+   ========================================================= */
+function bossUpdateTempestas(b, dt, level) {
+  b.phaseT += dt; if (b.hurtTimer > 0) b.hurtTimer -= dt; b.stateT -= dt;
+  const enraged = b.hp / b.maxHp < 0.4;
+  const dx = (player.x + player.w / 2) - (b.x + b.w / 2);
+  b.facing = dx > 0 ? 1 : -1; b.attacking = false;
+  // paira sobre o jogador
+  const hoverY = player.y - 200;
+  b.x = lerp(b.x, player.x + player.w / 2 - b.w / 2 + (Math.sin(b.phaseT) * 120), 0.02);
+  b.y = lerp(b.y, clamp(hoverY, 60, level.height - 400), 0.03) + Math.sin(b.phaseT * 1.5) * 3;
+  weather.flash = Math.max(weather.flash, 0.05);
+  if (b.state === "idle") {
+    if (b.stateT <= 0) { const r = Math.random(); if (r < 0.5) { b.state = "bolts"; b.stateT = 1.1; b.shots = enraged ? 6 : 4; b.shotTimer = 0; } else { b.state = "raincall"; b.stateT = 1.2; b.rained = false; } }
+  } else if (b.state === "bolts") {
+    b.attacking = true; b.shotTimer -= dt;
+    if (b.shots > 0 && b.shotTimer <= 0) { b.shots--; b.shotTimer = 0.18; const a = Math.atan2((player.y) - (b.y + 40), (player.x) - (b.x + b.w / 2)); level.projectiles.push({ x: b.x + b.w / 2, y: b.y + 40, vx: Math.cos(a) * 6.5, vy: Math.sin(a) * 6.5, r: 8, color: "#bcd4ff", from: "enemy", dmg: 14, life: 4 }); burst(b.x + b.w / 2, b.y + 40, "#bcd4ff", 5, { glow: true, max: 4, g: 0 }); }
+    if (b.stateT <= 0) { b.state = "idle"; b.stateT = enraged ? 0.6 : 1.1; }
+  } else if (b.state === "raincall") {
+    b.attacking = true;
+    if (!b.rained && b.stateT < 0.7) {
+      b.rained = true; weather.flash = 1; camera.shake = 8;
+      const n = enraged ? 9 : 6;
+      for (let i = 0; i < n; i++) { const px = camera.x + (VW / n) * i + rand(0, VW / n); level.projectiles.push({ x: px, y: camera.y - 20, vx: 0, vy: 6, r: 8, color: "#bcd4ff", from: "enemy", dmg: 14, life: 4 }); }
+    }
+    if (b.stateT <= 0) { b.state = "idle"; b.stateT = enraged ? 0.7 : 1.2; }
+  }
+  if (aabb(b, player.hitbox)) hurtPlayer(enraged ? 18 : 14, b.facing);
+}
+function bossUpdateIgnis(b, dt, level) {
+  b.phaseT += dt; if (b.hurtTimer > 0) b.hurtTimer -= dt; b.stateT -= dt;
+  const enraged = b.hp / b.maxHp < 0.4;
+  const dx = (player.x + player.w / 2) - (b.x + b.w / 2);
+  b.facing = dx > 0 ? 1 : -1;
+  b.vy += GRAV; if (b.vy > 16) b.vy = 16; b.attacking = false;
+  if (b.state === "idle") {
+    b.vx = lerp(b.vx, clamp(dx * 0.015, -2, 2), 0.1);
+    if (b.stateT <= 0) { const r = Math.random(); if (r < 0.4) { b.state = "fireballs"; b.stateT = 1.2; b.shots = enraged ? 6 : 4; b.shotTimer = 0.2; } else if (r < 0.72) { b.state = "meteors"; b.stateT = 1.3; b.rained = false; } else { b.state = "stomp"; b.stateT = 1.0; b.slammed = false; } }
+  } else if (b.state === "fireballs") {
+    b.vx *= 0.85; b.attacking = true; b.shotTimer -= dt;
+    if (b.shots > 0 && b.shotTimer <= 0) { b.shots--; b.shotTimer = 0.22; const dir = Math.sign(dx) || 1; const pw = clamp(Math.abs(dx) / 80, 4, 9); level.projectiles.push({ x: b.x + b.w / 2, y: b.y + 20, vx: dir * pw + rand(-1, 1), vy: -8, r: 11, color: "#ff7a3b", from: "enemy", dmg: 16, arc: true, life: 5 }); burst(b.x + b.w / 2, b.y + 20, "#ff9c5c", 5, { glow: true, max: 4, g: 0 }); }
+    if (b.stateT <= 0) { b.state = "idle"; b.stateT = enraged ? 0.8 : 1.3; }
+  } else if (b.state === "meteors") {
+    b.attacking = true;
+    if (!b.rained && b.stateT < 0.7) { b.rained = true; camera.shake = 10; const n = enraged ? 8 : 5; for (let i = 0; i < n; i++) { const px = camera.x + rand(0, VW); level.fx.push({ type: "meteor", x: px, y: player.y + rand(-40, 40), t: rand(0.4, 0.7) }); level.projectiles.push({ x: px, y: camera.y - 20, vx: 0, vy: 7, r: 10, color: "#ff7a3b", from: "enemy", dmg: 16, life: 4 }); } }
+    if (b.stateT <= 0) { b.state = "idle"; b.stateT = enraged ? 0.8 : 1.3; }
+  } else if (b.state === "stomp") {
+    b.attacking = true;
+    if (!b.slammed && b.onGround) { b.vy = -13; b.vx = clamp(dx * 0.04, -5, 5); b.slammed = true; }
+    if (b.stateT < -1.2) { b.state = "idle"; b.stateT = 1.2; }
+    if (b.slammed && b.onGround && b.vy === 0 && b.stateT < 0.6) { camera.shake = 16; burst(b.x + b.w / 2, b.y + b.h, "#ff7a3b", 30, { glow: true, max: 8, up: 2 }); for (const s of [-1, 1]) level.projectiles.push({ x: b.x + b.w / 2, y: b.y + b.h - 10, vx: s * 4.5, vy: -1, r: 12, color: "#ff9c5c", from: "enemy", ground: true, life: 1.2 }); b.state = "idle"; b.stateT = enraged ? 0.8 : 1.3; }
+  }
+  moveWithCollision(b, level);
+  if (aabb(b, player.hitbox)) hurtPlayer(enraged ? 20 : 15, b.facing);
+}
+function drawTempestas(b, sx, sy) {
+  const cx = sx + b.w / 2, cy = sy + b.h / 2, t = b.phaseT, hurt = b.hurtTimer > 0;
+  ctx.save(); ctx.translate(cx, cy);
+  const aura = ctx.createRadialGradient(0, 0, 20, 0, 0, 150);
+  aura.addColorStop(0, hurt ? "rgba(255,255,255,0.5)" : "rgba(140,180,255,0.4)"); aura.addColorStop(1, "rgba(20,30,50,0)");
+  ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(0, 0, 150, 0, Math.PI * 2); ctx.fill();
+  ctx.scale(b.facing, 1);
+  // manto de nuvem
+  const body = ctx.createLinearGradient(0, -60, 0, 70);
+  body.addColorStop(0, hurt ? "#eaf2ff" : "#3a4a70"); body.addColorStop(1, hurt ? "#b0c4e0" : "#141e30");
+  ctx.fillStyle = body;
+  ctx.beginPath(); ctx.moveTo(-40, -40); ctx.quadraticCurveTo(0, -70, 40, -40); ctx.quadraticCurveTo(56, 30, 40, 74); ctx.quadraticCurveTo(0, 62 + Math.sin(t * 2) * 8, -40, 74); ctx.quadraticCurveTo(-56, 30, -40, -40); ctx.closePath(); ctx.fill();
+  // braços de raio
+  ctx.strokeStyle = b.attacking ? "#eaf2ff" : "#8fb4ff"; ctx.lineWidth = 5; ctx.lineCap = "round"; ctx.shadowColor = "#bcd4ff"; ctx.shadowBlur = 12;
+  for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(s * 34, -30); ctx.lineTo(s * 54, 4 + Math.sin(t * 3) * 6); ctx.lineTo(s * 46, 24); ctx.stroke(); }
+  ctx.shadowBlur = 0;
+  // cabeça
+  ctx.fillStyle = hurt ? "#eaf2ff" : "#1c2740"; ctx.beginPath(); ctx.arc(0, -52, 24, 0, Math.PI * 2); ctx.fill();
+  // coroa de raios
+  ctx.strokeStyle = "#bcd4ff"; ctx.lineWidth = 3; ctx.shadowColor = "#bcd4ff"; ctx.shadowBlur = 14;
+  for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(i * 9, -70); ctx.lineTo(i * 11, -92); ctx.stroke(); }
+  ctx.shadowBlur = 0;
+  // olhos
+  const eye = hurt ? "#fff" : "#eaf2ff"; ctx.fillStyle = eye; ctx.shadowColor = "#bcd4ff"; ctx.shadowBlur = 16;
+  ctx.beginPath(); ctx.ellipse(-9, -54, 4, 6, 0.2, 0, Math.PI * 2); ctx.ellipse(9, -54, 4, 6, -0.2, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+  ctx.strokeStyle = eye; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-8, -40); ctx.quadraticCurveTo(0, -34, 8, -40); ctx.stroke();
+  ctx.restore();
+}
+function drawIgnis(b, sx, sy) {
+  const cx = sx + b.w / 2, cy = sy + b.h / 2, t = b.phaseT, hurt = b.hurtTimer > 0;
+  ctx.save(); ctx.translate(cx, cy);
+  const aura = ctx.createRadialGradient(0, 0, 20, 0, 0, 150);
+  aura.addColorStop(0, hurt ? "rgba(255,220,150,0.5)" : "rgba(255,120,40,0.4)"); aura.addColorStop(1, "rgba(30,8,4,0)");
+  ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(0, 0, 150 + Math.sin(t * 3) * 8, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.beginPath(); ctx.ellipse(0, b.h / 2 - 4, 60, 14, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.scale(b.facing, 1);
+  const rock = ctx.createLinearGradient(0, -70, 0, 70);
+  rock.addColorStop(0, hurt ? "#ffd0a0" : "#5a2410"); rock.addColorStop(1, "#1a0805");
+  // pernas
+  ctx.fillStyle = "#1a0805"; roundRect(ctx, -44, 24, 30, 46, 9); ctx.fill(); roundRect(ctx, 14, 24, 30, 46, 9); ctx.fill();
+  // corpo com veios de lava
+  ctx.fillStyle = rock; roundRect(ctx, -50, -56, 100, 90, 18); ctx.fill();
+  ctx.strokeStyle = b.attacking ? "#ffd24a" : "#ff7a3b"; ctx.lineWidth = 4; ctx.shadowColor = "#ff7a3b"; ctx.shadowBlur = 16;
+  ctx.beginPath(); ctx.moveTo(-26, -40); ctx.lineTo(-8, -6); ctx.lineTo(-22, 24); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(20, -36); ctx.lineTo(6, -2); ctx.lineTo(24, 26); ctx.stroke();
+  ctx.shadowBlur = 0;
+  // braços
+  ctx.strokeStyle = "#3a1408"; ctx.lineWidth = 14; ctx.lineCap = "round";
+  const arm = Math.sin(t * 1.5) * 0.3 + (b.attacking ? -0.6 : 0);
+  for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(s * 40, -30); ctx.lineTo(s * (64 + Math.cos(arm) * 6), 16 + Math.sin(arm) * 8); ctx.stroke(); }
+  // cabeça
+  ctx.fillStyle = rock; roundRect(ctx, -30, -92, 60, 42, 12); ctx.fill();
+  // chifres em chamas
+  ctx.fillStyle = "#ff7a3b"; ctx.shadowColor = "#ff7a3b"; ctx.shadowBlur = 14;
+  ctx.beginPath(); ctx.moveTo(-26, -88); ctx.lineTo(-40, -114); ctx.lineTo(-16, -92); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(26, -88); ctx.lineTo(40, -114); ctx.lineTo(16, -92); ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 0;
+  // olhos
+  const eye = hurt ? "#fff" : "#ffd24a"; ctx.fillStyle = eye; ctx.shadowColor = "#ff7a3b"; ctx.shadowBlur = 18;
+  ctx.beginPath(); ctx.rect(-22, -80, 15, 8); ctx.rect(7, -80, 15, 8); ctx.fill(); ctx.shadowBlur = 0;
+  // boca
+  ctx.fillStyle = "#1a0805"; roundRect(ctx, -20, -60, 40, 8, 3); ctx.fill();
+  ctx.fillStyle = "#ff7a3b"; for (let i = -16; i < 18; i += 8) ctx.fillRect(i, -60, 4, 8);
   ctx.restore();
 }
 

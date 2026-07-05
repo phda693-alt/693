@@ -393,3 +393,20 @@ html, body {
 @media (max-width: 620px) {
   .shop-grid { grid-template-columns: 1fr; }
 }
+
+
+/* ---------------- Poderes de chefão (HUD) ---------------- */
+.powers-hud {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.powers-hud .pw {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 8px currentColor;
+}
+.tbtn-power { background: rgba(200,150,255,0.28); font-size: 22px; }
