@@ -277,6 +277,9 @@ html, body {
 .tbtn:active { background: rgba(255,220,150,0.35); }
 .tbtn-jump { background: rgba(120,200,255,0.2); }
 .tbtn-attack { background: rgba(255,120,150,0.22); }
+.tbtn-beam { background: rgba(255,240,180,0.22); }
+.tbtn-nova { background: rgba(255,210,120,0.28); }
+.touch-right { flex-wrap: wrap; max-width: 220px; justify-content: flex-end; }
 
 @media (max-width: 720px) {
   #touch-controls.show { display: block; }

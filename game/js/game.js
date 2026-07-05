@@ -147,6 +147,10 @@ const THEMES = {
   forest: { sky: ["#2a1650", "#3d1f63", "#1a0e2e"], glow: "#7b4bff", hill: ["#241241", "#160a2b"], accent: "#a86bff", ground: ["#3a2456", "#241436"] },
   ruins:  { sky: ["#0d2b3a", "#124257", "#08202b"], glow: "#39c8d8", hill: ["#0e3345", "#082330"], accent: "#4fe0e0", ground: ["#123a4a", "#0a2530"] },
   citadel:{ sky: ["#2b0b1d", "#450f2c", "#170510"], glow: "#ff3b7f", hill: ["#3a0c22", "#1c0611"], accent: "#ff5c93", ground: ["#3a1024", "#1e0813"] },
+  swamp:  { sky: ["#12321f", "#1c4a2e", "#0a2216"], glow: "#5fe08a", hill: ["#123a24", "#0a2417"], accent: "#7dffb0", ground: ["#1d4a2f", "#10301e"] },
+  frost:  { sky: ["#153044", "#22506e", "#0c1f2e"], glow: "#8fd8ff", hill: ["#1a3c54", "#0e2536"], accent: "#c9f0ff", ground: ["#274d66", "#16303f"] },
+  cavern: { sky: ["#241a12", "#3a2a18", "#140d08"], glow: "#e0a35f", hill: ["#3a2a18", "#1c140b"], accent: "#ffcf8a", ground: ["#43301c", "#241810"] },
+  volcano:{ sky: ["#340c0c", "#5a1410", "#1a0605"], glow: "#ff7a3b", hill: ["#4a1210", "#240806"], accent: "#ff9c5c", ground: ["#4a1a12", "#26100a"] },
 };
 
 function drawBackground(theme, level, t) {
@@ -454,6 +458,154 @@ function drawWisp(e, sx, sy) {
   ctx.restore();
 }
 
+/* ---------- Golem de Sombra (brute) ---------- */
+function drawBrute(e, sx, sy) {
+  const cx = sx + e.w / 2, cy = sy + e.h / 2;
+  const hurt = e.hurtTimer > 0;
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(e.facing, 1);
+  ctx.fillStyle = "rgba(0,0,0,0.32)";
+  ctx.beginPath(); ctx.ellipse(0, e.h / 2 - 2, 30, 7, 0, 0, Math.PI * 2); ctx.fill();
+  const rock = ctx.createLinearGradient(0, -40, 0, 40);
+  rock.addColorStop(0, hurt ? "#ffb3c1" : "#6a4a86"); rock.addColorStop(1, hurt ? "#e07a92" : "#2e1c47");
+  // pernas
+  ctx.fillStyle = hurt ? "#e07a92" : "#2e1c47";
+  roundRect(ctx, -22, 10, 16, 24, 5); ctx.fill();
+  roundRect(ctx, 6, 10, 16, 24, 5); ctx.fill();
+  // corpo rochoso
+  ctx.fillStyle = rock;
+  roundRect(ctx, -28, -30, 56, 48, 12); ctx.fill();
+  // braços grandes
+  ctx.fillStyle = hurt ? "#f0a0b4" : "#4a3168";
+  roundRect(ctx, -40, -24, 16, 40, 7); ctx.fill();
+  roundRect(ctx, 24, -24, 16, 40, 7); ctx.fill();
+  // fissuras brilhantes
+  ctx.strokeStyle = e.charging > 0 ? "#ff5c93" : "#a86bff"; ctx.lineWidth = 2.5; ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 10;
+  ctx.beginPath(); ctx.moveTo(-14, -20); ctx.lineTo(-6, -6); ctx.lineTo(-12, 8); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(10, -18); ctx.lineTo(4, -2); ctx.stroke();
+  ctx.shadowBlur = 0;
+  // cabeça
+  ctx.fillStyle = rock;
+  roundRect(ctx, -18, -52, 36, 26, 8); ctx.fill();
+  // olhos
+  const eye = hurt ? "#fff" : "#ff5c93";
+  ctx.fillStyle = eye; ctx.shadowColor = eye; ctx.shadowBlur = 12;
+  ctx.beginPath(); ctx.rect(-12, -44, 8, 5); ctx.rect(4, -44, 8, 5); ctx.fill();
+  ctx.shadowBlur = 0;
+  // boca (dentes de pedra)
+  ctx.fillStyle = "#1a0f2a";
+  ctx.beginPath(); ctx.rect(-10, -32, 20, 5); ctx.fill();
+  ctx.fillStyle = rock;
+  for (let i = -8; i < 10; i += 6) { ctx.beginPath(); ctx.rect(i, -32, 3, 5); ctx.fill(); }
+  ctx.restore();
+}
+
+/* ---------- Morcego Corrompido (bat) ---------- */
+function drawBat(e, sx, sy) {
+  const cx = sx + e.w / 2, cy = sy + e.h / 2;
+  const hurt = e.hurtTimer > 0;
+  const flap = Math.sin(e.phase * 6) * 0.6;
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(e.facing, 1);
+  const col = hurt ? "#ffd0dc" : "#3a1a55";
+  // asas
+  ctx.fillStyle = col;
+  for (const s of [-1, 1]) {
+    ctx.save(); ctx.scale(s, 1); ctx.rotate(flap * s);
+    ctx.beginPath(); ctx.moveTo(6, -2);
+    ctx.quadraticCurveTo(26, -12, 34, -2);
+    ctx.quadraticCurveTo(26, -2, 30, 8);
+    ctx.quadraticCurveTo(20, 2, 6, 6);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  // corpo
+  ctx.fillStyle = hurt ? "#ffb3c1" : "#4a2668";
+  ctx.beginPath(); ctx.ellipse(0, 0, 10, 12, 0, 0, Math.PI * 2); ctx.fill();
+  // orelhas
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.moveTo(-5, -8); ctx.lineTo(-8, -18); ctx.lineTo(-1, -10); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(5, -8); ctx.lineTo(8, -18); ctx.lineTo(1, -10); ctx.closePath(); ctx.fill();
+  // olhos
+  const eye = hurt ? "#fff" : "#ff4d6d";
+  ctx.fillStyle = eye; ctx.shadowColor = eye; ctx.shadowBlur = 8;
+  ctx.beginPath(); ctx.arc(-3, -2, 2, 0, Math.PI * 2); ctx.arc(3, -2, 2, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0;
+  // presas
+  ctx.fillStyle = "#fff";
+  ctx.beginPath(); ctx.moveTo(-2, 4); ctx.lineTo(-1, 8); ctx.lineTo(0, 4); ctx.closePath();
+  ctx.moveTo(2, 4); ctx.lineTo(1, 8); ctx.lineTo(0, 4); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+/* ---------- Sentinela (turret) ---------- */
+function drawTurret(e, sx, sy) {
+  const cx = sx + e.w / 2, cy = sy + e.h / 2;
+  const hurt = e.hurtTimer > 0;
+  ctx.save(); ctx.translate(cx, cy);
+  ctx.fillStyle = "rgba(0,0,0,0.3)";
+  ctx.beginPath(); ctx.ellipse(0, e.h / 2 - 2, 24, 6, 0, 0, Math.PI * 2); ctx.fill();
+  // base
+  const base = ctx.createLinearGradient(0, -10, 0, 26);
+  base.addColorStop(0, hurt ? "#e6f2ff" : "#3a5a70"); base.addColorStop(1, "#14232e");
+  ctx.fillStyle = base;
+  ctx.beginPath(); ctx.moveTo(-20, 26); ctx.lineTo(-12, -6); ctx.lineTo(12, -6); ctx.lineTo(20, 26); ctx.closePath(); ctx.fill();
+  // cabeça-olho que gira
+  const ang = Math.atan2((player.y) - (cy), (player.x) - (cx));
+  ctx.save(); ctx.rotate(ang * (e.facing >= 0 ? 1 : 1));
+  ctx.fillStyle = hurt ? "#fff" : "#22485e";
+  ctx.beginPath(); ctx.arc(0, -14, 16, 0, Math.PI * 2); ctx.fill();
+  // cano
+  ctx.fillStyle = "#0e1c26"; roundRect(ctx, 4, -19, 20, 10, 4); ctx.fill();
+  ctx.restore();
+  // olho central brilhante
+  const eye = hurt ? "#fff" : "#8fd8ff";
+  ctx.fillStyle = eye; ctx.shadowColor = eye; ctx.shadowBlur = 16;
+  ctx.beginPath(); ctx.arc(0, -14, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#06121a"; ctx.beginPath(); ctx.arc(0, -14, 2.6, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+/* ---------- Cuspidor (spitter) ---------- */
+function drawSpitter(e, sx, sy) {
+  const cx = sx + e.w / 2, cy = sy + e.h / 2;
+  const hurt = e.hurtTimer > 0;
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(e.facing, 1);
+  ctx.fillStyle = "rgba(0,0,0,0.3)";
+  ctx.beginPath(); ctx.ellipse(0, e.h / 2 - 2, 24, 6, 0, 0, Math.PI * 2); ctx.fill();
+  // corpo bulboso
+  const body = ctx.createRadialGradient(-4, 0, 4, 0, 6, 30);
+  body.addColorStop(0, hurt ? "#eaffef" : "#2e6b45"); body.addColorStop(1, hurt ? "#ff9bb5" : "#123a24");
+  ctx.fillStyle = body;
+  ctx.beginPath(); ctx.ellipse(0, 6, 26, 20, 0, 0, Math.PI * 2); ctx.fill();
+  // pústulas
+  ctx.fillStyle = hurt ? "#fff" : "#7dffb0"; ctx.shadowColor = "#7dffb0"; ctx.shadowBlur = 8;
+  for (const q of [[-12, 0], [8, -4], [0, 12]]) { ctx.beginPath(); ctx.arc(q[0], q[1], 3.5, 0, Math.PI * 2); ctx.fill(); }
+  ctx.shadowBlur = 0;
+  // boca aberta (canhão)
+  ctx.fillStyle = "#0a1f12"; ctx.beginPath(); ctx.ellipse(16, -2, 7, 9, 0, 0, Math.PI * 2); ctx.fill();
+  // olhos
+  const eye = hurt ? "#fff" : "#d6ff8a";
+  ctx.fillStyle = eye; ctx.shadowColor = eye; ctx.shadowBlur = 8;
+  ctx.beginPath(); ctx.arc(-8, -10, 3, 0, Math.PI * 2); ctx.arc(2, -12, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#0a1f12";
+  ctx.beginPath(); ctx.arc(-7, -10, 1.4, 0, Math.PI * 2); ctx.arc(3, -12, 1.4, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+/* Dispatch de desenho por tipo de inimigo */
+function drawEnemy(en, sx, sy) {
+  switch (en.type) {
+    case "shade": return drawShade(en, sx, sy);
+    case "wisp": return drawWisp(en, sx, sy);
+    case "brute": return drawBrute(en, sx, sy);
+    case "bat": return drawBat(en, sx, sy);
+    case "turret": return drawTurret(en, sx, sy);
+    case "spitter": return drawSpitter(en, sx, sy);
+    default: return drawShade(en, sx, sy);
+  }
+}
+
 /* ---------- NÖX (chefão) ---------- */
 function drawNox(b, sx, sy) {
   const cx = sx + b.w / 2, cy = sy + b.h / 2;
@@ -565,10 +717,12 @@ const player = {
   hp: 100, maxHp: 100, energy: 100, maxEnergy: 100,
   walkPhase: 0, attackTimer: 0, attackCd: 0,
   dashTimer: 0, dashCd: 0, invuln: 0, dead: false,
+  novaCd: 0, novaTimer: 0, beamCd: 0, gliding: false,
   reset(x, y) {
     this.x = x; this.y = y; this.vx = 0; this.vy = 0;
     this.hp = this.maxHp; this.energy = this.maxEnergy;
     this.dead = false; this.invuln = 0; this.jumps = 0;
+    this.novaCd = 0; this.novaTimer = 0; this.beamCd = 0; this.gliding = false;
   },
   get hitbox() { return { x: this.x, y: this.y, w: this.w, h: this.h }; },
 };
@@ -603,14 +757,23 @@ function playerUpdate(dt, level) {
       burst(p.x + p.w / 2, p.y + p.h, "#c9b3ff", 8, { up: 1, g: 0.1, max: 3 });
     }
   }
-  // gravidade
-  p.vy += GRAV;
+  // gravidade (+ PLANAR: segurar pulo enquanto cai reduz a gravidade)
+  const holdJump = keys[" "] || keys["ArrowUp"] || keys["w"];
+  p.gliding = false;
+  if (!p.onGround && p.vy > 0.5 && holdJump && p.dashTimer <= 0) {
+    p.vy += GRAV * 0.28;         // queda planada
+    if (p.vy > 3.2) p.vy = 3.2;  // velocidade máxima de planeio
+    p.gliding = true;
+    if (Math.random() < 0.5) spawnParticle({ x: p.x + rand(0, p.w), y: p.y + p.h, vx: rand(-1, 1), vy: rand(0.4, 1.2), g: 0, r: rand(2, 4), color: "#bfe9ff", life: 0.4, maxLife: 0.4, glow: true });
+  } else {
+    p.vy += GRAV;
+  }
   if (p.vy > 18) p.vy = 18;
 
   // integração + colisão
   moveWithCollision(p, level);
 
-  // ataque
+  // ataque corpo-a-corpo
   if (p.attackCd > 0) p.attackCd -= dt;
   if (p.attackTimer > 0) p.attackTimer -= dt;
   if ((consume("k") || consume("j") || consume("x")) && p.attackCd <= 0) {
@@ -618,10 +781,26 @@ function playerUpdate(dt, level) {
     doAttack(level);
   }
 
+  // PODER: Feixe de Luz (ataque à distância) — tecla U / I
+  if (p.beamCd > 0) p.beamCd -= dt;
+  if ((consume("u") || consume("i")) && p.beamCd <= 0 && p.energy >= 12) {
+    p.beamCd = 0.32; p.energy -= 12;
+    level.projectiles.push({ x: p.x + p.w / 2 + p.facing * 20, y: p.y + p.h * 0.42, vx: p.facing * 11, vy: 0, r: 8, color: "#fff2c9", from: "player", dmg: 22, life: 1.6 });
+    burst(p.x + p.w / 2 + p.facing * 24, p.y + p.h * 0.42, "#ffe08a", 8, { glow: true, max: 4, g: 0 });
+  }
+
+  // PODER: Nova de Luz (explosão em área) — tecla O / F
+  if (p.novaCd > 0) p.novaCd -= dt;
+  if (p.novaTimer > 0) p.novaTimer -= dt;
+  if ((consume("o") || consume("f")) && p.novaCd <= 0 && p.energy >= 45) {
+    p.novaCd = 1.4; p.energy -= 45; p.novaTimer = 0.4;
+    doNova(level);
+  }
+
   // timers
   if (p.dashCd > 0) p.dashCd -= dt;
   if (p.invuln > 0) p.invuln -= dt;
-  p.energy = clamp(p.energy + dt * 14, 0, p.maxEnergy);
+  p.energy = clamp(p.energy + dt * 16, 0, p.maxEnergy);
 
   // animação de caminhada
   if (p.onGround && Math.abs(p.vx) > 0.4) p.walkPhase += dt * 14 * (Math.abs(p.vx) / MAXVX + 0.4);
@@ -630,10 +809,16 @@ function playerUpdate(dt, level) {
   if (p.y > level.height + 200) hurtPlayer(999, 0);
 }
 
+// sólidos = plataformas fixas + plataformas móveis
+function getSolids(level) {
+  return level.movers && level.movers.length ? level.platforms.concat(level.movers) : level.platforms;
+}
+
 function moveWithCollision(e, level) {
+  const solids = getSolids(level);
   // X
   e.x += e.vx;
-  for (const pl of level.platforms) {
+  for (const pl of solids) {
     if (aabb(e, pl)) {
       if (e.vx > 0) e.x = pl.x - e.w;
       else if (e.vx < 0) e.x = pl.x + pl.w;
@@ -644,9 +829,9 @@ function moveWithCollision(e, level) {
   // Y
   e.y += e.vy;
   e.onGround = false;
-  for (const pl of level.platforms) {
+  for (const pl of solids) {
     if (aabb(e, pl)) {
-      if (e.vy > 0) { e.y = pl.y - e.h; e.onGround = true; e.jumps = 0; }
+      if (e.vy > 0) { e.y = pl.y - e.h; e.onGround = true; e.jumps = 0; e.standingOn = pl; }
       else if (e.vy < 0) e.y = pl.y + pl.h;
       e.vy = 0;
     }
@@ -669,6 +854,27 @@ function doAttack(level) {
     if (aabb(hit, en)) damageEnemy(en, 34, p.facing, level);
   }
   if (level.boss && !level.boss.dead && aabb(hit, level.boss)) damageEnemy(level.boss, 24, p.facing, level);
+}
+
+// Nova de Luz: onda de choque radiante que atinge tudo por perto
+function doNova(level) {
+  const p = player;
+  const cx = p.x + p.w / 2, cy = p.y + p.h / 2;
+  const R = 200;
+  level.novas.push({ x: cx, y: cy, r: 0, max: R, t: 0.4 });
+  camera.shake = 12;
+  burst(cx, cy, "#fff6df", 40, { glow: true, max: 9, g: 0, maxLife: 0.9 });
+  const inRange = (e) => {
+    const ex = e.x + e.w / 2, ey = e.y + e.h / 2;
+    return Math.hypot(ex - cx, ey - cy) < R + Math.max(e.w, e.h) / 2;
+  };
+  for (const en of level.enemies) { if (!en.dead && inRange(en)) damageEnemy(en, 55, en.x + en.w / 2 > cx ? 1 : -1, level); }
+  if (level.boss && !level.boss.dead && inRange(level.boss)) damageEnemy(level.boss, 40, level.boss.x + level.boss.w / 2 > cx ? 1 : -1, level);
+  // destrói projéteis inimigos próximos
+  for (let i = level.projectiles.length - 1; i >= 0; i--) {
+    const pr = level.projectiles[i];
+    if (pr.from === "enemy" && Math.hypot(pr.x - cx, pr.y - cy) < R) { burst(pr.x, pr.y, pr.color, 6, { glow: true, max: 4 }); level.projectiles.splice(i, 1); }
+  }
 }
 
 function damageEnemy(en, dmg, dir, level) {
@@ -727,17 +933,84 @@ function enemyUpdate(en, dt, level) {
       level.projectiles.push({ x: en.x + en.w / 2, y: en.y + en.h / 2, vx: Math.cos(a) * 4.4, vy: Math.sin(a) * 4.4, r: 7, color: "#4fe0e0", from: "enemy", life: 4 });
     }
     if (aabb(en, player.hitbox)) hurtPlayer(10, en.facing);
+  } else if (en.type === "brute") {
+    // Golem: avança lento; quando perto e pronto, investe
+    const dx = (player.x + player.w / 2) - (en.x + en.w / 2);
+    en.facing = dx > 0 ? 1 : -1;
+    en.vy += GRAV; if (en.vy > 16) en.vy = 16;
+    if (en.chargeCd > 0) en.chargeCd -= dt;
+    if (en.charging > 0) {
+      en.charging -= dt; en.vx = en.facing * 7.5;
+      if (Math.random() < 0.4) spawnParticle({ x: en.x + en.w / 2, y: en.y + en.h, vx: rand(-1, 1), vy: 0, g: 0, r: rand(2, 5), color: "#a86bff", life: 0.4, maxLife: 0.4, glow: true });
+    } else {
+      if (Math.abs(dx) < 140 && en.chargeCd <= 0 && en.onGround) { en.charging = 0.55; en.chargeCd = rand(2.5, 4); camera.shake = 4; }
+      else { en.vx += en.facing * 0.16; en.vx = clamp(en.vx, -1.6, 1.6); }
+    }
+    moveWithCollision(en, level);
+    if (en.onGround && !willBeGrounded(en, level) && en.charging <= 0) { en.vx = -en.vx; en.x += en.vx * 2; }
+    if (aabb(en, player.hitbox)) hurtPlayer(en.charging > 0 ? 24 : 16, en.facing);
+  } else if (en.type === "bat") {
+    // Morcego: paira e mergulha
+    const tx = player.x + player.w / 2, ty = player.y + player.h / 2;
+    if (en.diveCd > 0) en.diveCd -= dt;
+    if (en.diving > 0) {
+      en.diving -= dt; en.x += en.vx; en.y += en.vy; en.vy += 0.15;
+      en.baseY = en.y;
+      if (en.diving <= 0) en.diveCd = rand(1.5, 3);
+    } else {
+      en.x = lerp(en.x, tx - en.w / 2, 0.03);
+      en.baseY = lerp(en.baseY, ty - 120, 0.03);
+      en.y = en.baseY + Math.sin(en.phase * 1.4) * 12;
+      if (en.diveCd <= 0 && Math.abs(tx - (en.x + en.w / 2)) < 260) {
+        const a = Math.atan2(ty - (en.y + en.h / 2), tx - (en.x + en.w / 2));
+        en.vx = Math.cos(a) * 8; en.vy = Math.sin(a) * 8; en.diving = 0.5;
+      }
+    }
+    en.facing = (tx > en.x) ? 1 : -1;
+    if (aabb(en, player.hitbox)) hurtPlayer(12, en.facing);
+  } else if (en.type === "turret") {
+    // Sentinela fixa: atira em rajada mirando o jogador
+    const tx = player.x + player.w / 2, ty = player.y + player.h / 2;
+    en.facing = (tx > en.x) ? 1 : -1;
+    en.shootCd -= dt;
+    if (en.shootCd <= 0 && Math.hypot(tx - (en.x + en.w / 2), ty - (en.y + en.h / 2)) < 620) {
+      en.shootCd = 1.6;
+      const a = Math.atan2(ty - (en.y + 12), tx - (en.x + en.w / 2));
+      for (let s = -1; s <= 1; s++) {
+        level.projectiles.push({ x: en.x + en.w / 2, y: en.y + 12, vx: Math.cos(a + s * 0.16) * 5, vy: Math.sin(a + s * 0.16) * 5, r: 7, color: "#c9f0ff", from: "enemy", dmg: 12, life: 3 });
+      }
+      burst(en.x + en.w / 2, en.y + 12, "#c9f0ff", 5, { glow: true, max: 4, g: 0 });
+    }
+    if (aabb(en, player.hitbox)) hurtPlayer(10, en.facing);
+  } else if (en.type === "spitter") {
+    // Cuspidor: anda devagar e lança projéteis em arco
+    const dx = (player.x + player.w / 2) - (en.x + en.w / 2);
+    en.facing = dx > 0 ? 1 : -1;
+    en.vy += GRAV; if (en.vy > 16) en.vy = 16;
+    en.vx = en.paceDir * 0.8;
+    moveWithCollision(en, level);
+    if (en.onGround && !willBeGrounded(en, level)) en.paceDir = -en.paceDir;
+    en.shootCd -= dt;
+    if (en.shootCd <= 0 && Math.abs(dx) < 520) {
+      en.shootCd = rand(1.6, 2.6);
+      const dir = Math.sign(dx) || 1;
+      const power = clamp(Math.abs(dx) / 90, 3, 7);
+      level.projectiles.push({ x: en.x + en.w / 2, y: en.y + 6, vx: dir * power, vy: -6.5, r: 9, color: "#7dffb0", from: "enemy", dmg: 14, arc: true, life: 4 });
+      burst(en.x + en.w / 2, en.y + 6, "#7dffb0", 5, { glow: true, max: 4, g: 0 });
+    }
+    if (aabb(en, player.hitbox)) hurtPlayer(12, en.facing);
   }
 }
 
 function willBeGrounded(en, level) {
   const probe = { x: en.x + (en.vx >= 0 ? en.w : -6), y: en.y + en.h + 4, w: 6, h: 8 };
-  return level.platforms.some((pl) => aabb(probe, pl));
+  return getSolids(level).some((pl) => aabb(probe, pl));
 }
 
-/* ---------- Boss Nöx ---------- */
+/* ---------- Boss (dispatch) ---------- */
 function bossUpdate(b, dt, level) {
   if (b.dead) return;
+  if (b.kind === "gorvax") return bossUpdateGorvax(b, dt, level);
   b.phaseT += dt;
   if (b.hurtTimer > 0) b.hurtTimer -= dt;
   b.stateT -= dt;
@@ -802,22 +1075,171 @@ function bossUpdate(b, dt, level) {
   if (aabb(b, player.hitbox)) hurtPlayer(enraged ? 20 : 15, b.facing);
 }
 
+/* ---------- Boss Gorvax (colosso de pedra) ---------- */
+function bossUpdateGorvax(b, dt, level) {
+  b.phaseT += dt;
+  if (b.hurtTimer > 0) b.hurtTimer -= dt;
+  b.stateT -= dt;
+  const hpPct = b.hp / b.maxHp;
+  const enraged = hpPct < 0.4;
+  const dx = (player.x + player.w / 2) - (b.x + b.w / 2);
+  b.facing = dx > 0 ? 1 : -1;
+  b.vy += GRAV; if (b.vy > 16) b.vy = 16;
+  b.attacking = false;
+
+  if (b.state === "idle") {
+    b.vx = lerp(b.vx, clamp(dx * 0.015, -1.8, 1.8), 0.1);
+    if (b.stateT <= 0) {
+      const roll = Math.random();
+      if (roll < 0.4) { b.state = "charge"; b.stateT = 1.6; b.chargeDone = false; b.windup = 0.4; }
+      else if (roll < 0.72) { b.state = "rocks"; b.stateT = 1.2; b.shots = enraged ? 6 : 4; b.shotTimer = 0.2; }
+      else { b.state = "stomp"; b.stateT = 1.0; b.slammed = false; }
+    }
+  } else if (b.state === "charge") {
+    b.attacking = true;
+    if (b.windup > 0) { b.windup -= dt; b.vx *= 0.7; }
+    else { b.vx = b.facing * (enraged ? 11 : 8.5);
+      if (Math.random() < 0.5) burst(b.x + b.w / 2, b.y + b.h - 6, "#e0a35f", 6, { glow: true, max: 5 }); }
+    if (b.stateT <= 0) { b.state = "idle"; b.stateT = enraged ? 0.7 : 1.2; }
+  } else if (b.state === "rocks") {
+    b.vx *= 0.8; b.attacking = true;
+    b.shotTimer -= dt;
+    if (b.shots > 0 && b.shotTimer <= 0) {
+      b.shots--; b.shotTimer = 0.22;
+      const dir = Math.sign(dx) || 1;
+      const power = clamp(Math.abs(dx) / 80, 4, 9);
+      level.projectiles.push({ x: b.x + b.w / 2, y: b.y + 20, vx: dir * power + rand(-1, 1), vy: -8, r: 12, color: "#e0a35f", from: "enemy", dmg: 16, arc: true, life: 5 });
+      burst(b.x + b.w / 2, b.y + 20, "#ffcf8a", 5, { glow: true, max: 4, g: 0 });
+    }
+    if (b.stateT <= 0) { b.state = "idle"; b.stateT = enraged ? 0.8 : 1.3; }
+  } else if (b.state === "stomp") {
+    b.attacking = true;
+    if (!b.slammed && b.onGround) { b.vy = -13; b.vx = clamp(dx * 0.04, -5, 5); b.slammed = true; }
+    if (b.stateT < -1.2) { b.state = "idle"; b.stateT = 1.2; }
+    if (b.slammed && b.onGround && b.vy === 0 && b.stateT < 0.6) {
+      camera.shake = 18;
+      burst(b.x + b.w / 2, b.y + b.h, "#e0a35f", 34, { glow: true, max: 8, up: 2 });
+      for (const s of [-1, 1]) for (let k = 1; k <= 2; k++)
+        level.projectiles.push({ x: b.x + b.w / 2, y: b.y + b.h - 10, vx: s * 3.5 * k, vy: -1, r: 11, color: "#ffcf8a", from: "enemy", ground: true, life: 1.3 });
+      b.state = "idle"; b.stateT = enraged ? 0.8 : 1.3;
+    }
+  }
+
+  moveWithCollision(b, level);
+  if (aabb(b, player.hitbox)) hurtPlayer(b.state === "charge" && b.windup <= 0 ? 24 : 16, b.facing);
+}
+
+/* ---------- Desenho do Gorvax ---------- */
+function drawGorvax(b, sx, sy) {
+  const cx = sx + b.w / 2, cy = sy + b.h / 2;
+  const t = b.phaseT;
+  const hurt = b.hurtTimer > 0;
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(b.facing, 1);
+  // aura
+  const aura = ctx.createRadialGradient(0, 0, 20, 0, 0, 140);
+  aura.addColorStop(0, hurt ? "rgba(255,220,150,0.5)" : "rgba(224,163,95,0.35)");
+  aura.addColorStop(1, "rgba(20,12,5,0)");
+  ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(0, 0, 140, 0, Math.PI * 2); ctx.fill();
+  // sombra
+  ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.beginPath(); ctx.ellipse(0, b.h / 2 - 4, 66, 14, 0, 0, Math.PI * 2); ctx.fill();
+  const rock = ctx.createLinearGradient(0, -70, 0, 70);
+  rock.addColorStop(0, hurt ? "#ffe0b0" : "#8a6038"); rock.addColorStop(1, hurt ? "#e0956a" : "#3a2412");
+  // pernas
+  ctx.fillStyle = hurt ? "#e0956a" : "#3a2412";
+  roundRect(ctx, -48, 30, 34, 44, 10); ctx.fill();
+  roundRect(ctx, 14, 30, 34, 44, 10); ctx.fill();
+  // braços/punhos gigantes
+  ctx.fillStyle = rock;
+  const arm = Math.sin(t * 1.5) * 0.2 + (b.attacking ? -0.5 : 0);
+  for (const s of [-1, 1]) {
+    ctx.save(); ctx.translate(s * 60, -10); ctx.rotate(arm * s);
+    roundRect(ctx, -18, -20, 36, 60, 12); ctx.fill();
+    ctx.restore();
+  }
+  // corpo
+  ctx.fillStyle = rock;
+  roundRect(ctx, -56, -60, 112, 100, 22); ctx.fill();
+  // fissuras de lava
+  ctx.strokeStyle = b.attacking ? "#ff7a3b" : "#ffcf8a"; ctx.lineWidth = 4; ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 16;
+  ctx.beginPath(); ctx.moveTo(-30, -40); ctx.lineTo(-10, -10); ctx.lineTo(-24, 20); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(20, -34); ctx.lineTo(6, -6); ctx.lineTo(24, 24); ctx.stroke();
+  ctx.shadowBlur = 0;
+  // cabeça
+  ctx.fillStyle = rock; roundRect(ctx, -34, -96, 68, 44, 14); ctx.fill();
+  // chifres de pedra
+  ctx.fillStyle = hurt ? "#ffe0b0" : "#5a3a1e";
+  ctx.beginPath(); ctx.moveTo(-30, -92); ctx.lineTo(-46, -116); ctx.lineTo(-20, -96); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(30, -92); ctx.lineTo(46, -116); ctx.lineTo(20, -96); ctx.closePath(); ctx.fill();
+  // olhos
+  const eye = hurt ? "#fff" : "#ffcf8a";
+  ctx.fillStyle = eye; ctx.shadowColor = "#ff7a3b"; ctx.shadowBlur = 18;
+  ctx.beginPath(); ctx.rect(-24, -84, 16, 8); ctx.rect(8, -84, 16, 8); ctx.fill();
+  ctx.shadowBlur = 0;
+  // boca
+  ctx.fillStyle = "#1a0d05"; roundRect(ctx, -22, -64, 44, 8, 3); ctx.fill();
+  ctx.fillStyle = rock;
+  for (let i = -18; i < 20; i += 8) { ctx.beginPath(); ctx.rect(i, -64, 4, 8); ctx.fill(); }
+  ctx.restore();
+}
+
+/* Dispatch de desenho do chefão */
+function drawBoss(b, sx, sy) {
+  if (b.kind === "gorvax") return drawGorvax(b, sx, sy);
+  return drawNox(b, sx, sy);
+}
+
 /* ---------- Projéteis ---------- */
 function updateProjectiles(dt, level) {
   for (let i = level.projectiles.length - 1; i >= 0; i--) {
     const pr = level.projectiles[i];
     pr.x += pr.vx; pr.y += pr.vy;
-    if (!pr.ground) pr.vy += 0.02; else pr.vy += GRAV * 0.5;
+    if (pr.ground) pr.vy += GRAV * 0.5;
+    else if (pr.arc) pr.vy += 0.22;      // projétil em arco (cuspidor)
+    else if (pr.from !== "player") pr.vy += 0.02;
     pr.life -= dt;
+    const box = { x: pr.x - pr.r, y: pr.y - pr.r, w: pr.r * 2, h: pr.r * 2 };
     // rastro
     if (Math.random() < 0.5) spawnParticle({ x: pr.x, y: pr.y, vx: 0, vy: 0, g: 0, r: pr.r * 0.5, color: pr.color, life: 0.3, maxLife: 0.3, glow: true });
     let remove = pr.life <= 0;
-    if (aabb({ x: pr.x - pr.r, y: pr.y - pr.r, w: pr.r * 2, h: pr.r * 2 }, player.hitbox)) {
-      hurtPlayer(pr.ground ? 18 : 12, Math.sign(pr.vx) || 1); remove = true;
-      burst(pr.x, pr.y, pr.color, 10, { glow: true, max: 5 });
+
+    if (pr.from === "player") {
+      // Feixe do jogador: atinge inimigos e o chefão
+      for (const en of level.enemies) {
+        if (en.dead) continue;
+        if (aabb(box, en)) { damageEnemy(en, pr.dmg || 20, Math.sign(pr.vx) || 1, level); remove = true; break; }
+      }
+      if (!remove && level.boss && !level.boss.dead && aabb(box, level.boss)) { damageEnemy(level.boss, pr.dmg || 16, Math.sign(pr.vx) || 1, level); remove = true; }
+    } else {
+      // Projétil inimigo: atinge o jogador
+      if (aabb(box, player.hitbox)) {
+        hurtPlayer(pr.ground ? 18 : (pr.dmg || 12), Math.sign(pr.vx) || 1); remove = true;
+        burst(pr.x, pr.y, pr.color, 10, { glow: true, max: 5 });
+      }
     }
-    for (const pl of level.platforms) { if (aabb({ x: pr.x - pr.r, y: pr.y - pr.r, w: pr.r * 2, h: pr.r * 2 }, pl)) { remove = true; break; } }
+    for (const pl of getSolids(level)) { if (aabb(box, pl)) { remove = true; break; } }
     if (remove) level.projectiles.splice(i, 1);
+  }
+}
+
+// Nova: atualização e desenho das ondas de choque
+function updateNovas(dt, level) {
+  for (let i = level.novas.length - 1; i >= 0; i--) {
+    const n = level.novas[i];
+    n.t -= dt; n.r = lerp(n.r, n.max, 0.35);
+    if (n.t <= 0) level.novas.splice(i, 1);
+  }
+}
+function drawNovas(level) {
+  for (const n of level.novas) {
+    const a = clamp(n.t / 0.4, 0, 1);
+    const x = n.x - camera.sx, y = n.y - camera.sy;
+    ctx.strokeStyle = `rgba(255,246,223,${a})`; ctx.lineWidth = 6 * a + 2;
+    ctx.shadowColor = "#ffe08a"; ctx.shadowBlur = 24;
+    ctx.beginPath(); ctx.arc(x, y, n.r, 0, Math.PI * 2); ctx.stroke();
+    const g = ctx.createRadialGradient(x, y, n.r * 0.5, x, y, n.r);
+    g.addColorStop(0, "transparent"); g.addColorStop(0.8, `rgba(255,224,138,${a * 0.25})`); g.addColorStop(1, "transparent");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, n.r, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
   }
 }
 function drawProjectiles(level) {
@@ -905,6 +1327,15 @@ function drawSlashes(level, dt) {
 function makeEnemy(type, x, y) {
   if (type === "shade") return { type, x, y, w: 40, h: 56, vx: 0, vy: 0, facing: -1, hp: 40, maxHp: 40, phase: rand(0, 6), hurtTimer: 0, onGround: false, dead: false };
   if (type === "wisp") return { type, x, y, baseY: y, w: 34, h: 34, vx: 0, vy: 0, facing: -1, hp: 26, maxHp: 26, phase: rand(0, 6), hurtTimer: 0, shootCd: rand(1, 2.5), dead: false };
+  // Golem de Sombra: pesado, lento, avança e às vezes investe
+  if (type === "brute") return { type, x, y, w: 66, h: 82, vx: 0, vy: 0, facing: -1, hp: 160, maxHp: 160, phase: rand(0, 6), hurtTimer: 0, onGround: false, dead: false, chargeCd: rand(2, 4), charging: 0 };
+  // Morcego Corrompido: voa rápido e mergulha no jogador
+  if (type === "bat") return { type, x, y, baseY: y, w: 46, h: 34, vx: 0, vy: 0, facing: -1, hp: 22, maxHp: 22, phase: rand(0, 6), hurtTimer: 0, diveCd: rand(1, 3), diving: 0, dead: false };
+  // Sentinela: torre fixa que atira mirando no jogador
+  if (type === "turret") return { type, x, y, w: 48, h: 54, vx: 0, vy: 0, facing: -1, hp: 60, maxHp: 60, phase: rand(0, 6), hurtTimer: 0, onGround: true, static: true, shootCd: rand(1, 2), dead: false };
+  // Cuspidor: fica no chão e lança projéteis em arco
+  if (type === "spitter") return { type, x, y, w: 54, h: 46, vx: 0, vy: 0, facing: -1, hp: 80, maxHp: 80, phase: rand(0, 6), hurtTimer: 0, onGround: false, shootCd: rand(1.4, 2.6), paceDir: Math.random() < 0.5 ? -1 : 1, dead: false };
+  return { type: "shade", x, y, w: 40, h: 56, vx: 0, vy: 0, facing: -1, hp: 40, maxHp: 40, phase: rand(0, 6), hurtTimer: 0, onGround: false, dead: false };
 }
 
 // P = plataforma, F = fragmento, S = shade, W = wisp
@@ -917,16 +1348,108 @@ function buildLevel(def) {
     height: def.height,
     spawn: def.spawn,
     goal: def.goal || null,
-    isBoss: !!def.isBoss,
+    isBoss: !!def.boss,
+    bossKind: def.boss || null,
     platforms: def.platforms.map((p) => ({ x: p[0], y: p[1], w: p[2], h: p[3] })),
+    movers: (def.movers || []).map((m) => ({ x: m[0], y: m[1], w: m[2], h: m[3], x0: m[0], y0: m[1], dx: m[4] || 0, dy: m[5] || 0, speed: m[6] || 1, phase: rand(0, 6), mover: true })),
+    hazards: (def.hazards || []).map(makeHazard),
     enemies: (def.enemies || []).map((e) => makeEnemy(e[0], e[1], e[2])),
     fragments: (def.fragments || []).map((f) => ({ x: f[0], y: f[1], baseY: f[1], phase: rand(0, 6), taken: false })),
     projectiles: [],
     slashes: [],
+    novas: [],
     boss: null,
     collected: 0,
     intro: def.intro,
   };
+}
+
+// Obstáculos: spike (espinhos), lava (poça), saw (serra móvel)
+function makeHazard(h) {
+  const type = h[0];
+  if (type === "spike") return { type, x: h[1], y: h[2], w: h[3], h: 26 };
+  if (type === "lava")  return { type, x: h[1], y: h[2], w: h[3], h: h[4] || 40, phase: rand(0, 6) };
+  if (type === "saw")   return { type, x0: h[1], y0: h[2], x: h[1], y: h[2], range: h[3] || 160, axis: h[4] || "x", speed: h[5] || 1.4, r: 30, phase: rand(0, 6), angle: 0 };
+  return { type: "spike", x: h[1], y: h[2], w: h[3] || 40, h: 26 };
+}
+
+// Atualização de plataformas móveis (carrega o jogador junto)
+function updateMovers(dt, level) {
+  if (!level.movers) return;
+  for (const m of level.movers) {
+    m.phase += dt * m.speed;
+    const nx = m.x0 + Math.sin(m.phase) * m.dx;
+    const ny = m.y0 + Math.sin(m.phase) * m.dy;
+    const ddx = nx - m.x, ddy = ny - m.y;
+    // carrega o jogador se estiver em cima
+    const onTop = !player.dead && player.vy >= 0 &&
+      player.x + player.w > m.x + 3 && player.x < m.x + m.w - 3 &&
+      Math.abs((player.y + player.h) - m.y) < 8;
+    if (onTop) { player.x += ddx; player.y += ddy; }
+    m.x = nx; m.y = ny;
+  }
+}
+
+// Atualização e colisão dos obstáculos
+function updateHazards(dt, level) {
+  if (!level.hazards) return;
+  for (const hz of level.hazards) {
+    if (hz.type === "saw") {
+      hz.phase += dt * hz.speed; hz.angle += dt * 10;
+      if (hz.axis === "x") hz.x = hz.x0 + Math.sin(hz.phase) * hz.range;
+      else hz.y = hz.y0 + Math.sin(hz.phase) * hz.range;
+      const box = { x: hz.x - hz.r, y: hz.y - hz.r, w: hz.r * 2, h: hz.r * 2 };
+      if (aabb(box, player.hitbox)) hurtPlayer(22, player.x < hz.x ? -1 : 1);
+    } else if (hz.type === "spike") {
+      const box = { x: hz.x, y: hz.y, w: hz.w, h: hz.h };
+      if (aabb(box, player.hitbox)) hurtPlayer(18, player.x + player.w / 2 < hz.x + hz.w / 2 ? -1 : 1);
+    } else if (hz.type === "lava") {
+      hz.phase += dt * 2;
+      const box = { x: hz.x, y: hz.y, w: hz.w, h: hz.h };
+      if (aabb(box, player.hitbox)) hurtPlayer(22, 0), player.vy = -9;
+    }
+  }
+}
+
+// Desenho dos obstáculos
+function drawHazards(level) {
+  if (!level.hazards) return;
+  for (const hz of level.hazards) {
+    if (hz.type === "spike") {
+      const x = hz.x - camera.sx, y = hz.y - camera.sy;
+      const n = Math.max(1, Math.floor(hz.w / 20));
+      for (let i = 0; i < n; i++) {
+        const sx = x + i * (hz.w / n);
+        const g = ctx.createLinearGradient(0, y, 0, y + hz.h);
+        g.addColorStop(0, "#e9eefc"); g.addColorStop(1, "#6b7390");
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.moveTo(sx, y + hz.h); ctx.lineTo(sx + hz.w / n / 2, y); ctx.lineTo(sx + hz.w / n, y + hz.h); ctx.closePath(); ctx.fill();
+      }
+    } else if (hz.type === "lava") {
+      const x = hz.x - camera.sx, y = hz.y - camera.sy;
+      const g = ctx.createLinearGradient(0, y, 0, y + hz.h);
+      g.addColorStop(0, "#ffd24a"); g.addColorStop(0.4, "#ff6a1f"); g.addColorStop(1, "#8c1400");
+      ctx.fillStyle = g; ctx.shadowColor = "#ff6a1f"; ctx.shadowBlur = 24;
+      ctx.beginPath(); ctx.moveTo(x, y + 6);
+      for (let i = 0; i <= hz.w; i += 24) ctx.lineTo(x + i, y + 6 + Math.sin(hz.phase + i * 0.05) * 5);
+      ctx.lineTo(x + hz.w, y + hz.h); ctx.lineTo(x, y + hz.h); ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0;
+      if (Math.random() < 0.3) spawnParticle({ x: hz.x + rand(0, hz.w) + camera.sx - camera.sx, y: hz.y, vx: rand(-0.5, 0.5), vy: rand(-2, -0.6), g: 0.06, r: rand(2, 4), color: "#ffb04a", life: 0.8, maxLife: 0.8, glow: true });
+    } else if (hz.type === "saw") {
+      const x = hz.x - camera.sx, y = hz.y - camera.sy;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(hz.angle);
+      ctx.fillStyle = "#c9d2e6"; ctx.shadowColor = "#9fb0d0"; ctx.shadowBlur = 12;
+      ctx.beginPath();
+      for (let i = 0; i < 12; i++) {
+        const a = i / 12 * Math.PI * 2;
+        ctx.lineTo(Math.cos(a) * hz.r, Math.sin(a) * hz.r);
+        ctx.lineTo(Math.cos(a + 0.16) * (hz.r - 10), Math.sin(a + 0.16) * (hz.r - 10));
+      }
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#5b6a80"; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0; ctx.restore();
+    }
+  }
 }
 
 const LEVELS = [
@@ -940,13 +1463,14 @@ const LEVELS = [
       [1860, 700, 300, 40], [2180, 760, 700, 140], [2500, 600, 220, 40],
       [2960, 640, 260, 40], [3260, 720, 500, 180], [1250, 540, 140, 30],
     ],
-    enemies: [["shade", 500, 700], ["shade", 2300, 700], ["wisp", 1600, 460], ["shade", 3350, 660], ["wisp", 2650, 460]],
+    enemies: [["shade", 500, 700], ["brute", 2280, 678], ["wisp", 1600, 460], ["shade", 3350, 660], ["wisp", 2650, 460], ["bat", 1300, 420]],
+    hazards: [["spike", 620, 734, 70], ["spike", 2360, 734, 90]],
     fragments: [[1180, 640], [1560, 560], [1980, 640], [2560, 540], [3010, 580]],
   },
   {
     theme: "ruins", name: "Ruínas de Cristal", chapter: "Capítulo II",
     width: 4000, height: 1000, spawn: { x: 70, y: 500 },
-    intro: "Nas <b>Ruínas de Cristal</b>, os ecos dos antigos guardiões sussurram. Espectros protegem os fragmentos — mas a luz de Aurora cresce.",
+    intro: "Nas <b>Ruínas de Cristal</b>, os ecos dos antigos guardiões sussurram. Sentinelas antigas despertam para barrar o caminho de Aurora.",
     goal: { x: 3860, y: 480 },
     platforms: [
       [0, 660, 620, 340], [760, 600, 220, 30], [1080, 500, 200, 30],
@@ -954,12 +1478,80 @@ const LEVELS = [
       [2200, 460, 180, 30], [2640, 560, 220, 30], [2960, 460, 200, 30],
       [3260, 560, 220, 30], [3560, 640, 440, 360],
     ],
-    enemies: [["wisp", 900, 400], ["shade", 300, 600], ["wisp", 1500, 300], ["shade", 2150, 600], ["wisp", 2800, 380], ["wisp", 3100, 320], ["shade", 3700, 580]],
+    movers: [["mover", 1180, 460, 120, 24, 0, -120, 1.0], ["mover", 2500, 560, 130, 24, 130, 0, 1.2]],
+    hazards: [["saw", 340, 634, 150, "x", 1.4]],
+    enemies: [["turret", 2202, 406], ["shade", 300, 604], ["wisp", 1500, 300], ["bat", 2150, 360], ["wisp", 2800, 380], ["turret", 3262, 506], ["shade", 3700, 584]],
     fragments: [[860, 540], [1180, 440], [1480, 360], [2280, 400], [2720, 500], [3060, 400], [3360, 500]],
   },
   {
-    theme: "citadel", name: "Cidadela das Sombras", chapter: "Capítulo III — O Confronto Final",
-    width: 1600, height: 900, spawn: { x: 120, y: 600 }, isBoss: true,
+    theme: "swamp", name: "Pântano Corrompido", chapter: "Capítulo III",
+    width: 4200, height: 1050, spawn: { x: 70, y: 600 },
+    intro: "O <b>Pântano Corrompido</b> ferve com ácido das sombras. Cuspidores emboscam entre as poças — cuidado onde pisa, guardiã.",
+    goal: { x: 4080, y: 640 },
+    platforms: [
+      [0, 720, 700, 330], [900, 720, 500, 330], [1600, 640, 220, 30],
+      [1950, 720, 600, 330], [2750, 620, 220, 30], [3050, 720, 500, 330],
+      [3650, 640, 240, 30], [3950, 720, 300, 330],
+    ],
+    movers: [["mover", 1500, 780, 120, 22, 0, -130, 1.1], ["mover", 3520, 780, 120, 22, 130, 0, 1.2]],
+    hazards: [
+      ["lava", 700, 900, 200, 150], ["lava", 1400, 950, 200, 100],
+      ["lava", 2550, 960, 500, 90], ["lava", 3550, 960, 100, 90],
+      ["spike", 1100, 694, 80],
+    ],
+    enemies: [["shade", 300, 664], ["spitter", 1150, 674], ["bat", 1300, 400], ["spitter", 2200, 674], ["bat", 2450, 380], ["spitter", 3250, 674], ["bat", 3500, 400], ["wisp", 2000, 480]],
+    fragments: [[1000, 640], [1600, 580], [2200, 640], [2750, 560], [3650, 580], [4050, 640]],
+  },
+  {
+    theme: "frost", name: "Abismo Gélido", chapter: "Capítulo IV",
+    width: 4200, height: 1100, spawn: { x: 70, y: 560 },
+    intro: "No <b>Abismo Gélido</b>, lâminas de gelo giram nas passagens estreitas. Sentinelas e morcegos vigiam cada fragmento.",
+    goal: { x: 4080, y: 640 },
+    platforms: [
+      [0, 700, 600, 400], [760, 620, 200, 30], [1050, 700, 500, 400],
+      [1700, 600, 200, 30], [2000, 520, 200, 30], [2300, 640, 240, 30],
+      [2650, 700, 500, 400], [3300, 600, 220, 30], [3650, 700, 550, 400],
+    ],
+    movers: [["mover", 2540, 560, 120, 22, 150, 0, 1.2], ["mover", 1560, 640, 110, 22, 0, -120, 1.0]],
+    hazards: [
+      ["saw", 1300, 674, 190, "x", 1.5], ["spike", 300, 674, 90],
+      ["spike", 2820, 674, 100], ["saw", 3410, 570, 120, "y", 1.7],
+    ],
+    enemies: [["turret", 802, 566], ["shade", 1200, 644], ["bat", 1500, 360], ["turret", 3302, 546], ["bat", 2500, 340], ["spitter", 2700, 654], ["bat", 3700, 380]],
+    fragments: [[760, 560], [2000, 460], [2300, 580], [3300, 540], [1300, 640], [3900, 640]],
+  },
+  {
+    theme: "cavern", name: "Caverna do Colosso", chapter: "Capítulo V — Guardião de Pedra", boss: "gorvax",
+    width: 1700, height: 950, spawn: { x: 120, y: 600 },
+    intro: "Nas profundezas ecoa um trovão de rocha. <b>GORVAX</b>, o Colosso de Pedra, guarda a passagem para a cidadela. Ele não deixará Aurora passar.",
+    platforms: [
+      [0, 780, 1700, 170], [120, 620, 220, 30], [1360, 620, 220, 30], [700, 520, 300, 30],
+    ],
+    enemies: [],
+    fragments: [],
+  },
+  {
+    theme: "volcano", name: "Forja das Sombras", chapter: "Capítulo VI",
+    width: 4400, height: 1100, spawn: { x: 70, y: 600 },
+    intro: "A <b>Forja das Sombras</b> arde sob a cidadela. Golems despertam da lava e o ar queima — mas o Coração de Luz está perto.",
+    goal: { x: 4280, y: 640 },
+    platforms: [
+      [0, 720, 650, 380], [850, 660, 200, 30], [1150, 720, 500, 380],
+      [1750, 600, 220, 30], [2080, 700, 240, 30], [2400, 720, 500, 380],
+      [3050, 620, 200, 30], [3350, 700, 240, 30], [3650, 720, 750, 380],
+    ],
+    movers: [["mover", 1680, 780, 130, 22, 160, 0, 1.3], ["mover", 2950, 780, 130, 22, 160, 0, 1.3]],
+    hazards: [
+      ["lava", 650, 940, 200, 160], ["lava", 1650, 980, 750, 120],
+      ["lava", 2900, 980, 750, 120], ["saw", 1350, 674, 170, "x", 1.7],
+      ["saw", 3800, 674, 190, "x", 1.9], ["spike", 300, 694, 90],
+    ],
+    enemies: [["shade", 400, 664], ["brute", 1300, 638], ["bat", 1800, 360], ["turret", 2082, 646], ["spitter", 2600, 674], ["bat", 3100, 360], ["brute", 3750, 638]],
+    fragments: [[850, 600], [1750, 540], [2200, 640], [3050, 560], [3400, 640], [4050, 640]],
+  },
+  {
+    theme: "citadel", name: "Cidadela das Sombras", chapter: "Capítulo VII — O Confronto Final", boss: "nox",
+    width: 1600, height: 900, spawn: { x: 120, y: 600 },
     intro: "No trono da <b>Cidadela das Sombras</b>, <b>NÖX</b> aguarda — o Devorador de Luz que roubou o Coração. Chegou a hora de reacender o mundo.",
     platforms: [
       [0, 780, 1600, 120], [120, 620, 220, 30], [1260, 620, 220, 30], [640, 520, 320, 30],
@@ -969,12 +1561,24 @@ const LEVELS = [
   },
 ];
 
-function makeBoss(x, y) {
-  return {
-    boss: true, x, y, w: 120, h: 170, vx: 0, vy: 0, facing: -1,
-    hp: 620, maxHp: 620, hurtTimer: 0, phaseT: 0, onGround: false, dead: false,
-    state: "idle", stateT: 1.4, shots: 0, shotTimer: 0, attacking: false, slammed: false, summoned: false,
+function makeBoss(kind, x, y) {
+  const base = {
+    boss: true, kind, x, y, vx: 0, vy: 0, facing: -1,
+    hurtTimer: 0, phaseT: 0, onGround: false, dead: false,
+    state: "idle", stateT: 1.4, shots: 0, shotTimer: 0, attacking: false,
+    slammed: false, summoned: false, charging: 0, chargeDone: false,
   };
+  if (kind === "gorvax") {
+    return Object.assign(base, {
+      w: 150, h: 150, hp: 440, maxHp: 440,
+      name: "GORVAX", subtitle: "O Colosso de Pedra", color: "#e0a35f", eye: "#ffcf8a",
+    });
+  }
+  // padrão: Nöx
+  return Object.assign(base, {
+    w: 120, h: 170, hp: 620, maxHp: 620,
+    name: "NÖX", subtitle: "O Devorador de Luz", color: "#ff5c93", eye: "#ff2e63",
+  });
 }
 
 /* =========================================================
@@ -1043,6 +1647,7 @@ let levelIndex = 0;
 let goalReached = false;
 let bossIntroT = 0;
 let victoryT = 0;
+let bossDownT = 0;
 
 function showOverlay(html) { overlay.innerHTML = html; overlay.classList.remove("gone"); }
 function hideOverlay() { overlay.classList.add("gone"); }
@@ -1055,13 +1660,14 @@ function menuScreen() {
       <div class="title">AURORA</div>
       <div class="subtitle">A Guardiã da Luz</div>
       <p class="story">O mundo de <b>Lumina</b> mergulhou nas trevas quando <b>Nöx</b> despedaçou o Coração de Luz.
-      Guie <b>Aurora</b>, a última guardiã, por três reinos corrompidos, recupere os fragmentos e reacenda o mundo.</p>
+      Guie <b>Aurora</b> por <b>7 reinos corrompidos</b>, enfrente golens, sentinelas e dois chefões,
+      domine os poderes da luz e reacenda o mundo.</p>
       <div class="btn-row">
         <button class="btn" id="btn-start">▶ Começar Jornada</button>
       </div>
       <div class="controls-hint">
-        Mover <kbd>←</kbd><kbd>→</kbd> ou <kbd>A</kbd><kbd>D</kbd> &nbsp;•&nbsp; Pular (duplo) <kbd>Espaço</kbd> / <kbd>W</kbd><br>
-        Atacar <kbd>K</kbd> / <kbd>X</kbd> &nbsp;•&nbsp; Avanço (dash) <kbd>L</kbd> / <kbd>Shift</kbd> &nbsp;•&nbsp; Pausar <kbd>P</kbd>
+        Mover <kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd> &nbsp;•&nbsp; Pular duplo <kbd>Espaço</kbd> &nbsp;•&nbsp; <b>Planar</b>: segure o pulo ao cair<br>
+        Atacar <kbd>K</kbd> &nbsp;•&nbsp; <b>Feixe de Luz</b> <kbd>U</kbd> &nbsp;•&nbsp; <b>Nova de Luz</b> <kbd>O</kbd> &nbsp;•&nbsp; Dash <kbd>L</kbd>/<kbd>Shift</kbd> &nbsp;•&nbsp; Pausar <kbd>P</kbd>
       </div>
     </div>`);
   document.getElementById("btn-start").onclick = () => startLevel(0);
@@ -1092,8 +1698,12 @@ function beginPlay(idx) {
   goalReached = false;
   particles.length = 0;
   if (level.isBoss) {
-    level.boss = makeBoss(level.width / 2 - 60, 560);
+    level.boss = makeBoss(level.bossKind, 0, 0);
+    level.boss.x = level.width / 2 - level.boss.w / 2;
+    level.boss.y = 380;
     bossIntroT = 1.6;
+    const bn = document.querySelector("#boss-bar .boss-name");
+    if (bn) bn.textContent = level.boss.name + " — " + level.boss.subtitle;
     bossBar.classList.remove("hidden");
   } else {
     bossBar.classList.add("hidden");
@@ -1125,12 +1735,14 @@ function levelClear() {
   if (levelIndex >= LEVELS.length - 1) return; // último é boss -> vitória
   state = "levelclear";
   hud.classList.add("hidden");
-  const collected = level.collected, total = level.fragments.length;
+  const info = level.isBoss
+    ? `<b>${level.boss ? level.boss.name : "O chefão"}</b> foi derrotado! A luz avança pelas terras corrompidas.`
+    : `Fragmentos de luz: <b>${level.collected} / ${level.fragments.length}</b> ✦<br>A escuridão recua. Aurora segue adiante.`;
   showOverlay(`
     <div class="card">
-      <div class="chapter">Fase Concluída</div>
+      <div class="chapter">${level.isBoss ? "Chefão Derrotado" : "Fase Concluída"}</div>
       <div class="title" style="font-size:clamp(28px,6vw,48px)">${level.name}</div>
-      <p class="story">Fragmentos de luz: <b>${collected} / ${total}</b> ✦<br>A escuridão recua. Aurora segue adiante.</p>
+      <p class="story">${info}</p>
       <div class="btn-row"><button class="btn" id="btn-next">Próxima Fase →</button></div>
     </div>`);
   document.getElementById("btn-next").onclick = () => startLevel(levelIndex + 1);
@@ -1176,8 +1788,11 @@ function render(t, dt) {
 
   if (level) {
     drawBackground(level.theme, level, t);
-    // plataformas
+    // plataformas fixas + móveis
     for (const pl of level.platforms) drawPlatform(pl, level.theme);
+    for (const m of level.movers) drawPlatform(m, level.theme);
+    // obstáculos
+    drawHazards(level);
     // objetivo
     drawGoal(level);
     // fragmentos
@@ -1186,12 +1801,13 @@ function render(t, dt) {
     for (const en of level.enemies) {
       if (en.dead) continue;
       const sx = en.x - camera.sx, sy = en.y - camera.sy;
-      if (sx < -100 || sx > VW + 100) continue;
-      if (en.type === "shade") drawShade(en, sx, sy);
-      else if (en.type === "wisp") drawWisp(en, sx, sy);
+      if (sx < -120 || sx > VW + 120) continue;
+      drawEnemy(en, sx, sy);
     }
     // boss
-    if (level.boss && !level.boss.dead) drawNox(level.boss, level.boss.x - camera.sx, level.boss.y - camera.sy);
+    if (level.boss && !level.boss.dead) drawBoss(level.boss, level.boss.x - camera.sx, level.boss.y - camera.sy);
+    // ondas de Nova
+    drawNovas(level);
     // slashes
     drawSlashes(level, dt);
     // projéteis
@@ -1210,16 +1826,16 @@ function render(t, dt) {
     ctx.fillStyle = vg; ctx.fillRect(0, 0, VW, VH);
 
     // intro do boss
-    if (level.isBoss && bossIntroT > 0) {
+    if (level.isBoss && level.boss && bossIntroT > 0) {
       ctx.globalAlpha = clamp(bossIntroT, 0, 1);
       ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0, 0, VW, VH);
       ctx.globalAlpha = 1;
       ctx.textAlign = "center";
       ctx.font = "800 64px Cinzel, serif";
-      ctx.fillStyle = "#ff5c93"; ctx.shadowColor = "#ff2e63"; ctx.shadowBlur = 24;
-      ctx.fillText("NÖX", VW / 2, VH / 2 - 10);
+      ctx.fillStyle = level.boss.color; ctx.shadowColor = level.boss.eye; ctx.shadowBlur = 24;
+      ctx.fillText(level.boss.name, VW / 2, VH / 2 - 10);
       ctx.font = "400 22px Poppins, sans-serif"; ctx.shadowBlur = 0; ctx.fillStyle = "#ffd0e0";
-      ctx.fillText("O Devorador de Luz", VW / 2, VH / 2 + 28);
+      ctx.fillText(level.boss.subtitle, VW / 2, VH / 2 + 28);
       ctx.textAlign = "left";
     }
   }
@@ -1241,28 +1857,28 @@ function loop() {
 
   if (state === "playing" && !paused && level) {
     // update
+    updateMovers(dt, level);
     playerUpdate(dt, level);
     for (const en of level.enemies) enemyUpdate(en, dt, level);
+    updateHazards(dt, level);
     if (level.boss) {
       if (bossIntroT > 0) bossIntroT -= dt;
       else bossUpdate(level.boss, dt, level);
       bossFill.style.width = clamp(level.boss.hp / level.boss.maxHp * 100, 0, 100) + "%";
       if (level.boss.dead && state === "playing") {
-        state = "victory"; victoryT = 2.2;
+        state = "bossdown"; bossDownT = 2.4;
         camera.shake = 20;
-        burst(level.boss.x + level.boss.w / 2, level.boss.y + level.boss.h / 2, "#ffe08a", 80, { glow: true, max: 10, maxLife: 1.8 });
+        burst(level.boss.x + level.boss.w / 2, level.boss.y + level.boss.h / 2, "#ffe08a", 90, { glow: true, max: 10, maxLife: 1.8 });
       }
     }
     updateProjectiles(dt, level);
+    updateNovas(dt, level);
     updateCollectibles(dt, level);
     updateParticles(dt);
     camera.follow(player, level);
     updateHUD(level);
 
-    // limpar inimigos mortos ocasionalmente
-    // (mantidos no array; render/AI já ignoram dead)
-
-    // chegar ao objetivo
+    // chegar ao objetivo (fases normais)
     if (level.goal && !goalReached && !level.isBoss) {
       const g = { x: level.goal.x - 40, y: level.goal.y - 60, w: 80, h: 120 };
       if (aabb(g, player.hitbox)) {
@@ -1270,11 +1886,16 @@ function loop() {
         if (levelIndex >= LEVELS.length - 1) victoryScreen(); else levelClear();
       }
     }
-  } else if (state === "victory" && victoryT > 0) {
-    victoryT -= dt;
-    updateParticles(dt);
-    if (level) { camera.follow(player, level); }
-    if (victoryT <= 0) victoryScreen();
+  } else if (state === "bossdown") {
+    // celebração após derrotar um chefão
+    bossDownT -= dt;
+    updateNovas(dt, level); updateParticles(dt);
+    if (level) camera.follow(player, level);
+    if (Math.random() < 0.3 && level && level.boss) burst(level.boss.x + rand(0, level.boss.w), level.boss.y + rand(0, level.boss.h), "#ffe08a", 6, { glow: true, max: 7, maxLife: 1.4 });
+    if (bossDownT <= 0) {
+      bossBar.classList.add("hidden");
+      if (levelIndex >= LEVELS.length - 1) victoryScreen(); else levelClear();
+    }
   }
 
   // sempre desenhar cena de fundo do jogo se existir
