@@ -410,3 +410,29 @@ html, body {
   text-shadow: 0 0 8px currentColor;
 }
 .tbtn-power { background: rgba(200,150,255,0.28); font-size: 22px; }
+
+
+/* ---------------- Inventário HUD ---------------- */
+.inv-hud {
+  margin-top: 4px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  font-size: 13px;
+  font-weight: 600;
+}
+.inv-hud span { text-shadow: 0 0 6px rgba(0,0,0,0.6); }
+.inv-sel { color: #d8e0f0; }
+.inv-flask { color: #9dffb8; }
+.inv-hud small { opacity: 0.6; font-weight: 400; }
+
+/* mensagem da loja */
+.shop-msg {
+  text-align: center;
+  color: #ff9ecb;
+  font-size: 13px;
+  margin: -6px 0 8px;
+}
+
+.tbtn-throw { background: rgba(200,210,240,0.24); font-size: 20px; }
+.tbtn-flask { background: rgba(120,255,170,0.22); font-size: 20px; }
