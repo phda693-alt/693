@@ -286,3 +286,110 @@ html, body {
   .bar { width: 130px; }
   .hud-portrait { width: 56px; height: 56px; }
 }
+
+
+/* ---------------- Moedas HUD ---------------- */
+.coins-hud {
+  font-family: "Cinzel", serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffd24a;
+  text-shadow: 0 0 12px rgba(255, 200, 74, 0.6);
+  margin-bottom: 2px;
+}
+.coin-icon { filter: drop-shadow(0 0 4px rgba(255,200,74,0.8)); }
+
+.tbtn-shop { background: rgba(255,210,120,0.22); font-size: 20px; }
+
+/* ---------------- Seleção de herói ---------------- */
+.hero-select {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 20px 0 6px;
+}
+.hero-card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 18px;
+  padding: 16px;
+  width: 220px;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.hero-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--gold);
+  box-shadow: 0 10px 30px rgba(255,180,90,0.3);
+}
+.hero-canvas {
+  width: 150px; height: 180px;
+  display: block; margin: 0 auto;
+}
+.hero-name {
+  font-family: "Cinzel", serif;
+  font-size: 26px; font-weight: 800;
+  color: var(--gold);
+}
+.hero-sub { font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: var(--light); opacity: 0.85; margin-bottom: 6px; }
+.hero-desc { font-size: 13px; color: #d8cdf0; margin-bottom: 12px; min-height: 34px; }
+.hero-pick { margin-top: 0; font-size: 15px; padding: 10px 20px; }
+
+/* ---------------- Loja ---------------- */
+.shop-card { max-width: 720px; }
+.shop-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 14px;
+}
+.shop-coins {
+  font-family: "Cinzel", serif; font-size: 22px; font-weight: 800;
+  color: #ffd24a; text-shadow: 0 0 12px rgba(255,200,74,0.6);
+}
+.shop-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 18px;
+  max-height: 56vh;
+  overflow-y: auto;
+  padding-right: 6px;
+  text-align: left;
+}
+.shop-cat {
+  grid-column: 1 / -1;
+  font-family: "Cinzel", serif;
+  color: var(--gold);
+  letter-spacing: 2px;
+  font-size: 14px;
+  margin-top: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  padding-bottom: 4px;
+}
+.shop-item {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 9px 12px;
+}
+.shop-item-info { display: flex; flex-direction: column; }
+.shop-item-info b { font-size: 15px; color: #fff; }
+.shop-item-info span { font-size: 12px; color: #c9bde0; }
+.shop-btn {
+  flex-shrink: 0;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: "Poppins", sans-serif;
+}
+.shop-btn.buy { background: linear-gradient(180deg, #ffe6a8, var(--gold-strong)); color: #2a1200; }
+.shop-btn.buy.off { background: rgba(255,255,255,0.1); color: #9a8fb5; cursor: not-allowed; }
+.shop-btn.equip { background: rgba(140,200,255,0.25); color: #dff1ff; border: 1px solid rgba(140,200,255,0.4); }
+.shop-btn.equipped { background: rgba(120,255,170,0.2); color: #b6ffd0; border: 1px solid rgba(120,255,170,0.4); }
+
+@media (max-width: 620px) {
+  .shop-grid { grid-template-columns: 1fr; }
+}
