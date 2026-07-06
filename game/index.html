@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Aurora — A Guardiã da Luz</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="game-shell">
+    <canvas id="game"></canvas>
+
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+      <div class="hud-left">
+        <div class="hud-portrait">
+          <canvas id="portrait" width="72" height="72"></canvas>
+        </div>
+        <div class="hud-bars">
+          <div class="bar-wrap">
+            <div class="bar-label">VIDA</div>
+            <div class="bar bar-hp"><div id="hp-fill" class="bar-fill"></div></div>
+          </div>
+          <div class="bar-wrap">
+            <div class="bar-label">LUZ</div>
+            <div class="bar bar-energy"><div id="energy-fill" class="bar-fill"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="hud-right">
+        <div class="coins-hud"><span class="coin-icon">🪙</span> <span id="coin-count">0</span></div>
+        <div class="fragments">
+          <span class="frag-icon">✦</span>
+          <span id="frag-count">0</span> / <span id="frag-total">0</span>
+        </div>
+        <div id="stage-name" class="stage-name">Floresta Sombria</div>
+        <div id="inv-hud" class="inv-hud"></div>
+        <div id="powers-hud" class="powers-hud"></div>
+      </div>
+    </div>
+
+    <!-- Boss health -->
+    <div id="boss-bar" class="hidden">
+      <div class="boss-name">NÖX — O Devorador de Luz</div>
+      <div class="boss-track"><div id="boss-fill"></div></div>
+    </div>
+
+    <!-- Overlay screens -->
+    <div id="overlay" class="overlay">
+      <!-- content injected by JS -->
+    </div>
+
+    <!-- Mobile controls -->
+    <div id="touch-controls" class="hidden">
+      <div class="touch-left">
+        <button class="tbtn" data-key="ArrowLeft">◀</button>
+        <button class="tbtn" data-key="ArrowRight">▶</button>
+      </div>
+      <div class="touch-right">
+        <button class="tbtn tbtn-jump" data-key=" ">⤒</button>
+        <button class="tbtn tbtn-attack" data-key="k">⚔</button>
+        <button class="tbtn tbtn-beam" data-key="u">✷</button>
+        <button class="tbtn tbtn-nova" data-key="o">✺</button>
+        <button class="tbtn tbtn-dash" data-key="l">»</button>
+        <button class="tbtn tbtn-throw" data-key="q">🗡️</button>
+        <button class="tbtn tbtn-flask" data-key="h">🧪</button>
+        <button class="tbtn tbtn-power" data-key="power">★</button>
+        <button class="tbtn tbtn-shop" data-key="e">🛒</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/game.js"></script>
+</body>
+</html>
