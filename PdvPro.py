@@ -4864,6 +4864,19 @@ class DatabaseHelper:
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """
 
+        tables["entradas_caixa"] = """
+            CREATE TABLE IF NOT EXISTS entradas_caixa (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                caixa_id INT DEFAULT NULL,
+                descricao VARCHAR(200) DEFAULT NULL,
+                valor DECIMAL(10,2) DEFAULT 0,
+                origem VARCHAR(40) DEFAULT NULL,
+                conta_receber_id INT DEFAULT NULL,
+                operador_nome VARCHAR(100) DEFAULT NULL,
+                data DATETIME DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """
+
         tables["comandas"] = """
             CREATE TABLE IF NOT EXISTS comandas (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -6561,6 +6574,7 @@ class CupomGenerator:
                                       valor_fechamento, data_abertura, data_fechamento,
                                       total_vendas, qtd_vendas, total_vales, qtd_vales,
                                       total_sangrias=0, qtd_sangrias=0,
+                                      total_entradas=0, qtd_entradas=0,
                                       pagamentos_resumo=None, empresa=None,
                                       colunas=48, margem_esq=0, margem_dir=0, espacamento=1):
         """Gera o texto do cupom de FECHAMENTO DE CAIXA para impressao.
@@ -6662,11 +6676,21 @@ class CupomGenerator:
                 _add_right(f"Total Sangrias: R$ {FormatUtils.format_money(total_sangrias)}")
                 sb.append(line_sep)
 
+            # === ENTRADAS / RECEBIMENTOS (contas a receber -> credito no caixa) ===
+            if qtd_entradas > 0:
+                _add_center("ENTRADAS / RECEBIMENTOS")
+                sb.append(line_sep)
+                _add_wrap(f"Quantidade: {qtd_entradas}")
+                _add_right(f"Total Entradas: R$ {FormatUtils.format_money(total_entradas)}")
+                sb.append(line_sep)
+
             # === TOTAIS ===
             _add_center("TOTALIZACAO")
             sb.append(line_sep)
             _add_right(f"Valor Abertura: R$ {FormatUtils.format_money(valor_abertura)}")
             _add_right(f"(+) Vendas: R$ {FormatUtils.format_money(total_vendas)}")
+            if total_entradas > 0:
+                _add_right(f"(+) Entradas/Receb.: R$ {FormatUtils.format_money(total_entradas)}")
             if total_vales > 0:
                 _add_right(f"(-) Vales/Debitos: R$ {FormatUtils.format_money(total_vales)}")
             if total_sangrias > 0:
@@ -6675,7 +6699,7 @@ class CupomGenerator:
             sb.append(line_sep)
 
             # Diferenca (se houver)
-            esperado = float(valor_abertura) + float(total_vendas) - float(total_vales) - float(total_sangrias)
+            esperado = float(valor_abertura) + float(total_vendas) + float(total_entradas) - float(total_vales) - float(total_sangrias)
             diferenca = float(valor_fechamento) - esperado
             if abs(diferenca) > 0.01:
                 if diferenca > 0:
@@ -9462,15 +9486,22 @@ class PDVApp:
         tk.Label(content, text="Resumo por Forma de Pagamento", bg=COR_FUNDO,
                  fg=COR_PRIMARIA, font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(5, 3))
 
-        cols_fp = ("forma", "qtd", "total")
-        tree_fp = ttk.Treeview(content, columns=cols_fp, show="headings", height=6)
-        tree_fp.heading("forma", text="Forma de Pagamento")
+        # Cada forma de pagamento e um item expansivel ("+"): ao expandir,
+        # mostra os lancamentos (pagamentos) que compoem o total da forma.
+        fp_frame = tk.Frame(content, bg=COR_FUNDO)
+        fp_frame.pack(fill="x", pady=(0, 10))
+        cols_fp = ("qtd", "total")
+        tree_fp = ttk.Treeview(fp_frame, columns=cols_fp, show="tree headings", height=8)
+        tree_fp.heading("#0", text="Forma de Pagamento  (clique no + para detalhar)")
         tree_fp.heading("qtd", text="Quantidade")
         tree_fp.heading("total", text="Total")
-        tree_fp.column("forma", width=250)
+        tree_fp.column("#0", width=340)
         tree_fp.column("qtd", width=100, anchor="center")
         tree_fp.column("total", width=150, anchor="e")
-        tree_fp.pack(fill="x", pady=(0, 10))
+        fp_scroll = ttk.Scrollbar(fp_frame, orient="vertical", command=tree_fp.yview)
+        tree_fp.configure(yscrollcommand=fp_scroll.set)
+        fp_scroll.pack(side="right", fill="y")
+        tree_fp.pack(side="left", fill="both", expand=True)
 
         # Lista de vendas
         tk.Label(content, text="Vendas do Dia", bg=COR_FUNDO,
@@ -9501,22 +9532,37 @@ class PDVApp:
         StyledButton(btn_frame, text=f"{Icons.HISTORICO} Abrir Historico",
                      command=lambda: (dialog.destroy(), self.show_historico()),
                      color=COR_BOTAO_AZUL, width=16).pack(side="left", padx=5)
+        StyledButton(btn_frame, text=f"{Icons.REFRESH} Atualizar",
+                     command=lambda: _carregar(),
+                     color=COR_BOTAO_VERDE, width=12).pack(side="left", padx=5)
         StyledButton(btn_frame, text="Fechar", command=dialog.destroy,
                      color=COR_FUNDO3, width=10).pack(side="right", padx=5)
 
         def _carregar():
             def load():
                 db = DatabaseHelper.get_instance()
-                # Resumo por forma de pagamento
+                # Resumo por forma de pagamento.
+                # ATENCAO: pagamentos_venda.valor guarda o valor ENTREGUE pelo cliente
+                # (inclui o excedente pago em dinheiro que gera troco). Por isso a soma
+                # bruta por forma fica maior que o total liquido das vendas. O troco e
+                # sempre devolvido em dinheiro, entao ele e abatido da(s) forma(s) do
+                # tipo 'dinheiro' em on_loaded para que a soma bata com o Total Geral.
                 formas = db.execute_query(
                     "SELECT COALESCE(fp.descricao, 'N/A') as forma, "
+                    "COALESCE(fp.tipo, '') as tipo, "
                     "COUNT(DISTINCT pv.venda_id) as qtd, SUM(pv.valor) as total "
                     "FROM pagamentos_venda pv "
                     "JOIN vendas v ON pv.venda_id = v.id "
                     "LEFT JOIN formas_pagamento fp ON pv.forma_pagamento_id = fp.id "
                     "WHERE v.status='finalizada' AND DATE(v.data_venda) = CURDATE() "
-                    "GROUP BY fp.descricao ORDER BY total DESC"
+                    "GROUP BY fp.id, fp.descricao, fp.tipo ORDER BY total DESC"
                 )
+                # Total de troco devolvido no dia (em dinheiro)
+                troco_row = db.execute_query(
+                    "SELECT COALESCE(SUM(troco),0) as troco FROM vendas "
+                    "WHERE status='finalizada' AND DATE(data_venda) = CURDATE()"
+                )
+                troco_total = float(troco_row[0]["troco"]) if troco_row else 0.0
                 # Vendas do dia
                 vendas = db.execute_query(
                     "SELECT v.id, COALESCE(NULLIF(v.cliente_nome,''), NULLIF(u.cliente_nome,''), c.nome,'N/A') as cliente_nome, "
@@ -9530,20 +9576,85 @@ class PDVApp:
                     "WHERE v.status='finalizada' AND DATE(v.data_venda) = CURDATE() "
                     "GROUP BY v.id ORDER BY v.id DESC"
                 )
-                return formas, vendas
+                # Lancamentos individuais (cada pagamento) que compoem cada forma
+                lancamentos = db.execute_query(
+                    "SELECT COALESCE(fp.descricao, 'N/A') as forma, "
+                    "v.id as venda_id, pv.valor as valor, v.data_venda as data_venda, "
+                    "COALESCE(NULLIF(v.cliente_nome,''), NULLIF(u.cliente_nome,''), c.nome,'N/A') as cliente "
+                    "FROM pagamentos_venda pv "
+                    "JOIN vendas v ON pv.venda_id = v.id "
+                    "LEFT JOIN formas_pagamento fp ON pv.forma_pagamento_id = fp.id "
+                    "LEFT JOIN clientes c ON v.cliente_id = c.id "
+                    "LEFT JOIN uso_armario_sauna u ON v.uso_armario_id = u.id "
+                    "WHERE v.status='finalizada' AND DATE(v.data_venda) = CURDATE() "
+                    "ORDER BY v.id DESC"
+                )
+                return formas, vendas, troco_total, lancamentos
             def on_loaded(result):
-                formas, vendas = result
-                # Preencher formas de pagamento
+                formas, vendas, troco_total, lancamentos = result
+                # Normaliza os registros para permitir ajuste do troco
+                formas = [dict(r) for r in formas]
+                for r in formas:
+                    r["total"] = float(r.get("total") or 0)
+                # Abate o troco devolvido do valor recebido em dinheiro, para que o
+                # resumo reflita a receita liquida real e a soma bata com o Total Geral.
+                if troco_total > 0 and formas:
+                    dinheiro = [r for r in formas
+                                if (r.get("tipo") or "").lower() == "dinheiro"]
+                    alvo = dinheiro if dinheiro else formas
+                    soma_alvo = sum(r["total"] for r in alvo)
+                    if soma_alvo > 0:
+                        for r in alvo:
+                            abate = troco_total * (r["total"] / soma_alvo)
+                            r["troco_abatido"] = abate
+                            r["total"] -= abate
+                # Reordena por total (decrescente) apos o ajuste
+                formas.sort(key=lambda r: r["total"], reverse=True)
+                # Agrupa os lancamentos por forma de pagamento
+                lancamentos_por_forma = {}
+                for l in (lancamentos or []):
+                    lancamentos_por_forma.setdefault(l.get("forma") or "N/A", []).append(l)
+                # Preencher formas de pagamento (cada forma e expansivel via "+")
                 tree_fp.delete(*tree_fp.get_children())
                 for i, r in enumerate(formas):
                     tag = "even" if i % 2 == 0 else "odd"
-                    tree_fp.insert("", "end", values=(
-                        r["forma"],
-                        r["qtd"],
-                        f"R$ {FormatUtils.format_money(r['total'])}"
-                    ), tags=(tag,))
+                    parent = tree_fp.insert(
+                        "", "end", text=r["forma"],
+                        values=(r["qtd"], f"R$ {FormatUtils.format_money(r['total'])}"),
+                        tags=(tag,), open=False
+                    )
+                    # Lancamentos (pagamentos) que compoem esta forma
+                    for lanc in lancamentos_por_forma.get(r["forma"], []):
+                        hora = ""
+                        try:
+                            dv = lanc.get("data_venda")
+                            if isinstance(dv, datetime.datetime):
+                                hora = dv.strftime("%H:%M")
+                            else:
+                                hora = str(dv)[11:16] if len(str(dv)) > 16 else ""
+                        except Exception:
+                            pass
+                        desc = f"Venda #{lanc.get('venda_id')}  -  {lanc.get('cliente') or 'N/A'}"
+                        if hora:
+                            desc += f"  ({hora})"
+                        tree_fp.insert(
+                            parent, "end", text="    " + desc,
+                            values=("", f"R$ {FormatUtils.format_money(lanc.get('valor') or 0)}"),
+                            tags=("lanc",)
+                        )
+                    # Linha do troco devolvido (abatido do dinheiro), p/ reconciliar
+                    # a soma dos lancamentos com o total liquido exibido na forma.
+                    ab = float(r.get("troco_abatido") or 0)
+                    if ab > 0.001:
+                        tree_fp.insert(
+                            parent, "end", text="    (-) Troco devolvido no dia",
+                            values=("", f"- R$ {FormatUtils.format_money(ab)}"),
+                            tags=("troco",)
+                        )
                 tree_fp.tag_configure("even", background=COR_GLASS)
                 tree_fp.tag_configure("odd", background=COR_CARD)
+                tree_fp.tag_configure("lanc", background=COR_FUNDO, foreground=COR_TEXTO2)
+                tree_fp.tag_configure("troco", background=COR_FUNDO, foreground=COR_ALERTA)
                 # Preencher vendas
                 tree_v.delete(*tree_v.get_children())
                 total_geral = 0.0
@@ -9741,6 +9852,12 @@ class PDVApp:
                 initialvalue=pendente, minvalue=0.01, parent=dialog)
             if not valor:
                 return
+            if not Session.caixa_id:
+                self.show_error(
+                    "Abra o caixa antes de receber.\n\n"
+                    "O recebimento entra como credito (entrada) no caixa atual.")
+                return
+            caixa_id_receb = Session.caixa_id
             def receber():
                 db = DatabaseHelper.get_instance()
                 novo_pendente = pendente - valor
@@ -9752,9 +9869,16 @@ class PDVApp:
                     "status = %s WHERE id = %s",
                     (valor, valor, status, conta_id)
                 )
+                db.execute_update(
+                    "INSERT INTO entradas_caixa (caixa_id, descricao, valor, origem, "
+                    "conta_receber_id, operador_nome) VALUES (%s,%s,%s,'conta_receber',%s,%s)",
+                    (caixa_id_receb,
+                     f"Recebimento conta #{conta_id} - {cliente_nome}",
+                     valor, conta_id, getattr(Session, "user_nome", "") or "")
+                )
                 return status
             def on_recebido(status):
-                msg = (f"Pagamento de R$ {FormatUtils.format_money(valor)} registrado!"
+                msg = (f"Recebido R$ {FormatUtils.format_money(valor)} (credito no caixa)!"
                        + (" Conta QUITADA!" if status == "quitada" else ""))
                 ToastManager.success(msg)
                 _carregar()
@@ -10442,6 +10566,7 @@ class PDVApp:
         self.clear_container()
         self.carrinho = []
         self._armario_pendente = None
+        self._editando_venda_id = None
         self.venda_cliente_id = 0
         self.venda_cliente_nome = "Cliente nao informado"
         self.venda_vendedor_id = 0
@@ -10469,8 +10594,9 @@ class PDVApp:
         btn_voltar.pack(side="left", padx=10, pady=5)
         add_tooltip(btn_voltar, "Voltar ao Menu Principal (F10)")
 
-        tk.Label(top, text="▶ Nova Venda", bg=COR_FUNDO2, fg=COR_PRIMARIA,
-                 font=("Segoe UI", 14, "bold")).pack(side="left", padx=10)
+        self._lbl_titulo_venda = tk.Label(top, text="▶ Nova Venda", bg=COR_FUNDO2,
+                 fg=COR_PRIMARIA, font=("Segoe UI", 14, "bold"))
+        self._lbl_titulo_venda.pack(side="left", padx=10)
         tk.Label(top, text="Ctrl+Z=Desfazer  |  Enter=Adicionar  |  F10=Menu",
                  bg=COR_FUNDO2, fg=COR_TEXTO2,
                  font=("Segoe UI", 8)).pack(side="left", padx=10)
@@ -11177,10 +11303,23 @@ class PDVApp:
                      font=("Segoe UI", 13, "bold")).pack(anchor="w", pady=(4, 2))
             lbl_cont = tk.Label(body, text=f"Selecionadas: 0 / {n}", bg=COR_FUNDO,
                                 fg=COR_ALERTA, font=("Segoe UI", 10, "bold"))
-            lbl_cont.pack(anchor="w", pady=(0, 8))
+            lbl_cont.pack(anchor="w", pady=(0, 6))
+
+            # Barra de busca (filtra as proteinas em tempo real)
+            busca_frame = tk.Frame(body, bg=COR_FUNDO)
+            busca_frame.pack(fill="x", pady=(0, 6))
+            tk.Label(busca_frame, text=f"{Icons.SEARCH}", bg=COR_FUNDO,
+                     fg=COR_TEXTO2, font=("Segoe UI", 11)).pack(side="left", padx=(2, 4))
+            et_busca_prot = StyledEntry(busca_frame)
+            et_busca_prot.pack(side="left", fill="x", expand=True)
+            add_tooltip(et_busca_prot, "Digite para filtrar as proteinas")
+            lbl_vazio = tk.Label(body, text="", bg=COR_FUNDO, fg=COR_TEXTO2,
+                                 font=("Segoe UI", 9, "italic"))
+            lbl_vazio.pack(anchor="w")
 
             inner = _scroll_area(body)
             prot_vars = {}
+            cb_widgets = []
 
             def _atualizar_contador():
                 sel = [pid for pid, (v, _d) in prot_vars.items() if v.get()]
@@ -11195,7 +11334,7 @@ class PDVApp:
                 _atualizar_contador()
 
             cols = 2
-            for i, p in enumerate(proteinas):
+            for p in proteinas:
                 var = tk.IntVar(value=0)
                 prot_vars[p["id"]] = (var, p["descricao"])
                 cb = tk.Checkbutton(
@@ -11204,9 +11343,29 @@ class PDVApp:
                     bg=COR_FUNDO, fg=COR_TEXTO, selectcolor=COR_CARD,
                     activebackground=COR_FUNDO, activeforeground=COR_PRIMARIA,
                     font=("Segoe UI", 10), anchor="w")
-                cb.grid(row=i // cols, column=i % cols, sticky="w", padx=8, pady=2)
+                cb_widgets.append(((p["descricao"] or "").lower(), cb))
             for c in range(cols):
                 inner.grid_columnconfigure(c, weight=1)
+
+            def _filtrar_prot(*_):
+                termo = et_busca_prot.get().strip().lower()
+                for _d, cb in cb_widgets:
+                    cb.grid_forget()
+                vis = 0
+                for desc, cb in cb_widgets:
+                    if not termo or termo in desc:
+                        cb.grid(row=vis // cols, column=vis % cols,
+                                sticky="w", padx=8, pady=2)
+                        vis += 1
+                lbl_vazio.config(
+                    text="" if vis else "Nenhuma proteina encontrada para a busca.")
+
+            et_busca_prot.bind("<KeyRelease>", _filtrar_prot)
+            _filtrar_prot()  # layout inicial (mostra todas)
+            try:
+                et_busca_prot.focus_set()
+            except Exception:
+                pass
 
             def avancar():
                 sel = [(pid, d) for pid, (v, d) in prot_vars.items() if v.get()]
@@ -11599,9 +11758,31 @@ class PDVApp:
             return
 
         forma = self.formas_pagamento_list[idx]
+        tipo = (forma.get("tipo") or "").lower()
+
+        # Troco (pagar a mais) SOMENTE e permitido em Dinheiro. Para PIX,
+        # Credito, Debito e qualquer outra forma, o valor nao pode ultrapassar
+        # o saldo devedor.
+        total_pago_atual = sum(p.valor for p in self.pagamentos_venda)
+        saldo_restante = self.venda_total_liquido - total_pago_atual
+        if tipo != "dinheiro" and valor > saldo_restante + 0.005:
+            messagebox.showwarning(
+                "Troco nao permitido nesta forma",
+                f"A forma '{forma['descricao']}' nao aceita troco.\n\n"
+                f"Apenas DINHEIRO pode receber um valor maior que o devido "
+                f"e gerar troco.\n\n"
+                f"Saldo devedor: R$ {FormatUtils.format_money(max(0, saldo_restante))}\n"
+                f"Valor informado: R$ {FormatUtils.format_money(valor)}\n\n"
+                f"COMO RESOLVER:\n"
+                f"1. Informe no maximo R$ {FormatUtils.format_money(max(0, saldo_restante))} nesta forma; ou\n"
+                f"2. Use Dinheiro caso o cliente pague a mais (com troco).",
+                parent=dialog)
+            return
+
         pag = PagamentoVenda()
         pag.forma_pagamento_id = forma["id"]
         pag.forma_descricao = forma["descricao"]
+        pag.forma_tipo = tipo
         pag.valor = valor
         self.pagamentos_venda.append(pag)
         self._atualizar_pagamentos_ui()
@@ -11670,6 +11851,23 @@ class PDVApp:
 
         troco = total_pago - self.venda_total_liquido
 
+        # Seguranca: troco so pode existir se houver pagamento em dinheiro.
+        # (O bloqueio principal ja ocorre em _add_pagamento; aqui e reforco.)
+        if troco > 0.005:
+            tem_dinheiro = any(
+                (getattr(p, "forma_tipo", "") or "").lower() == "dinheiro"
+                for p in self.pagamentos_venda
+            )
+            if not tem_dinheiro:
+                messagebox.showwarning(
+                    "Troco nao permitido",
+                    "So e possivel gerar troco quando ha pagamento em Dinheiro.\n\n"
+                    "As formas eletronicas (PIX, Credito, Debito, etc.) nao "
+                    "aceitam troco. Ajuste os valores para que o total pago "
+                    "seja exatamente o valor da venda.",
+                    parent=dialog)
+                return
+
         def salvar():
             db = DatabaseHelper.get_instance()
             uso_armario_id_venda = int(((self._armario_pendente or {}).get("uso_id")) or 0)
@@ -11688,23 +11886,64 @@ class PDVApp:
                             nome_cliente_venda = nome_armario
                 except Exception:
                     pass
-            venda_id = db.execute_update(
-                "INSERT INTO vendas (cliente_id, cliente_nome, vendedor_id, entregador_id, caixa_id, "
-                "total_bruto, desconto_tipo, desconto_valor, acrescimo_tipo, acrescimo_valor, "
-                "total_liquido, valor_recebido, troco, observacao, status, uso_armario_id, "
-                "para_entrega, taxa_entrega, bairro_entrega, endereco_entrega, celular_whatsapp, status_entrega) "
-                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'finalizada',%s,%s,%s,%s,%s,%s,%s)",
-                (self.venda_cliente_id, nome_cliente_venda, self.venda_vendedor_id, self.venda_entregador_id,
-                 Session.caixa_id, self.venda_total_bruto, self.venda_desconto_tipo,
-                 self.venda_desconto_valor, self.venda_acrescimo_tipo, self.venda_acrescimo_valor,
-                 self.venda_total_liquido, total_pago, troco, self.venda_observacao, uso_armario_id_venda,
-                 1 if getattr(self, "venda_para_entrega", False) else 0,
-                 (self.venda_taxa_entrega or 0) if getattr(self, "venda_para_entrega", False) else 0,
-                 getattr(self, "venda_bairro_entrega", "") or None,
-                 getattr(self, "venda_endereco_entrega", "") or None,
-                 getattr(self, "venda_celular_whatsapp", "") or None,
-                 "pendente" if getattr(self, "venda_para_entrega", False) else None)
-            )
+            editando_id = getattr(self, "_editando_venda_id", None)
+            if editando_id:
+                # === EDICAO: regravar na MESMA venda (mesmo id) ===
+                venda_id = int(editando_id)
+                # Reverter o estoque dos itens antigos antes de substitui-los
+                itens_antigos = db.execute_query(
+                    "SELECT produto_id, quantidade FROM itens_venda WHERE venda_id = %s",
+                    (venda_id,)
+                ) or []
+                for _ia in itens_antigos:
+                    if _ia.get("produto_id"):
+                        db.execute_update(
+                            "UPDATE produtos SET estoque = estoque + %s WHERE id = %s",
+                            (_ia["quantidade"], _ia["produto_id"])
+                        )
+                # Remover itens, pagamentos e contas a receber antigos desta venda
+                db.execute_update("DELETE FROM itens_venda WHERE venda_id = %s", (venda_id,))
+                db.execute_update("DELETE FROM pagamentos_venda WHERE venda_id = %s", (venda_id,))
+                db.execute_update("DELETE FROM contas_receber WHERE venda_id = %s", (venda_id,))
+                # Atualizar a venda mantendo o mesmo id (data_venda e caixa_id
+                # originais sao preservados de proposito).
+                db.execute_update(
+                    "UPDATE vendas SET cliente_id=%s, cliente_nome=%s, vendedor_id=%s, "
+                    "entregador_id=%s, total_bruto=%s, desconto_tipo=%s, desconto_valor=%s, "
+                    "acrescimo_tipo=%s, acrescimo_valor=%s, total_liquido=%s, valor_recebido=%s, "
+                    "troco=%s, observacao=%s, status='finalizada', para_entrega=%s, taxa_entrega=%s, "
+                    "bairro_entrega=%s, endereco_entrega=%s, celular_whatsapp=%s, status_entrega=%s "
+                    "WHERE id=%s",
+                    (self.venda_cliente_id, nome_cliente_venda, self.venda_vendedor_id,
+                     self.venda_entregador_id, self.venda_total_bruto, self.venda_desconto_tipo,
+                     self.venda_desconto_valor, self.venda_acrescimo_tipo, self.venda_acrescimo_valor,
+                     self.venda_total_liquido, total_pago, troco, self.venda_observacao,
+                     1 if getattr(self, "venda_para_entrega", False) else 0,
+                     (self.venda_taxa_entrega or 0) if getattr(self, "venda_para_entrega", False) else 0,
+                     getattr(self, "venda_bairro_entrega", "") or None,
+                     getattr(self, "venda_endereco_entrega", "") or None,
+                     getattr(self, "venda_celular_whatsapp", "") or None,
+                     "pendente" if getattr(self, "venda_para_entrega", False) else None,
+                     venda_id)
+                )
+            else:
+                venda_id = db.execute_update(
+                    "INSERT INTO vendas (cliente_id, cliente_nome, vendedor_id, entregador_id, caixa_id, "
+                    "total_bruto, desconto_tipo, desconto_valor, acrescimo_tipo, acrescimo_valor, "
+                    "total_liquido, valor_recebido, troco, observacao, status, uso_armario_id, "
+                    "para_entrega, taxa_entrega, bairro_entrega, endereco_entrega, celular_whatsapp, status_entrega) "
+                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'finalizada',%s,%s,%s,%s,%s,%s,%s)",
+                    (self.venda_cliente_id, nome_cliente_venda, self.venda_vendedor_id, self.venda_entregador_id,
+                     Session.caixa_id, self.venda_total_bruto, self.venda_desconto_tipo,
+                     self.venda_desconto_valor, self.venda_acrescimo_tipo, self.venda_acrescimo_valor,
+                     self.venda_total_liquido, total_pago, troco, self.venda_observacao, uso_armario_id_venda,
+                     1 if getattr(self, "venda_para_entrega", False) else 0,
+                     (self.venda_taxa_entrega or 0) if getattr(self, "venda_para_entrega", False) else 0,
+                     getattr(self, "venda_bairro_entrega", "") or None,
+                     getattr(self, "venda_endereco_entrega", "") or None,
+                     getattr(self, "venda_celular_whatsapp", "") or None,
+                     "pendente" if getattr(self, "venda_para_entrega", False) else None)
+                )
 
             for item in self.carrinho:
                 db.execute_update(
@@ -11743,6 +11982,8 @@ class PDVApp:
 
         def on_saved(venda_id):
             dialog.destroy()
+            era_edicao = getattr(self, "_editando_venda_id", None)
+            self._editando_venda_id = None
             # Gerar cupom
             venda = Venda()
             venda.id = venda_id
@@ -12263,7 +12504,19 @@ class PDVApp:
                     f"  Sangrias: {qtd_sang}  |  "
                     f"Total: R$ {FormatUtils.format_money(tot_sang)}")
 
-            if qtd_vales > 0 or qtd_sang > 0:
+            # Entradas / Recebimentos (credito no caixa)
+            rows_e = db.execute_query(
+                "SELECT COUNT(*) as qtd, COALESCE(SUM(valor),0) as total "
+                "FROM entradas_caixa WHERE caixa_id = %s", (caixa_id,)
+            )
+            qtd_ent = int(rows_e[0]["qtd"]) if rows_e else 0
+            tot_ent = float(rows_e[0]["total"]) if rows_e else 0.0
+            if qtd_ent > 0:
+                resumo.append(
+                    f"  Entradas/Receb.: {qtd_ent}  |  "
+                    f"Total: R$ {FormatUtils.format_money(tot_ent)}  (credito)")
+
+            if qtd_vales > 0 or qtd_sang > 0 or qtd_ent > 0:
                 resumo.append(sep)
 
             # Ultimas 10 vendas
@@ -12395,7 +12648,15 @@ class PDVApp:
             total_sangrias = float(rows_s[0]["total"]) if rows_s else 0
             qtd_sangrias = int(rows_s[0]["qtd"]) if rows_s else 0
 
-            valor_fechamento = valor_abertura + total_vendas - total_vales - total_sangrias
+            # Entradas (recebimentos de contas a receber = credito no caixa)
+            rows_e = db.execute_query(
+                "SELECT COUNT(*) as qtd, COALESCE(SUM(valor),0) as total FROM entradas_caixa WHERE caixa_id = %s",
+                (caixa_id_fechando,)
+            )
+            total_entradas = float(rows_e[0]["total"]) if rows_e else 0
+            qtd_entradas = int(rows_e[0]["qtd"]) if rows_e else 0
+
+            valor_fechamento = valor_abertura + total_vendas + total_entradas - total_vales - total_sangrias
 
             # Resumo por forma de pagamento
             pag_rows = db.execute_query(
@@ -12438,6 +12699,8 @@ class PDVApp:
                 "qtd_vales": qtd_vales,
                 "total_sangrias": total_sangrias,
                 "qtd_sangrias": qtd_sangrias,
+                "total_entradas": total_entradas,
+                "qtd_entradas": qtd_entradas,
                 "pagamentos_resumo": pagamentos_resumo,
                 "empresa": empresa,
                 "data_abertura": caixa_data.get("data_abertura", ""),
@@ -12464,6 +12727,8 @@ class PDVApp:
                 qtd_vales=result["qtd_vales"],
                 total_sangrias=result.get("total_sangrias", 0),
                 qtd_sangrias=result.get("qtd_sangrias", 0),
+                total_entradas=result.get("total_entradas", 0),
+                qtd_entradas=result.get("qtd_entradas", 0),
                 pagamentos_resumo=result["pagamentos_resumo"],
                 empresa=result["empresa"],
                 colunas=printer_cfg.get("largura_papel", 48),
@@ -14478,15 +14743,26 @@ class PDVApp:
 
         tk.Label(filtro_card, text="Data Inicio:", bg=COR_GLASS, fg=COR_TEXTO2,
                  font=("Segoe UI", 9)).pack(side="left", padx=(8, 4))
+        # "Hoje" deve usar a data do SERVIDOR MySQL, a mesma fonte usada na tela
+        # "Total de Vendas Hoje" (que filtra por CURDATE()) e no proprio
+        # data_venda (DEFAULT CURRENT_TIMESTAMP). Se usarmos a data local do
+        # terminal (datetime.date.today()) e o relogio/fuso do terminal estiver
+        # diferente do servidor, uma venda feita perto da virada do dia aparece
+        # no total do dia mas nao no historico (ou vice-versa).
+        try:
+            _hoje_dt = LicencaManager._obter_hora_mysql() or datetime.date.today()
+        except Exception:
+            _hoje_dt = datetime.date.today()
+        _hoje_str = _hoje_dt.strftime("%d/%m/%Y")
         et_data_ini = StyledEntry(filtro_card, width=11)
-        et_data_ini.insert(0, datetime.date.today().strftime("%d/%m/%Y"))
+        et_data_ini.insert(0, _hoje_str)
         et_data_ini.pack(side="left", padx=4)
         add_tooltip(et_data_ini, "Data inicial no formato DD/MM/AAAA")
 
         tk.Label(filtro_card, text="Fim:", bg=COR_GLASS, fg=COR_TEXTO2,
                  font=("Segoe UI", 9)).pack(side="left", padx=(8, 4))
         et_data_fim = StyledEntry(filtro_card, width=11)
-        et_data_fim.insert(0, datetime.date.today().strftime("%d/%m/%Y"))
+        et_data_fim.insert(0, _hoje_str)
         et_data_fim.pack(side="left", padx=4)
 
         tk.Label(filtro_card, text="Status:", bg=COR_GLASS, fg=COR_TEXTO2,
@@ -14498,9 +14774,26 @@ class PDVApp:
         combo_status.current(0)
         combo_status.pack(side="left", padx=4)
 
-        # Label de resumo
+        # Filtro por Forma de Pagamento
+        tk.Label(filtro_card, text="Forma:", bg=COR_GLASS, fg=COR_TEXTO2,
+                 font=("Segoe UI", 9)).pack(side="left", padx=(8, 4))
+        formas_pgto_map = {"Todas": None}
+        try:
+            _fp_rows = DatabaseHelper.get_instance().execute_query(
+                "SELECT id, descricao FROM formas_pagamento ORDER BY descricao")
+            for _fp in (_fp_rows or []):
+                formas_pgto_map[_fp.get("descricao") or "N/A"] = _fp.get("id")
+        except Exception:
+            pass
+        combo_forma = ttk.Combobox(filtro_card, values=list(formas_pgto_map.keys()),
+                                    width=14, state="readonly", font=("Segoe UI", 9))
+        combo_forma.current(0)
+        combo_forma.pack(side="left", padx=4)
+        add_tooltip(combo_forma, "Filtrar vendas por forma de pagamento")
+
+        # Label de resumo (Total dinamico conforme os filtros)
         lbl_resumo = tk.Label(filtro_card, text="", bg=COR_GLASS, fg=COR_PRIMARIA,
-                               font=("Segoe UI", 9, "bold"))
+                               font=("Segoe UI", 11, "bold"))
         lbl_resumo.pack(side="right", padx=12)
 
         # --- Treeview ---
@@ -14582,6 +14875,13 @@ class PDVApp:
                      color=COR_BOTAO_AZUL, width=12).pack(side="left", padx=5)
         add_tooltip(btn_frame.winfo_children()[-1], "Ver cupom da venda selecionada")
 
+        StyledButton(btn_frame, text=f"{Icons.EDIT} Reabrir/Editar",
+                     command=self.reabrir_venda_historico,
+                     color=COR_BOTAO_LARANJA, width=15).pack(side="left", padx=5)
+        add_tooltip(btn_frame.winfo_children()[-1],
+                    "Reabrir a venda para editar itens/pagamento/cliente/entrega e "
+                    "regravar no MESMO numero")
+
         StyledButton(btn_frame, text=f"{Icons.CROSS} Cancelar Venda",
                      command=self.cancelar_venda_historico,
                      color=COR_ERRO, width=15).pack(side="left", padx=5)
@@ -14602,6 +14902,7 @@ class PDVApp:
         def _buscar(event=None):
             busca = et_busca.get().strip().lower()
             status_f = combo_status.get()
+            forma_id_f = formas_pgto_map.get(combo_forma.get())
             data_ini_str = et_data_ini.get().strip()
             data_fim_str = et_data_fim.get().strip()
 
@@ -14616,10 +14917,24 @@ class PDVApp:
 
             def load():
                 db = DatabaseHelper.get_instance()
+                params = []
+                # Quando uma forma de pagamento e escolhida, tambem trazemos o
+                # valor pago NESSA forma por venda (valor_forma), para que o
+                # "Total" do rodape reflita o dinheiro daquela forma e nao o
+                # total cheio da venda (importante em pagamentos mistos).
+                if forma_id_f is not None:
+                    valor_forma_col = (
+                        "(SELECT COALESCE(SUM(pv3.valor),0) FROM pagamentos_venda pv3 "
+                        "WHERE pv3.venda_id = v.id AND pv3.forma_pagamento_id = %s) as valor_forma"
+                    )
+                    params.append(forma_id_f)
+                else:
+                    valor_forma_col = "NULL as valor_forma"
                 sql = (
                     "SELECT v.id, COALESCE(NULLIF(v.cliente_nome,''), NULLIF(u.cliente_nome,''), c.nome,'N/A') as cliente_nome, "
                     "v.total_liquido, v.data_venda, v.status, "
-                    "GROUP_CONCAT(fp.descricao SEPARATOR ' + ') as formas "
+                    "GROUP_CONCAT(fp.descricao SEPARATOR ' + ') as formas, "
+                    + valor_forma_col + " "
                     "FROM vendas v "
                     "LEFT JOIN clientes c ON v.cliente_id = c.id "
                     "LEFT JOIN uso_armario_sauna u ON v.uso_armario_id = u.id "
@@ -14627,10 +14942,16 @@ class PDVApp:
                     "LEFT JOIN formas_pagamento fp ON pv.forma_pagamento_id = fp.id "
                     "WHERE 1=1"
                 )
-                params = []
                 if status_f != "Todos":
                     sql += " AND v.status = %s"
                     params.append(status_f)
+                if forma_id_f is not None:
+                    # Vendas que possuem um pagamento nesta forma. EXISTS preserva
+                    # o GROUP_CONCAT (a coluna Pagamento continua mostrando todas
+                    # as formas da venda, mesmo em pagamentos mistos).
+                    sql += (" AND EXISTS (SELECT 1 FROM pagamentos_venda pv2 "
+                            "WHERE pv2.venda_id = v.id AND pv2.forma_pagamento_id = %s)")
+                    params.append(forma_id_f)
                 if d_ini:
                     sql += " AND DATE(v.data_venda) >= %s"
                     params.append(d_ini)
@@ -14682,7 +15003,10 @@ class PDVApp:
                 if sel_id is not None and r["id"] == sel_id:
                     new_sel_iid = iid
                 if status == "finalizada":
-                    total_valor += total_v
+                    # Se ha uma forma de pagamento filtrada, soma o valor pago
+                    # naquela forma; caso contrario, soma o total liquido da venda.
+                    vf = r.get("valor_forma")
+                    total_valor += float(vf) if vf is not None else total_v
                     count += 1
             if new_sel_iid:
                 self.tree_historico.selection_set(new_sel_iid)
@@ -14693,8 +15017,13 @@ class PDVApp:
             self.tree_historico.tag_configure(
                 "cancelada", background="#1a0a0a", foreground="#ff6666")
 
+            _forma_sel = combo_forma.get()
+            if _forma_sel and _forma_sel != "Todas":
+                _rotulo = f"Total ({_forma_sel})"
+            else:
+                _rotulo = "Total"
             lbl_resumo.config(
-                text=f"{count} vendas  |  Total: R$ {FormatUtils.format_money(total_valor)}")
+                text=f"{count} vendas  |  {_rotulo}: R$ {FormatUtils.format_money(total_valor)}")
 
         et_busca.bind("<KeyRelease>",
                       lambda e: _preencher(_cache_rows[0] or [],
@@ -14702,6 +15031,10 @@ class PDVApp:
 
         # Carregar ao abrir (periodo de hoje)
         _buscar()
+
+        # Aplicar filtro automaticamente ao trocar Status ou Forma de Pagamento
+        combo_status.bind("<<ComboboxSelected>>", lambda e: _buscar())
+        combo_forma.bind("<<ComboboxSelected>>", lambda e: _buscar())
 
         # Botao buscar
         StyledButton(filtro_card, text=f"{Icons.SEARCH} Buscar",
@@ -14820,18 +15153,23 @@ class PDVApp:
             return
         def cancelar():
             db = DatabaseHelper.get_instance()
+            # Marca a venda como cancelada PRIMEIRO: assim ela deixa de contar
+            # imediatamente nos totais e no resumo por forma de pagamento, mesmo
+            # que a devolucao de estoque abaixo falhe por qualquer motivo.
+            db.execute_update(
+                "UPDATE vendas SET status = 'cancelada' WHERE id = %s", (venda_id,)
+            )
+            # Devolve o estoque dos itens da venda
             itens = db.execute_query(
                 "SELECT produto_id, quantidade FROM itens_venda WHERE venda_id = %s",
                 (venda_id,)
             )
             for item in itens:
-                db.execute_update(
-                    "UPDATE produtos SET estoque = estoque + %s WHERE id = %s",
-                    (item["quantidade"], item["produto_id"])
-                )
-            db.execute_update(
-                "UPDATE vendas SET status = 'cancelada' WHERE id = %s", (venda_id,)
-            )
+                if item.get("produto_id"):
+                    db.execute_update(
+                        "UPDATE produtos SET estoque = estoque + %s WHERE id = %s",
+                        (item["quantidade"], item["produto_id"])
+                    )
         def on_cancelado(_):
             AuditLogger.log("VENDA_CANCELADA",
                             f"Venda #{venda_id}",
@@ -14839,6 +15177,145 @@ class PDVApp:
             ToastManager.info(f"Venda #{venda_id} cancelada. Estoque devolvido.")
             self.show_historico()
         self.run_async(cancelar, on_cancelado)
+
+    def reabrir_venda_historico(self):
+        """Reabre uma venda finalizada para edicao. O operador pode adicionar/
+        remover produtos, trocar a forma de pagamento, o cliente e os dados de
+        entrega; ao finalizar, a venda e regravada com o MESMO id."""
+        sel = self.tree_historico.selection()
+        if not sel:
+            self.show_error("Selecione uma venda para reabrir.")
+            return
+        venda_id = self.tree_historico.item(sel[0])["values"][0]
+        status = self.tree_historico.item(sel[0])["values"][4]
+        if str(status).lower() == "cancelada":
+            ToastManager.warning(
+                "Nao e possivel reabrir uma venda cancelada.")
+            return
+        if not messagebox.askyesno(
+                "Reabrir / Editar Venda",
+                f"Reabrir a venda #{venda_id} para edicao?\n\n"
+                "Voce podera adicionar/remover produtos, trocar a forma de "
+                "pagamento, o cliente e os dados de entrega.\n\n"
+                f"Ao finalizar, a venda sera REGRAVADA no mesmo numero (#{venda_id}), "
+                "e o estoque sera ajustado automaticamente.\n\n"
+                "(E necessario ter um caixa aberto para regravar.)"):
+            return
+
+        def load():
+            db = DatabaseHelper.get_instance()
+            vr_rows = db.execute_query("SELECT * FROM vendas WHERE id = %s", (venda_id,))
+            if not vr_rows:
+                return None
+            itens = db.execute_query(
+                "SELECT * FROM itens_venda WHERE venda_id = %s", (venda_id,)) or []
+            return {"venda": vr_rows[0], "itens": itens}
+
+        def on_loaded(data):
+            if not data:
+                self.show_error("Venda nao encontrada.")
+                return
+            # Exige caixa aberto (para poder regravar) e so entao popula a tela
+            self._verificar_caixa_aberto_para_venda(
+                callback_sucesso=lambda: self._popular_venda_edicao(venda_id, data),
+                origem=f"editar venda #{venda_id}")
+
+        self.run_async(load, on_loaded)
+
+    def _popular_venda_edicao(self, venda_id, data):
+        """Abre a tela de venda ja preenchida com os dados da venda que esta
+        sendo editada."""
+        vr = data["venda"]
+        # Renderiza a tela de venda (reseta o estado, incl. _editando_venda_id)
+        self._show_venda_ui()
+        # Ativa o modo edicao
+        self._editando_venda_id = venda_id
+
+        # Cliente
+        self.venda_cliente_id = vr.get("cliente_id") or 0
+        self.venda_cliente_nome = (vr.get("cliente_nome") or "").strip() or "Cliente nao informado"
+        try:
+            self.lbl_cliente_venda.config(text=self.venda_cliente_nome)
+        except Exception:
+            pass
+        self.venda_vendedor_id = vr.get("vendedor_id") or 0
+        self.venda_entregador_id = vr.get("entregador_id") or 0
+
+        # Itens -> carrinho
+        self.carrinho = []
+        for ir in data["itens"]:
+            item = ItemVenda()
+            item.produto_id = ir.get("produto_id") or 0
+            item.descricao_produto = ir.get("descricao_produto") or ""
+            item.quantidade = float(ir.get("quantidade") or 1)
+            item.preco_unitario = float(ir.get("preco_unitario") or 0)
+            item.desconto = float(ir.get("desconto") or 0)
+            item.total = float(ir.get("total") or 0)
+            self.carrinho.append(item)
+        self.atualizar_tree_carrinho()
+
+        # Desconto / acrescimo: repovoados como "Valor (R$)" para preservar o
+        # total exato (o percentual original nao e armazenado, apenas o valor).
+        try:
+            self.combo_desc_tipo.set("Valor (R$)")
+            self.et_desconto.delete(0, tk.END)
+            self.et_desconto.insert(0, FormatUtils.format_money(float(vr.get("desconto_valor") or 0)))
+        except Exception:
+            pass
+        try:
+            self.combo_acre_tipo.set("Valor (R$)")
+            self.et_acrescimo.delete(0, tk.END)
+            self.et_acrescimo.insert(0, FormatUtils.format_money(float(vr.get("acrescimo_valor") or 0)))
+        except Exception:
+            pass
+
+        # Observacao
+        try:
+            self.et_obs_venda.delete("1.0", tk.END)
+            self.et_obs_venda.insert("1.0", vr.get("observacao") or "")
+        except Exception:
+            pass
+
+        # Entrega
+        if int(vr.get("para_entrega") or 0) == 1:
+            self.venda_para_entrega = True
+            self.venda_taxa_entrega = float(vr.get("taxa_entrega") or 0)
+            self.venda_bairro_entrega = vr.get("bairro_entrega") or ""
+            self.venda_endereco_entrega = vr.get("endereco_entrega") or ""
+            self.venda_celular_whatsapp = vr.get("celular_whatsapp") or ""
+            try:
+                self._var_entrega.set(1)
+                self._toggle_entrega()
+            except Exception:
+                pass
+            try:
+                self.et_endereco_entrega.delete(0, tk.END)
+                self.et_endereco_entrega.insert(0, self.venda_endereco_entrega)
+            except Exception:
+                pass
+            try:
+                self.et_whatsapp_entrega.delete(0, tk.END)
+                self.et_whatsapp_entrega.insert(0, self.venda_celular_whatsapp)
+            except Exception:
+                pass
+            try:
+                if self.venda_bairro_entrega:
+                    self.lbl_bairro_entrega.config(
+                        text=f"{self.venda_bairro_entrega}  "
+                             f"(R$ {FormatUtils.format_money(self.venda_taxa_entrega)})")
+            except Exception:
+                pass
+
+        self.atualizar_totais_venda()
+
+        # Titulo indicando modo edicao
+        try:
+            self._lbl_titulo_venda.config(
+                text=f"{Icons.EDIT} Editando Venda #{venda_id}", fg=COR_ALERTA)
+        except Exception:
+            pass
+        ToastManager.info(
+            f"Venda #{venda_id} reaberta. Edite e finalize para regravar no mesmo numero.")
 
 
     # ========================================================================
@@ -16640,6 +17117,32 @@ class PDVApp:
                                 fg=COR_ERRO, font=("Segoe UI", 9, "bold"))
         lbl_total_c.pack(side="right", padx=12)
 
+        # Barra de botoes FIXADA no rodape (empacotada antes da tabela para
+        # ficar sempre visivel, mesmo em telas menores).
+        btn_frame = tk.Frame(content, bg=COR_FUNDO)
+        btn_frame.pack(side="bottom", fill="x", pady=5)
+
+        StyledButton(btn_frame, text=f"{Icons.MONEY} Receber Pagamento",
+                     command=self.receber_conta,
+                     color=COR_BOTAO_VERDE, width=20).pack(side="left", padx=5)
+        add_tooltip(btn_frame.winfo_children()[-1],
+                    "Registrar pagamento da conta selecionada")
+
+        StyledButton(btn_frame, text=f"{Icons.REFRESH} Atualizar",
+                     command=lambda: _carregar(),
+                     color=COR_FUNDO3, width=10).pack(side="left", padx=5)
+
+        StyledButton(btn_frame, text=f"{Icons.EXPORT} Exportar CSV",
+                     command=lambda: DataExporter.export_treeview_csv(
+                         self.tree_contas, "contas_receber", parent=self.root),
+                     color=COR_BOTAO_AZUL, width=14).pack(side="left", padx=5)
+
+        StyledButton(btn_frame, text=f"{Icons.IMPRESSORA} Imprimir Saldo Cliente",
+                     command=self.imprimir_saldo_cliente,
+                     color=COR_BOTAO_LARANJA, width=22).pack(side="left", padx=5)
+        add_tooltip(btn_frame.winfo_children()[-1],
+                    "Imprime o extrato/saldo de todas as contas do cliente selecionado")
+
         # Treeview
         tree_frame = tk.Frame(content, bg=COR_FUNDO)
         tree_frame.pack(fill="both", expand=True)
@@ -16666,24 +17169,6 @@ class PDVApp:
         self.tree_contas.configure(yscrollcommand=vsb_c.set)
         self.tree_contas.pack(side="left", fill="both", expand=True)
         vsb_c.pack(side="right", fill="y")
-
-        btn_frame = tk.Frame(content, bg=COR_FUNDO)
-        btn_frame.pack(fill="x", pady=5)
-
-        StyledButton(btn_frame, text=f"{Icons.MONEY} Receber Pagamento",
-                     command=self.receber_conta,
-                     color=COR_BOTAO_VERDE, width=20).pack(side="left", padx=5)
-        add_tooltip(btn_frame.winfo_children()[-1],
-                    "Registrar pagamento da conta selecionada")
-
-        StyledButton(btn_frame, text=f"{Icons.REFRESH} Atualizar",
-                     command=lambda: _carregar(),
-                     color=COR_FUNDO3, width=10).pack(side="left", padx=5)
-
-        StyledButton(btn_frame, text=f"{Icons.EXPORT} Exportar CSV",
-                     command=lambda: DataExporter.export_treeview_csv(
-                         self.tree_contas, "contas_receber", parent=self.root),
-                     color=COR_BOTAO_AZUL, width=14).pack(side="left", padx=5)
 
         _cache_c = [None]
 
@@ -16785,6 +17270,12 @@ class PDVApp:
         if not sel:
             ToastManager.warning("Selecione uma conta.")
             return
+        if not Session.caixa_id:
+            self.show_error(
+                "Abra o caixa antes de receber.\n\n"
+                "O recebimento da conta entra como CREDITO (entrada) no caixa "
+                "atual, por isso e necessario ter um caixa aberto.")
+            return
         conta_id = self.tree_contas.item(sel[0])["values"][0]
         cliente_nome = self.tree_contas.item(sel[0])["values"][1]
         pendente = FormatUtils.parse_money(
@@ -16801,6 +17292,8 @@ class PDVApp:
         if not valor:
             return
 
+        caixa_id_receb = Session.caixa_id
+
         def receber():
             db = DatabaseHelper.get_instance()
             novo_pendente = pendente - valor
@@ -16813,19 +17306,134 @@ class PDVApp:
                 "WHERE id = %s",
                 (valor, valor, status, conta_id)
             )
+            # Entrada (credito positivo) no caixa referente ao recebimento
+            db.execute_update(
+                "INSERT INTO entradas_caixa (caixa_id, descricao, valor, origem, "
+                "conta_receber_id, operador_nome) VALUES (%s,%s,%s,'conta_receber',%s,%s)",
+                (caixa_id_receb,
+                 f"Recebimento conta #{conta_id} - {cliente_nome}",
+                 valor, conta_id, getattr(Session, "user_nome", "") or "")
+            )
             return status
 
         def on_recebido(status):
-            msg = (f"Pagamento de R$ {FormatUtils.format_money(valor)} registrado!"
+            msg = (f"Recebido R$ {FormatUtils.format_money(valor)} "
+                   f"(credito no caixa)!"
                    + (" Conta QUITADA!" if status == "quitada" else ""))
             ToastManager.success(msg)
             AuditLogger.log("CONTA_RECEBIDA",
                             f"Conta #{conta_id} | Cliente: {cliente_nome} | "
-                            f"Valor: R$ {FormatUtils.format_money(valor)} | Status: {status}",
+                            f"Valor: R$ {FormatUtils.format_money(valor)} | Status: {status} | "
+                            f"Entrada no caixa #{caixa_id_receb}",
                             usuario=Session.user_login)
             self.show_contas_receber()
 
         self.run_async(receber, on_recebido)
+
+    def imprimir_saldo_cliente(self):
+        """Imprime o extrato/saldo de todas as contas a receber do cliente
+        da conta selecionada (usa o sistema de impressao central: respeita
+        tamanho de fonte, logo, corte e servidor .fr3)."""
+        sel = self.tree_contas.selection()
+        if not sel:
+            ToastManager.warning(
+                "Selecione uma conta do cliente para imprimir o saldo.")
+            return
+        try:
+            conta_id = self.tree_contas.item(sel[0])["values"][0]
+        except Exception:
+            ToastManager.warning("Selecao invalida.")
+            return
+
+        def tarefa():
+            db = DatabaseHelper.get_instance()
+            base = db.execute_query(
+                "SELECT cr.cliente_id, COALESCE(c.nome, 'N/A') as cliente_nome "
+                "FROM contas_receber cr LEFT JOIN clientes c ON cr.cliente_id = c.id "
+                "WHERE cr.id = %s", (conta_id,))
+            if not base:
+                return (False, "Conta nao encontrada.")
+            cid = base[0].get("cliente_id")
+            nome = base[0].get("cliente_nome") or "N/A"
+            if cid:
+                contas = db.execute_query(
+                    "SELECT cr.id, cr.valor_original, cr.valor_pago, "
+                    "cr.valor_pendente, cr.status, cr.data_vencimento "
+                    "FROM contas_receber cr WHERE cr.cliente_id = %s "
+                    "ORDER BY cr.id", (cid,))
+            else:
+                contas = db.execute_query(
+                    "SELECT cr.id, cr.valor_original, cr.valor_pago, "
+                    "cr.valor_pendente, cr.status, cr.data_vencimento "
+                    "FROM contas_receber cr LEFT JOIN clientes c "
+                    "ON cr.cliente_id = c.id WHERE COALESCE(c.nome,'N/A') = %s "
+                    "ORDER BY cr.id", (nome,))
+            if not contas:
+                return (False, "Nenhuma conta encontrada para o cliente.")
+            texto = self._montar_texto_saldo_cliente(nome, contas)
+            return self._imprimir_texto(texto)
+
+        def on_done(res):
+            ok, msg = res if res else (False, "Falha ao imprimir.")
+            if ok:
+                ToastManager.success("Saldo do cliente enviado para impressao.")
+            else:
+                self.show_error(msg)
+
+        self.run_async(tarefa, on_done)
+
+    def _montar_texto_saldo_cliente(self, nome, contas):
+        """Monta o texto do extrato de saldo do cliente para impressao."""
+        cfg = self._load_printer_config()
+        try:
+            largura = int(cfg.get("largura_papel", 48) or 48)
+        except Exception:
+            largura = 48
+        largura = max(24, min(largura, 64))
+        linha = "=" * largura
+        tracos = "-" * largura
+
+        def centro(t):
+            t = str(t)[:largura]
+            return t.center(largura)
+
+        L = []
+        L.append(centro("SALDO DO CLIENTE"))
+        L.append(linha)
+        L.append(f"Cliente: {nome}")
+        L.append("Data: " + datetime.datetime.now().strftime("%d/%m/%Y %H:%M"))
+        L.append(tracos)
+
+        tot_orig = tot_pago = tot_pend = 0.0
+        for c in contas:
+            vo = float(c.get("valor_original", 0) or 0)
+            vp = float(c.get("valor_pago", 0) or 0)
+            pe = float(c.get("valor_pendente", 0) or 0)
+            st = c.get("status", "") or ""
+            venc = str(c.get("data_vencimento", "") or "")
+            if venc and len(venc) >= 10:
+                try:
+                    venc = datetime.datetime.strptime(
+                        venc[:10], "%Y-%m-%d").strftime("%d/%m/%Y")
+                except Exception:
+                    pass
+            tot_orig += vo
+            tot_pago += vp
+            tot_pend += pe
+            L.append(f"Conta #{c.get('id')}  [{st}]")
+            L.append(f"  Original: R$ {FormatUtils.format_money(vo)}")
+            L.append(f"  Pago....: R$ {FormatUtils.format_money(vp)}")
+            L.append(f"  Pendente: R$ {FormatUtils.format_money(pe)}")
+            if venc and venc.lower() != "none":
+                L.append(f"  Vencimento: {venc}")
+            L.append(tracos)
+
+        L.append(f"TOTAL ORIGINAL : R$ {FormatUtils.format_money(tot_orig)}")
+        L.append(f"TOTAL PAGO.....: R$ {FormatUtils.format_money(tot_pago)}")
+        L.append(f"SALDO DEVEDOR..: R$ {FormatUtils.format_money(tot_pend)}")
+        L.append(linha)
+        L.append(centro("Documento nao fiscal"))
+        return "\n".join(L)
 
 
 
@@ -16985,21 +17593,30 @@ class PDVApp:
 
         tk.Label(filtro_frame, text="Data Inicio:", bg=COR_CARD,
                  fg=COR_TEXTO).pack(side="left", padx=5)
+        # "Hoje" baseado na data do SERVIDOR MySQL (mesma fonte de CURDATE e do
+        # data_venda), evitando divergencia com a tela "Total de Vendas Hoje"
+        # quando o relogio/fuso do terminal difere do servidor.
+        try:
+            _rel_hoje_dt = LicencaManager._obter_hora_mysql() or datetime.date.today()
+        except Exception:
+            _rel_hoje_dt = datetime.date.today()
+        self._rel_hoje_dt = _rel_hoje_dt
+        _rel_hoje_str = _rel_hoje_dt.strftime("%d/%m/%Y")
         self.et_data_ini = StyledEntry(filtro_frame, width=12)
-        self.et_data_ini.insert(0, datetime.date.today().strftime("%d/%m/%Y"))
+        self.et_data_ini.insert(0, _rel_hoje_str)
         self.et_data_ini.pack(side="left", padx=5)
         add_tooltip(self.et_data_ini, "Data inicial (DD/MM/AAAA)")
 
         tk.Label(filtro_frame, text="Data Fim:", bg=COR_CARD,
                  fg=COR_TEXTO).pack(side="left", padx=5)
         self.et_data_fim = StyledEntry(filtro_frame, width=12)
-        self.et_data_fim.insert(0, datetime.date.today().strftime("%d/%m/%Y"))
+        self.et_data_fim.insert(0, _rel_hoje_str)
         self.et_data_fim.pack(side="left", padx=5)
         add_tooltip(self.et_data_fim, "Data final (DD/MM/AAAA)")
 
         # Botoes de periodo rapido
         def _set_periodo(dias):
-            fim = datetime.date.today()
+            fim = getattr(self, "_rel_hoje_dt", None) or datetime.date.today()
             ini = fim - datetime.timedelta(days=dias)
             self.et_data_ini.delete(0, tk.END)
             self.et_data_ini.insert(0, ini.strftime("%d/%m/%Y"))
@@ -17204,7 +17821,7 @@ class PDVApp:
                 "LEFT JOIN clientes c ON v.cliente_id = c.id "
                 "LEFT JOIN uso_armario_sauna u ON v.uso_armario_id = u.id "
                 "WHERE v.data_venda BETWEEN %s AND %s AND v.status = 'finalizada' "
-                "GROUP BY v.cliente_id, v.cliente_nome, c.nome ORDER BY total DESC", (di, df)
+                "GROUP BY cliente ORDER BY total DESC", (di, df)
             )
         def on_loaded(rows):
             linhas = [f"{'Cliente':<30} {'Qtd':>6} {'Total':>12}"]
@@ -19157,6 +19774,245 @@ function enviarPedido() {{
 
 
 
+    def _enviar_cupom_servidor_fr3(self, texto, config):
+        """Envia o cupom (texto ja formatado) para o Servidor de Impressao .fr3
+        (print_server.py) via HTTP POST. O servidor preenche o modelo .fr3 e,
+        se configurado, imprime. Retorna (sucesso, mensagem)."""
+        url = (config.get("servidor_impressao_url") or "").strip()
+        if not url:
+            return False, ("Servidor de impressao habilitado, mas a URL nao foi "
+                           "configurada em Configuracoes de Impressora.")
+        payload = {
+            "texto": texto,
+            "titulo": "CUPOM NAO FISCAL",
+            "copias": int(config.get("num_copias", 1) or 1),
+            "impressora": config.get("nome_impressora", ""),
+            "largura": int(config.get("largura_papel", 48) or 48),
+            "corte": bool(config.get("corte_automatico", True)),
+            "gaveta": bool(config.get("abrir_gaveta", False)),
+            "origem": "PDV Pro",
+            "data_hora": datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+        }
+        try:
+            import urllib.request
+            data = json.dumps(payload).encode("utf-8")
+            req = urllib.request.Request(
+                url, data=data,
+                headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                corpo = resp.read().decode("utf-8", errors="replace")
+                try:
+                    r = json.loads(corpo)
+                except Exception:
+                    r = {}
+                if getattr(resp, "status", 200) == 200 and r.get("ok", True):
+                    arq = r.get("arquivo_fr3") or ""
+                    extra = f"\nArquivo .fr3: {arq}" if arq else ""
+                    return True, f"Enviado ao Servidor de Impressao (.fr3).{extra}"
+                return False, f"Servidor de impressao retornou erro: {r.get('erro', corpo[:200])}"
+        except Exception as e:
+            return False, (
+                f"Nao foi possivel conectar ao Servidor de Impressao em:\n{url}\n\n"
+                f"Verifique se o 'print_server.py' esta em execucao naquele "
+                f"computador e se a URL/porta estao corretas.\n\nDetalhe: {e}")
+
+    def _logo_para_escpos(self, caminho, largura_dots=576):
+        """Converte uma imagem (PNG/JPG/BMP...) em comando ESC/POS raster
+        (GS v 0) para imprimir no topo do cupom termico. Retorna bytes
+        (vazio se PIL/Pillow indisponivel ou imagem invalida)."""
+        try:
+            if not HAS_PIL:
+                _logger.warning("Logo ignorado: biblioteca Pillow (PIL) nao instalada.")
+                return b""
+            if not caminho or not os.path.exists(caminho):
+                _logger.warning(f"Logo ignorado: arquivo nao encontrado ({caminho}).")
+                return b""
+            from PIL import Image
+            img = Image.open(caminho).convert("L")
+            w, h = img.size
+            # Redimensiona mantendo proporcao, limitando a largura do papel
+            if w > largura_dots:
+                nh = max(1, int(h * largura_dots / float(w)))
+                img = img.resize((largura_dots, nh))
+                w, h = img.size
+            width_bytes = (w + 7) // 8
+            data = bytearray()
+            for y in range(h):
+                for xb in range(width_bytes):
+                    byte = 0
+                    for bit in range(8):
+                        x = xb * 8 + bit
+                        if x < w and img.getpixel((x, y)) < 128:
+                            byte |= (0x80 >> bit)  # pixel escuro => imprime
+                    data.append(byte)
+            xL, xH = width_bytes & 0xff, (width_bytes >> 8) & 0xff
+            yL, yH = h & 0xff, (h >> 8) & 0xff
+            # GS v 0 m xL xH yL yH data   (m=0 => normal)
+            return b"\x1d\x76\x30\x00" + bytes([xL, xH, yL, yH]) + bytes(data)
+        except Exception as e:
+            _logger.warning(f"Falha ao gerar logo ESC/POS: {e}")
+            return b""
+
+    def _render_cupom_imagem(self, texto, config, width_px=576):
+        """Renderiza o cupom (texto) numa imagem PIL, com a fonte dimensionada
+        para PREENCHER a largura conforme o numero de colunas (Largura do
+        Papel): menos colunas = fonte maior. Usada tanto na impressao grafica
+        quanto na PREVIA da tela (o que se ve = o que sai no papel).
+        Retorna a imagem PIL (modo 'L') ou None se o Pillow faltar."""
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+        except Exception:
+            return None
+        try:
+            try:
+                cols = int(float(config.get("largura_papel", 48) or 48))
+            except Exception:
+                cols = 48
+            cols = max(16, min(cols, 64))
+            # Monospace ~0.6*px de largura -> px que preenche a largura
+            px = max(14, int((float(width_px) / cols) / 0.6))
+            fonte = None
+            for fp in (r"C:\Windows\Fonts\consolab.ttf", r"C:\Windows\Fonts\courbd.ttf",
+                       r"C:\Windows\Fonts\consola.ttf", r"C:\Windows\Fonts\cour.ttf",
+                       r"C:\Windows\Fonts\lucon.ttf",
+                       "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"):
+                try:
+                    fonte = ImageFont.truetype(fp, px)
+                    break
+                except Exception:
+                    continue
+            if fonte is None:
+                fonte = ImageFont.load_default()
+            tmp = Image.new("L", (10, 10), 255)
+            dt = ImageDraw.Draw(tmp)
+            try:
+                bb = dt.textbbox((0, 0), "Ag", font=fonte)
+                ch = bb[3] - bb[1]
+            except Exception:
+                ch = px
+            line_h = int(ch * 1.15) + 2
+            linhas = texto.split("\n")
+            logo_img = None
+            if config.get("imprimir_logo") and (config.get("caminho_logo") or "").strip():
+                try:
+                    lg = Image.open(config["caminho_logo"].strip()).convert("L")
+                    if lg.width > width_px:
+                        nh = int(lg.height * width_px / lg.width)
+                        lg = lg.resize((width_px, nh))
+                    logo_img = lg
+                except Exception:
+                    logo_img = None
+            top = (logo_img.height + 10) if logo_img else 0
+            altura = top + line_h * max(1, len(linhas)) + int(line_h * 1.5)
+            img = Image.new("L", (width_px, altura), 255)
+            draw = ImageDraw.Draw(img)
+            y = 0
+            if logo_img:
+                img.paste(logo_img, ((width_px - logo_img.width) // 2, 0))
+                y = logo_img.height + 10
+            for ln in linhas:
+                draw.text((0, y), ln.rstrip("\r"), font=fonte, fill=0)
+                y += line_h
+            return img
+        except Exception as e:
+            _logger.warning(f"Falha ao renderizar imagem do cupom: {e}")
+            return None
+
+    def _imprimir_grafico_windows(self, texto, config):
+        """Imprime o cupom como IMAGEM via GDI (win32ui), desenhando o texto
+        com a fonte dimensionada para PREENCHER a largura do papel conforme o
+        numero de colunas configurado.
+
+        Funciona em QUALQUER driver (mesmo quando o ESC/POS e ignorado), pois
+        nos mesmos desenhamos as letras. Para AUMENTAR a fonte, diminua o
+        numero de colunas (Largura do Papel): menos colunas = fonte maior.
+        A imagem e impressa em resolucao NATIVA (1:1 em pontos do
+        dispositivo), sem re-escala horizontal, para o tamanho ser fiel.
+
+        Retorna (sucesso: bool, mensagem: str).
+        """
+        try:
+            import win32ui, win32con, win32print
+            from PIL import Image, ImageDraw, ImageFont, ImageWin
+        except Exception as e:
+            return False, ("O modo grafico precisa dos pacotes 'pywin32' e "
+                           f"'Pillow' instalados.\n\nDetalhe: {e}")
+        hdc = None
+        try:
+            # Abre o contexto da impressora (tenta a configurada e, se falhar,
+            # a impressora padrao do Windows).
+            nome_cfg = (config.get("nome_impressora") or "").strip()
+            candidatos = []
+            if nome_cfg:
+                candidatos.append(nome_cfg)
+            try:
+                padrao = win32print.GetDefaultPrinter()
+                if padrao and padrao not in candidatos:
+                    candidatos.append(padrao)
+            except Exception:
+                pass
+            printer = None
+            erro_dc = None
+            for cand in candidatos:
+                try:
+                    hdc = win32ui.CreateDC()
+                    hdc.CreatePrinterDC(cand)
+                    printer = cand
+                    break
+                except Exception as e:
+                    erro_dc = e
+                    try:
+                        if hdc is not None:
+                            hdc.DeleteDC()
+                    except Exception:
+                        pass
+                    hdc = None
+            if hdc is None or printer is None:
+                return False, (
+                    "Nao foi possivel abrir a impressora no modo grafico.\n"
+                    f"Impressora configurada: '{nome_cfg or '(padrao)'}'.\n"
+                    f"Detalhe: {erro_dc}\n\n"
+                    "Verifique o nome exato da impressora em Configuracoes de "
+                    "Impressora (deve ser igual ao do Windows).")
+            # Largura imprimivel em PONTOS (dots) reais do dispositivo
+            try:
+                dev_w = int(hdc.GetDeviceCaps(win32con.HORZRES))
+            except Exception:
+                dev_w = 0
+            tam = str(config.get("tamanho_papel", "80mm"))
+            padrao_w = 576 if "80" in tam else 384
+            # Usa a largura do dispositivo quando plausivel (evita paginas A4)
+            width_px = dev_w if 200 <= dev_w <= 1300 else padrao_w
+
+            # Numero de colunas define o tamanho da fonte (menos colunas =
+            # fonte maior). A renderizacao e feita por _render_cupom_imagem,
+            # a MESMA usada na previa da tela (o que voce ve = o que sai).
+            try:
+                cols = int(float(config.get("largura_papel", 48) or 48))
+            except Exception:
+                cols = 48
+            cols = max(16, min(cols, 64))
+            img = self._render_cupom_imagem(texto, config, width_px)
+            if img is None:
+                return False, "Falha ao gerar a imagem do cupom (Pillow indisponivel)."
+
+            hdc.StartDoc("PDV Pro Cupom")
+            hdc.StartPage()
+            dib = ImageWin.Dib(img.convert("RGB"))
+            # 1:1 em pontos do dispositivo (sem re-escala horizontal)
+            dib.draw(hdc.GetHandleOutput(), (0, 0, img.width, img.height))
+            hdc.EndPage()
+            hdc.EndDoc()
+            return True, f"Impresso (modo grafico, {cols} colunas) em: {printer}"
+        except Exception as e:
+            return False, f"Falha na impressao grafica: {e}"
+        finally:
+            try:
+                if hdc is not None:
+                    hdc.DeleteDC()
+            except Exception:
+                pass
+
     # ========================================================================
     # SISTEMA DE IMPRESSAO CENTRALIZADO
     # ========================================================================
@@ -19185,6 +20041,31 @@ function enviarPedido() {{
 
         if num_copias < 1:
             num_copias = 1
+
+        # === Servidor de Impressao (.fr3) ===
+        # Se habilitado, SUBSTITUI a impressao direta: envia o cupom para o
+        # servidor de impressao local, que preenche o modelo .fr3 e imprime.
+        if config.get("usar_servidor_impressao"):
+            return self._enviar_cupom_servidor_fr3(texto, config)
+
+        # === Metodo GRAFICO (imagem) ===
+        # Desenha o cupom como imagem com a fonte no tamanho exato. Funciona
+        # em qualquer driver (mesmo quando o ESC/POS e ignorado). E a forma
+        # mais confiavel de controlar o tamanho da fonte impressa.
+        import platform as _plat_g
+        if (str(config.get("metodo_impressao", "")).lower().startswith("graf")
+                and _plat_g.system() == "Windows"):
+            _ult = (False, "Modo grafico indisponivel.")
+            for _ in range(num_copias):
+                _ult = self._imprimir_grafico_windows(texto, config)
+                if not _ult[0]:
+                    break
+            if _ult[0]:
+                return True, _ult[1]
+            # Nao volta silenciosamente ao ESC/POS: mostra o erro real para
+            # o operador poder corrigir (senao parece que "nada muda").
+            return False, ("Modo GRAFICO de impressao falhou.\n\n"
+                           f"{_ult[1]}")
 
         # Tipo PDF => salvar arquivo automaticamente
         if tipo == "PDF (Arquivo)":
@@ -19239,27 +20120,65 @@ function enviarPedido() {{
                     dados_envio += b"\x1b\x74" + bytes([cp_num])
                     break
 
-            # Selecionar fonte conforme configuracao
-            # ESC M n: 0=Font A (normal, 12x24), 1=Font B (condensada, 9x17)
-            # ESC ! n: Bit 0=Font B, Bit 3=Emphasized, Bit 4=Double-height, Bit 5=Double-width
-            if modo_fonte == "Condensada":
-                # Font B (condensada) - mais caracteres por linha
-                dados_envio += b"\x1b\x4d\x01"  # ESC M 1 = Font B
-                dados_envio += b"\x1b\x21\x01"  # ESC ! 0x01 = Font B mode
-            elif modo_fonte == "Comprimida":
-                # Font B + sem enfase = mais compacto possivel
-                dados_envio += b"\x1b\x4d\x01"  # ESC M 1 = Font B
-                dados_envio += b"\x1b\x21\x01"  # ESC ! 0x01 = Font B mode
-                # ESC 3 n = Set line spacing to n/180 inch (menor = mais compacto)
-                dados_envio += b"\x1b\x33\x12"  # 18/180 = 0.1 inch
-            else:
-                # Font A (normal/padrao)
-                dados_envio += b"\x1b\x4d\x00"  # ESC M 0 = Font A
-                dados_envio += b"\x1b\x21\x00"  # ESC ! 0x00 = Font A mode
+            # Logo (imagem) centralizado no topo do cupom, se habilitado
+            if config.get("imprimir_logo") and (config.get("caminho_logo") or "").strip():
+                tam_papel = str(config.get("tamanho_papel", "80mm"))
+                largura_dots = 576 if "80" in tam_papel else 384
+                logo_bytes = self._logo_para_escpos(
+                    config.get("caminho_logo").strip(), largura_dots)
+                if logo_bytes:
+                    dados_envio += b"\x1b\x61\x01"   # ESC a 1 = centralizar
+                    dados_envio += logo_bytes
+                    dados_envio += b"\x1b\x61\x00"   # ESC a 0 = alinhar a esquerda
+                    dados_envio += b"\n"
 
-            # ESC 2 = Set default line spacing (se nao for comprimida)
-            if modo_fonte != "Comprimida":
-                dados_envio += b"\x1b\x32"
+            # ================= FONTE / TAMANHO DA IMPRESSAO =================
+            # "Modo da Fonte" define a familia (Font A normal x Font B
+            # condensada) e presets. "Tamanho da Fonte" define a AMPLIACAO
+            # (altura) via GS ! -> agora controla de fato o tamanho impresso.
+            try:
+                tam_fonte = int(float(config.get("tamanho_fonte", 12) or 12))
+            except Exception:
+                tam_fonte = 12
+            # Numero -> multiplicador de ALTURA (mantem as colunas/largura)
+            if tam_fonte <= 12:
+                mult_h = 1
+            elif tam_fonte <= 18:
+                mult_h = 2
+            elif tam_fonte <= 26:
+                mult_h = 3
+            else:
+                mult_h = 4
+            mult_w = 1  # largura padrao (preserva o numero de colunas)
+
+            condensada = modo_fonte in ("Condensada", "Comprimida")
+            # Presets do "Modo da Fonte" definem um piso de ampliacao
+            if modo_fonte == "Grande":
+                mult_h = max(mult_h, 2)
+            elif modo_fonte == "Extra Grande":
+                mult_h = max(mult_h, 2)
+                mult_w = max(mult_w, 2)   # dobra tambem a largura (metade das colunas)
+
+            mult_h = max(1, min(8, mult_h))
+            mult_w = max(1, min(8, mult_w))
+
+            # Familia: Font B (condensada) x Font A (normal)
+            dados_envio += b"\x1b\x4d" + (b"\x01" if condensada else b"\x00")  # ESC M
+            # Ampliacao: GS ! (nibble alto = largura, baixo = altura)
+            gs_n = ((mult_w - 1) << 4) | (mult_h - 1)
+            dados_envio += b"\x1d\x21" + bytes([gs_n])
+            # Negrito quando a fonte esta ampliada (mais corpo/legibilidade)
+            if mult_h >= 2 or mult_w >= 2:
+                dados_envio += b"\x1b\x45\x01"  # ESC E 1 = negrito ON
+            else:
+                dados_envio += b"\x1b\x45\x00"  # ESC E 0 = negrito OFF
+            # Espacamento entre linhas conforme a altura
+            if modo_fonte == "Comprimida" and mult_h == 1:
+                dados_envio += b"\x1b\x33\x12"  # compacto (18/180")
+            elif mult_h >= 2:
+                dados_envio += b"\x1b\x33\x40"  # 64/180" p/ fonte alta nao sobrepor
+            else:
+                dados_envio += b"\x1b\x32"      # espacamento padrao
 
         dados_envio += texto_bytes
 
@@ -19532,9 +20451,9 @@ function enviarPedido() {{
             "tipo_impressora": "Termica",
             "nome_impressora": "",
             "tamanho_papel": "80mm",
-            "largura_papel": 48,
-            "modo_fonte": "Condensada",
-            "tamanho_fonte": 8,
+            "largura_papel": 42,
+            "modo_fonte": "Grande",
+            "tamanho_fonte": 12,
             "corte_automatico": True,
             "abrir_gaveta": False,
             "imprimir_logo": False,
@@ -19546,7 +20465,10 @@ function enviarPedido() {{
             "codepage": "UTF-8",
             "velocidade_impressao": "Normal",
             "imprimir_automatico": False,
-            "porta_impressora": ""
+            "porta_impressora": "",
+            "usar_servidor_impressao": False,
+            "servidor_impressao_url": "http://127.0.0.1:8899/print",
+            "metodo_impressao": "Texto (ESC/POS)"
         }
         try:
             if os.path.exists(PRINTER_CONFIG_FILE):
@@ -19555,6 +20477,22 @@ function enviarPedido() {{
                 for k, v in defaults.items():
                     if k not in saved:
                         saved[k] = v
+                # Migracao unica: aumenta a fonte das impressoes para instalacoes
+                # que ainda estavam num modo pequeno (padrao antigo). Ocorre uma
+                # unica vez (flag fonte_migrada_v2); se depois o usuario escolher
+                # outro modo, sua escolha e respeitada.
+                if not saved.get("fonte_migrada_v2"):
+                    modo_atual = str(saved.get("modo_fonte", "")).strip()
+                    if modo_atual in ("", "Normal", "Condensada"):
+                        saved["modo_fonte"] = "Grande"
+                        # Font A cabe no maximo ~48 colunas em 80mm; evita corte
+                        try:
+                            if int(float(saved.get("largura_papel", 42) or 42)) > 48:
+                                saved["largura_papel"] = 48
+                        except Exception:
+                            saved["largura_papel"] = 42
+                    saved["fonte_migrada_v2"] = True
+                    self._save_printer_config(saved)
                 return saved
         except Exception as e:
             print(f"Erro ao carregar config impressora: {e}")
@@ -20411,10 +21349,10 @@ function enviarPedido() {{
         # Modo da Fonte (Normal / Condensada / Comprimida)
         tk.Label(card2, text="Modo da Fonte ESC/POS:", bg=COR_GLASS, fg=COR_TEXTO,
                  font=("Segoe UI", 10)).grid(row=2, column=0, sticky="w", padx=5, pady=4)
-        modos_fonte = ["Normal", "Condensada", "Comprimida"]
+        modos_fonte = ["Normal", "Condensada", "Comprimida", "Grande", "Extra Grande"]
         combo_modo_fonte = ttk.Combobox(card2, values=modos_fonte, width=15, state="readonly",
                                          font=("Segoe UI", 10))
-        combo_modo_fonte.set(config.get("modo_fonte", "Condensada"))
+        combo_modo_fonte.set(config.get("modo_fonte", "Grande"))
         combo_modo_fonte.grid(row=2, column=1, sticky="w", padx=5, pady=4)
 
         # Label informativo sobre modo de fonte
@@ -20423,15 +21361,21 @@ function enviarPedido() {{
         lbl_fonte_info.grid(row=3, column=1, sticky="w", padx=5, pady=(0, 2))
 
         # Tabela de referencia de colunas
-        # 58mm: Normal=32, Condensada=42, Comprimida=42
-        # 80mm: Normal=42, Condensada=56, Comprimida=56
+        # 58mm: Normal=32, Condensada=42, Comprimida=42, Grande=32, ExtraGrande=16
+        # 80mm: Normal=42, Condensada=56, Comprimida=56, Grande=42, ExtraGrande=21
+        # (Grande dobra so a ALTURA => mesmas colunas; Extra Grande dobra tambem
+        #  a LARGURA => metade das colunas)
         PRESETS_COLUNAS = {
             ("58mm", "Normal"): 32,
             ("58mm", "Condensada"): 42,
             ("58mm", "Comprimida"): 42,
+            ("58mm", "Grande"): 32,
+            ("58mm", "Extra Grande"): 16,
             ("80mm", "Normal"): 42,
             ("80mm", "Condensada"): 56,
             ("80mm", "Comprimida"): 56,
+            ("80mm", "Grande"): 42,
+            ("80mm", "Extra Grande"): 21,
         }
 
         def _atualizar_preset_colunas(event=None):
@@ -20457,12 +21401,16 @@ function enviarPedido() {{
         et_largura.insert(0, str(config.get("largura_papel", 48)))
         et_largura.grid(row=4, column=1, sticky="w", padx=5, pady=4)
 
-        # Tamanho da Fonte (preview) - agora na row 5
-        tk.Label(card2, text="Tamanho da Fonte (preview):", bg=COR_GLASS, fg=COR_TEXTO,
+        # Tamanho da Fonte (agora afeta a IMPRESSAO) - row 5
+        tk.Label(card2, text="Tamanho da Fonte (impressao):", bg=COR_GLASS, fg=COR_TEXTO,
                  font=("Segoe UI", 10)).grid(row=5, column=0, sticky="w", padx=5, pady=4)
         et_fonte = StyledEntry(card2, width=10)
-        et_fonte.insert(0, str(config.get("tamanho_fonte", 8)))
+        et_fonte.insert(0, str(config.get("tamanho_fonte", 12)))
         et_fonte.grid(row=5, column=1, sticky="w", padx=5, pady=4)
+        add_tooltip(et_fonte,
+                    "Controla o tamanho impresso (altura):\n"
+                    "ate 12 = normal | 13-18 = 2x | 19-26 = 3x | 27+ = 4x.\n"
+                    "A largura/colunas nao muda (use 'Extra Grande' p/ dobrar a largura).")
 
         # Margem Esquerda
         tk.Label(card2, text="Margem Esquerda (colunas):", bg=COR_GLASS, fg=COR_TEXTO,
@@ -20560,6 +21508,43 @@ function enviarPedido() {{
                        font=("Segoe UI", 10)).grid(
                        row=5, column=0, columnspan=2, sticky="w", padx=5, pady=3)
 
+        # === Servidor de Impressao (.fr3) ===
+        var_servidor = tk.BooleanVar(value=config.get("usar_servidor_impressao", False))
+        tk.Checkbutton(card3,
+                       text="Enviar impressao para o Servidor de Impressao (.fr3)",
+                       variable=var_servidor, bg=COR_CARD, fg=COR_TEXTO,
+                       selectcolor=COR_ENTRADA, activebackground=COR_CARD,
+                       font=("Segoe UI", 10, "bold")).grid(
+                       row=6, column=0, columnspan=2, sticky="w", padx=5, pady=(10, 3))
+        tk.Label(card3,
+                 text="(Quando marcado, o cupom NAO vai direto para a impressora: "
+                      "vai para o servidor que gera o .fr3)",
+                 bg=COR_CARD, fg=COR_TEXTO2, font=("Segoe UI", 8, "italic")).grid(
+                 row=7, column=0, columnspan=2, sticky="w", padx=25, pady=(0, 3))
+        tk.Label(card3, text="URL do Servidor de Impressao:", bg=COR_GLASS, fg=COR_TEXTO,
+                 font=("Segoe UI", 10)).grid(row=8, column=0, sticky="w", padx=5, pady=4)
+        et_servidor_url = StyledEntry(card3, width=35)
+        et_servidor_url.insert(0, config.get("servidor_impressao_url",
+                                             "http://127.0.0.1:8899/print"))
+        et_servidor_url.grid(row=8, column=1, sticky="w", padx=5, pady=4)
+
+        # === Metodo de Impressao ===
+        tk.Label(card3, text="Metodo de Impressao:", bg=COR_GLASS, fg=COR_TEXTO,
+                 font=("Segoe UI", 10, "bold")).grid(row=9, column=0, sticky="w",
+                 padx=5, pady=(10, 4))
+        combo_metodo_imp = ttk.Combobox(
+            card3, values=["Texto (ESC/POS)", "Grafico (imagem)"],
+            width=20, state="readonly", font=("Segoe UI", 10))
+        combo_metodo_imp.set(config.get("metodo_impressao", "Texto (ESC/POS)"))
+        combo_metodo_imp.grid(row=9, column=1, sticky="w", padx=5, pady=(10, 4))
+        tk.Label(card3,
+                 text="Grafico (imagem): desenha o cupom com a fonte no tamanho exato e "
+                      "imprime como imagem.\nUse este modo se a fonte NAO aumenta no modo "
+                      "Texto (a impressora ignora ESC/POS).\nRequer pywin32 + Pillow.",
+                 bg=COR_CARD, fg=COR_TEXTO2, font=("Segoe UI", 8, "italic"),
+                 justify="left").grid(row=10, column=0, columnspan=2, sticky="w",
+                 padx=25, pady=(0, 4))
+
         # === CARD 4: Botoes de Acao ===
         card4 = CardFrame(content)
         card4.pack(fill="x", padx=20, pady=8)
@@ -20625,7 +21610,11 @@ function enviarPedido() {{
                 "abrir_gaveta": var_gaveta.get(),
                 "imprimir_logo": var_logo.get(),
                 "caminho_logo": et_logo.get().strip(),
-                "imprimir_automatico": var_auto.get()
+                "imprimir_automatico": var_auto.get(),
+                "usar_servidor_impressao": var_servidor.get(),
+                "servidor_impressao_url": et_servidor_url.get().strip(),
+                "metodo_impressao": combo_metodo_imp.get(),
+                "fonte_migrada_v2": True
             }
 
         def salvar_config():
@@ -20729,6 +21718,32 @@ function enviarPedido() {{
             text_area.insert("1.0", texto_cupom)
             text_area.config(state="disabled")
 
+            # Se o metodo for GRAFICO, mostra a PREVIA REAL (imagem) que sera
+            # impressa - controlada pela Largura do Papel (colunas). Assim o
+            # que se ve na tela e igual ao que sai no papel.
+            try:
+                if str(cfg.get("metodo_impressao", "")).lower().startswith("graf"):
+                    from PIL import ImageTk
+                    _tam = str(cfg.get("tamanho_papel", "80mm"))
+                    _wpx = 576 if "80" in _tam else 384
+                    _img = self._render_cupom_imagem(texto_cupom, cfg, _wpx)
+                    if _img is not None:
+                        text_area.pack_forget()
+                        _disp_w = 480
+                        _esc = _disp_w / float(_img.width)
+                        _img_disp = _img.resize((_disp_w, max(1, int(_img.height * _esc))))
+                        _photo = ImageTk.PhotoImage(_img_disp)
+                        _cv = tk.Canvas(preview, bg="white", highlightthickness=0)
+                        _vsb = ttk.Scrollbar(preview, orient="vertical", command=_cv.yview)
+                        _cv.configure(yscrollcommand=_vsb.set,
+                                      scrollregion=(0, 0, _disp_w, _img_disp.height))
+                        _cv.create_image(0, 0, anchor="nw", image=_photo)
+                        _cv.image = _photo  # mantem referencia
+                        _vsb.pack(side="right", fill="y")
+                        _cv.pack(fill="both", expand=True, padx=15, pady=5)
+            except Exception as _epv:
+                _logger.warning(f"Previa grafica falhou: {_epv}")
+
             # Label de status
             lbl_status_teste = tk.Label(preview, text="", bg=COR_FUNDO, fg=COR_TEXTO2,
                                          font=("Segoe UI", 9, "italic"))
@@ -20791,12 +21806,12 @@ function enviarPedido() {{
                 et_porta.delete(0, tk.END)
                 combo_codepage.set("UTF-8")
                 combo_tamanho_papel.set("80mm")
-                combo_modo_fonte.set("Condensada")
+                combo_modo_fonte.set("Grande")
                 lbl_fonte_info.config(text="")
                 et_largura.delete(0, tk.END)
-                et_largura.insert(0, "48")
+                et_largura.insert(0, "42")
                 et_fonte.delete(0, tk.END)
-                et_fonte.insert(0, "8")
+                et_fonte.insert(0, "12")
                 et_margem_esq.delete(0, tk.END)
                 et_margem_esq.insert(0, "0")
                 et_margem_dir.delete(0, tk.END)
@@ -21482,7 +22497,7 @@ function enviarPedido() {{
                  bg=COR_FUNDO, fg=COR_TEXTO, font=("Segoe UI", 10)).grid(
                  row=row, column=0, sticky="w", padx=5, pady=4)
         row += 1
-        modos_fonte = ["Normal", "Condensada", "Comprimida"]
+        modos_fonte = ["Normal", "Condensada", "Comprimida", "Grande", "Extra Grande"]
         combo_modo_fonte = ttk.Combobox(inner, values=modos_fonte, width=15, state="readonly",
                                          font=("Segoe UI", 10))
         combo_modo_fonte.set(imp.get("modo_fonte", "Condensada"))
