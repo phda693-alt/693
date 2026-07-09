@@ -2869,6 +2869,13 @@ class KeyboardShortcuts:
         try:
             if hasattr(self.app, "carrinho") and self.app.carrinho:
                 removido = self.app.carrinho.pop()
+                # Audita a remocao tambem pelo atalho Ctrl+Z (paridade com o
+                # botao "Remover" e com o Android).
+                try:
+                    if hasattr(self.app, "_auditar_remocao_item_carrinho"):
+                        self.app._auditar_remocao_item_carrinho(removido)
+                except Exception:
+                    pass
                 self.app.atualizar_tree_carrinho()
                 ToastManager.info(f"Item removido: {removido.descricao_produto}")
         except Exception:
@@ -4550,6 +4557,10 @@ class DatabaseHelper:
                     ssl_disabled=True,
                     auth_plugin='mysql_native_password'
                 )
+                # Toda conexao nova ja nasce com o contexto de auditoria aplicado,
+                # para que os triggers do banco (compartilhado com o app Android)
+                # atribuam as alteracoes ao operador logado, e nao a 'Sistema'.
+                self._aplicar_contexto_auditoria(self.connection)
                 return self.connection
             except MySQLError as e:
                 if attempt < 2:
@@ -4558,6 +4569,94 @@ class DatabaseHelper:
                     ErroAmigavel.log_erro(e, "DatabaseHelper.get_connection")
                     raise e
         return None
+
+    # ========================================================================
+    # AUDITORIA (trilha compartilhada com o app Android)
+    # ========================================================================
+    @staticmethod
+    def obter_ip_local():
+        """Retorna o IPv4 local (melhor esforco) para registrar na auditoria.
+        Equivale ao NetworkUtils.getLocalIpv4() do Android."""
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            try:
+                # Nao envia pacote; apenas descobre a interface de saida.
+                s.connect(("8.8.8.8", 80))
+                ip = s.getsockname()[0]
+            finally:
+                s.close()
+            if ip:
+                return ip
+        except Exception:
+            pass
+        try:
+            return socket.gethostbyname(socket.gethostname())
+        except Exception:
+            return ""
+
+    def _aplicar_contexto_auditoria(self, conn):
+        """Define as variaveis de sessao usadas pelos triggers de auditoria do
+        banco. Mesmo contrato do aplicarContextoSessao() do DatabaseHelper.java
+        do Android: @pdv_usuario_id, @pdv_usuario_nome e @pdv_ip. Assim, as
+        alteracoes feitas pelo desktop na base compartilhada sao atribuidas ao
+        operador logado (e nao a 'Sistema').
+
+        NAO adquire o _conn_lock nem chama get_connection: recebe a conexao ja
+        pronta (chamado de dentro de get_connection, sob o lock do chamador)."""
+        if conn is None:
+            return
+        try:
+            uid = getattr(Session, "user_id", 0) or 0
+            unome = getattr(Session, "user_nome", "") or "Sistema"
+            ip = self.obter_ip_local() or ""
+            cur = conn.cursor()
+            cur.execute(
+                "SET @pdv_usuario_id=%s, @pdv_usuario_nome=%s, @pdv_ip=%s",
+                (uid, unome, ip)
+            )
+            cur.close()
+        except Exception as e:
+            try:
+                ErroAmigavel.log_erro(e, "_aplicar_contexto_auditoria")
+            except Exception:
+                pass
+
+    def atualizar_contexto_auditoria(self):
+        """Reaplica o contexto de auditoria na conexao ATUAL. Deve ser chamado
+        apos login/logout, pois a conexao e reaproveitada entre operacoes e as
+        variaveis de sessao persistem por toda a vida da conexao."""
+        try:
+            with self._conn_lock:
+                conn = self.get_connection()
+                self._aplicar_contexto_auditoria(conn)
+        except Exception as e:
+            try:
+                ErroAmigavel.log_erro(e, "atualizar_contexto_auditoria")
+            except Exception:
+                pass
+
+    def registrar_auditoria(self, acao, modulo, detalhes=None):
+        """Registra uma acao do usuario na tabela compartilhada auditoria_acoes.
+        Equivale ao UserActionLogger.log() do Android (eventos que nao produzem,
+        por si so, alteracao direta rastreavel por trigger - ex.: remocao de item
+        do carrinho em memoria - ou que precisam de um 'porque', como o motivo de
+        um cancelamento). A tabela auditoria_acoes e ignorada pelos triggers do
+        Android, portanto este INSERT nao gera recursao."""
+        try:
+            uid = getattr(Session, "user_id", 0) or None
+            unome = getattr(Session, "user_nome", "") or "Sistema"
+            ip = self.obter_ip_local()
+            self.execute_update(
+                "INSERT INTO auditoria_acoes "
+                "(usuario_id, usuario_nome, acao, modulo, detalhes, ip, data_acao) "
+                "VALUES (%s, %s, %s, %s, %s, %s, NOW())",
+                (uid, unome, acao, modulo, detalhes, ip)
+            )
+        except Exception as e:
+            try:
+                ErroAmigavel.log_erro(e, f"registrar_auditoria({acao})")
+            except Exception:
+                pass
 
     def close_connection(self):
         try:
@@ -4630,6 +4729,25 @@ class DatabaseHelper:
 
     def get_table_definitions(self):
         tables = {}
+
+        # Auditoria central compartilhada com o app Android. Mesmas colunas do
+        # TableDef("auditoria_acoes") do DatabaseHelper.java. Os triggers de
+        # INSERT/UPDATE/DELETE sao criados pelo Android; o desktop tambem grava
+        # aqui eventos de nivel de aplicacao (ver registrar_auditoria()).
+        tables["auditoria_acoes"] = """
+            CREATE TABLE IF NOT EXISTS auditoria_acoes (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                usuario_id INT DEFAULT NULL,
+                usuario_nome VARCHAR(150) DEFAULT NULL,
+                acao VARCHAR(30) NOT NULL,
+                modulo VARCHAR(100) DEFAULT NULL,
+                tabela VARCHAR(100) DEFAULT NULL,
+                registro_id BIGINT DEFAULT NULL,
+                detalhes TEXT DEFAULT NULL,
+                ip VARCHAR(45) DEFAULT NULL,
+                data_acao DATETIME DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """
 
         tables["empresa"] = """
             CREATE TABLE IF NOT EXISTS empresa (
@@ -4779,12 +4897,14 @@ class DatabaseHelper:
             CREATE TABLE IF NOT EXISTS caixa (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 usuario_id INT DEFAULT NULL,
+                caixa_nominal_id INT DEFAULT NULL,
                 data_abertura DATETIME DEFAULT CURRENT_TIMESTAMP,
                 data_fechamento DATETIME DEFAULT NULL,
                 valor_abertura DECIMAL(10,2) DEFAULT 0,
                 valor_fechamento DECIMAL(10,2) DEFAULT 0,
                 status VARCHAR(20) DEFAULT 'aberto',
-                observacao TEXT DEFAULT NULL
+                observacao TEXT DEFAULT NULL,
+                relatorio_fechamento TEXT DEFAULT NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         """
 
@@ -5401,6 +5521,13 @@ class DatabaseHelper:
                     # Adicionar coluna perfil_id em usuarios
                     ("ALTER TABLE usuarios ADD COLUMN perfil_id INT DEFAULT NULL",
                      "usuarios.perfil_id"),
+                    # Alinhamento do caixa com o Android: colunas presentes no
+                    # TableDef("caixa") do app (caixa_nominal_id e o texto do
+                    # relatorio de fechamento, lido/reimpresso pelo Android).
+                    ("ALTER TABLE caixa ADD COLUMN caixa_nominal_id INT DEFAULT NULL",
+                     "caixa.caixa_nominal_id"),
+                    ("ALTER TABLE caixa ADD COLUMN relatorio_fechamento TEXT DEFAULT NULL",
+                     "caixa.relatorio_fechamento"),
                 ]
 
                 for mig_sql, mig_desc in migracoes_especificas:
@@ -8172,7 +8299,22 @@ class PDVApp:
     # ========================================================================
     def show_login(self):
         self.clear_container()
+        # Se havia um operador logado, isto e um logout: registra na trilha
+        # compartilhada ANTES de limpar a sessao (para atribuir ao usuario que
+        # saiu) e depois reseta o contexto de auditoria da conexao para 'Sistema'.
+        _tinha_usuario = getattr(Session, "user_id", 0)
+        if _tinha_usuario:
+            try:
+                DatabaseHelper.get_instance().registrar_auditoria(
+                    "LOGOUT", "Autenticacao", "Sessao encerrada pelo usuario")
+            except Exception:
+                pass
         Session.clear()
+        if _tinha_usuario:
+            try:
+                DatabaseHelper.get_instance().atualizar_contexto_auditoria()
+            except Exception:
+                pass
 
         # Fundo com particulas
         self._create_bg_particles(self.main_container)
@@ -8385,6 +8527,14 @@ class PDVApp:
                 self.status_bar.set_caixa(False)
                 AuditLogger.log("LOGIN_OK", f"Usuario: {user['nome']} ({user['nivel']})",
                                 usuario=login)
+                # Agora que o operador esta identificado, reaplica o contexto de
+                # auditoria na conexao compartilhada (a conexao e reaproveitada)
+                # e registra o login na trilha compartilhada (auditoria_acoes),
+                # alem do log local em arquivo.
+                _db_audit = DatabaseHelper.get_instance()
+                _db_audit.atualizar_contexto_auditoria()
+                _db_audit.registrar_auditoria("LOGIN", "Autenticacao",
+                                              "Login realizado com sucesso")
                 ToastManager.success(f"Bem-vindo, {user['nome']}!")
                 # === VERIFICACAO DE LICENCA APOS LOGIN (igual ao Android) ===
                 self._verificar_licenca_pos_login()
@@ -11134,10 +11284,32 @@ class PDVApp:
             ToastManager.warning("Selecione um item para remover.")
             return
         idx = self.tree_carrinho.index(sel[0])
-        nome = self.carrinho[idx].descricao_produto
+        item = self.carrinho[idx]
+        nome = item.descricao_produto
+        self._auditar_remocao_item_carrinho(item)
         del self.carrinho[idx]
         self.atualizar_tree_carrinho()
         ToastManager.info(f"Removido: {nome}")
+
+    def _auditar_remocao_item_carrinho(self, item):
+        """Registra na trilha compartilhada (auditoria_acoes) a retirada de um
+        item do carrinho. O carrinho vive apenas em memoria e NAO dispara os
+        triggers do banco; sem este registro, um operador poderia adicionar um
+        item, remove-lo e finalizar a venda sem ele sem deixar rastro. Paridade
+        com o REMOVER_ITEM_CARRINHO implementado no Android."""
+        try:
+            if item is None:
+                return
+            detalhes = (
+                f"Item removido do carrinho: {getattr(item, 'descricao_produto', '')}"
+                f" | Qtd: {FormatUtils.format_quantidade(getattr(item, 'quantidade', 0) or 0)}"
+                f" | Unit.: R$ {FormatUtils.format_money(getattr(item, 'preco_unitario', 0) or 0)}"
+                f" | Total: R$ {FormatUtils.format_money(getattr(item, 'total', 0) or 0)}"
+            )
+            DatabaseHelper.get_instance().registrar_auditoria(
+                "REMOVER_ITEM_CARRINHO", "Venda", detalhes)
+        except Exception:
+            pass
 
     # ========================================================================
     # ASSISTENTE "MONTE SEU PRATO"  (DELICIAS FOOD)
@@ -12736,6 +12908,17 @@ class PDVApp:
                 margem_dir=printer_cfg.get("margem_direita", 0),
                 espacamento=printer_cfg.get("espacamento_linhas", 1)
             )
+            # Persiste o relatorio de fechamento na tabela compartilhada (coluna
+            # relatorio_fechamento, mesma usada pelo Android). Assim o Android
+            # le/reimprime exatamente o mesmo fechamento - INCLUINDO sangrias e
+            # entradas, que o Android nao mantem em tabela propria mas que ja
+            # estao consolidadas neste texto e no valor_fechamento.
+            try:
+                DatabaseHelper.get_instance().execute_update(
+                    "UPDATE caixa SET relatorio_fechamento = %s WHERE id = %s",
+                    (cupom, caixa_id_tmp))
+            except Exception:
+                pass
             auto_imp = printer_cfg.get("imprimir_automatico", False)
             self._mostrar_cupom_caixa(cupom, "Fechamento de Caixa",
                                        auto_imprimir=auto_imp)
@@ -15147,10 +15330,26 @@ class PDVApp:
         if status == "cancelada":
             ToastManager.warning("Esta venda ja esta cancelada.")
             return
-        if not messagebox.askyesno("Confirmar",
-                f"Cancelar venda #{venda_id}?\n\n"
-                "O estoque dos itens sera devolvido automaticamente."):
-            return
+        # Motivo obrigatorio: o operador deve justificar o cancelamento. O texto
+        # e registrado explicitamente na auditoria (o trigger de UPDATE captura
+        # quem/quando, mas nao o "porque"). Sem motivo valido, nao prossegue.
+        motivo = ""
+        while True:
+            motivo = simpledialog.askstring(
+                "Cancelar Venda",
+                f"Informe o MOTIVO do cancelamento da venda #{venda_id}.\n"
+                "O estoque dos itens sera devolvido automaticamente.\n\n"
+                "(Campo obrigatorio - ficara registrado na auditoria.)",
+                parent=self.root)
+            if motivo is None:
+                return  # operador desistiu
+            motivo = motivo.strip()
+            if len(motivo) >= 3:
+                break
+            messagebox.showwarning(
+                "Motivo obrigatorio",
+                "Informe um motivo valido (minimo 3 caracteres) para "
+                "cancelar a venda.")
         def cancelar():
             db = DatabaseHelper.get_instance()
             # Marca a venda como cancelada PRIMEIRO: assim ela deixa de contar
@@ -15172,8 +15371,16 @@ class PDVApp:
                     )
         def on_cancelado(_):
             AuditLogger.log("VENDA_CANCELADA",
-                            f"Venda #{venda_id}",
+                            f"Venda #{venda_id} | Motivo: {motivo}",
                             usuario=Session.user_login)
+            # Registro explicito na trilha compartilhada com o Android, incluindo
+            # o motivo informado pelo operador.
+            try:
+                DatabaseHelper.get_instance().registrar_auditoria(
+                    "CANCELAR_VENDA", "Historico de Vendas",
+                    f"Venda #{venda_id} cancelada. Motivo: {motivo}")
+            except Exception:
+                pass
             ToastManager.info(f"Venda #{venda_id} cancelada. Estoque devolvido.")
             self.show_historico()
         self.run_async(cancelar, on_cancelado)
