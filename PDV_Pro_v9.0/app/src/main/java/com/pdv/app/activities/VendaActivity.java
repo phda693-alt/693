@@ -128,6 +128,11 @@ public class VendaActivity extends BaseActivity {
         });
         carrinhoAdapter.setOnItemLongClickListener((item, pos) -> {
             showConfirm("Remover", "Remover " + item.getDescricaoProduto() + " do carrinho?", () -> {
+                // Auditoria: o carrinho vive apenas em memoria, entao remover um item aqui
+                // NAO dispara os triggers de banco. Registramos explicitamente para que a
+                // retirada de itens antes de finalizar a venda nao fique sem rastro.
+                registrarRemocaoItemCarrinho(item);
+
                 carrinho.remove(pos);
                 carrinhoAdapter.setItems(carrinho);
                 recalcular();
@@ -332,6 +337,32 @@ public class VendaActivity extends BaseActivity {
                 showErrorFromException(e, ErrorHandler.CTX_VENDA);
             }
         }).start();
+    }
+
+    /**
+     * Registra na trilha de auditoria a remocao de um item do carrinho de venda.
+     *
+     * <p>Diferente das vendas ja persistidas (que sao auditadas pelos triggers de
+     * banco), o carrinho e mantido apenas em memoria ate a finalizacao. Sem este
+     * registro, um operador poderia adicionar um item, remove-lo e finalizar a
+     * venda sem ele, sem deixar qualquer rastro. Aqui gravamos produto,
+     * quantidade e valores para permitir a fiscalizacao dessa acao.</p>
+     */
+    private void registrarRemocaoItemCarrinho(ItemVenda item) {
+        if (item == null) return;
+        StringBuilder detalhes = new StringBuilder();
+        detalhes.append("Item removido do carrinho: ").append(item.getDescricaoProduto());
+        String adicionais = item.getAdicionaisDescricao();
+        if (adicionais != null && !adicionais.isEmpty()) {
+            detalhes.append(" (adicionais: ").append(adicionais).append(")");
+        }
+        detalhes.append(" | Qtd: ").append(FormatUtils.formatQuantidade(item.getQuantidade()))
+                .append(" | Unit.: R$ ").append(FormatUtils.formatMoney(item.getPrecoUnitario()))
+                .append(" | Total: R$ ").append(FormatUtils.formatMoney(item.getTotalComAdicionais()));
+        if (clienteId > 0) {
+            detalhes.append(" | Cliente: ").append(clienteNome).append(" (#").append(clienteId).append(")");
+        }
+        UserActionLogger.log(this, "REMOVER_ITEM_CARRINHO", "Venda", detalhes.toString());
     }
 
     private void recalcular() {

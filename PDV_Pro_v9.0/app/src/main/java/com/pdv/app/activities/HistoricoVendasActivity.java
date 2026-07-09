@@ -245,7 +245,39 @@ public class HistoricoVendasActivity extends BaseActivity {
     }
 
     private void confirmarCancelarVenda(int vendaId) {
-        showConfirm("Cancelar Venda", "Deseja realmente cancelar a venda #" + vendaId + "?", () -> cancelarVenda(vendaId));
+        // Motivo obrigatorio: o operador deve justificar o cancelamento. O texto
+        // e registrado explicitamente na auditoria (o trigger de UPDATE captura o
+        // "quem/quando", mas nao o "porque"). Sem motivo valido, o cancelamento
+        // nao prossegue.
+        final EditText inputMotivo = new EditText(this);
+        inputMotivo.setHint("Descreva o motivo do cancelamento");
+        inputMotivo.setInputType(InputType.TYPE_CLASS_TEXT
+                | InputType.TYPE_TEXT_FLAG_MULTI_LINE
+                | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        inputMotivo.setMinLines(2);
+        inputMotivo.setPadding(32, 18, 32, 18);
+
+        final AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Cancelar Venda #" + vendaId)
+                .setMessage("Informe o motivo do cancelamento. Este campo e obrigatorio e ficara registrado na auditoria.")
+                .setView(inputMotivo)
+                .setPositiveButton("Confirmar Cancelamento", null) // listener real definido no onShow
+                .setNegativeButton("Voltar", null)
+                .create();
+
+        // Sobrescreve o clique do botao positivo para NAO fechar o dialogo enquanto
+        // o motivo nao for valido.
+        dialog.setOnShowListener(d ->
+                dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setOnClickListener(v -> {
+                    String motivo = inputMotivo.getText().toString().trim();
+                    if (motivo.length() < 3) {
+                        inputMotivo.setError("Informe um motivo valido (minimo 3 caracteres).");
+                        return;
+                    }
+                    dialog.dismiss();
+                    cancelarVenda(vendaId, motivo);
+                }));
+        dialog.show();
     }
 
     private void confirmarDevolucaoVenda(int vendaId) {
@@ -255,7 +287,7 @@ public class HistoricoVendasActivity extends BaseActivity {
                 () -> devolverVenda(vendaId));
     }
 
-    private void cancelarVenda(int vendaId) {
+    private void cancelarVenda(int vendaId, String motivo) {
         showLoading("Cancelando...");
         new Thread(() -> {
             try {
@@ -266,6 +298,15 @@ public class HistoricoVendasActivity extends BaseActivity {
                 ps.setInt(1, vendaId);
                 int linhas = ps.executeUpdate();
                 ps.close();
+
+                if (linhas > 0) {
+                    // Auditoria explicita: alem do trigger automatico de UPDATE (que registra
+                    // quem/quando), gravamos o MOTIVO informado pelo operador, que o trigger
+                    // nao consegue capturar.
+                    UserActionLogger.log(this, "CANCELAR_VENDA", "Historico de Vendas",
+                            "Venda #" + vendaId + " cancelada. Motivo: " + motivo);
+                }
+
                 hideLoading();
                 if (linhas > 0) {
                     showToast("Venda cancelada!");
