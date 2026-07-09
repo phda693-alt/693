@@ -10026,6 +10026,13 @@ class PDVApp:
                      f"Recebimento conta #{conta_id} - {cliente_nome}",
                      valor, conta_id, getattr(Session, "user_nome", "") or "")
                 )
+                # Auditoria individual da entrada de caixa na trilha compartilhada
+                # (o Android nao tem tabela de entradas_caixa; sem este registro a
+                # entrada nao apareceria na auditoria_acoes).
+                db.registrar_auditoria(
+                    "ENTRADA_CAIXA", "Caixa",
+                    f"Entrada (recebimento conta #{conta_id} - {cliente_nome}) no "
+                    f"caixa #{caixa_id_receb} | Valor: R$ {FormatUtils.format_money(valor)}")
                 return status
             def on_recebido(status):
                 msg = (f"Recebido R$ {FormatUtils.format_money(valor)} (credito no caixa)!"
@@ -13055,6 +13062,13 @@ class PDVApp:
                         "VALUES (%s, %s, %s, %s)",
                         (Session.caixa_id, desc, valor, Session.user_nome)
                     )
+                    # Auditoria individual da sangria na trilha compartilhada
+                    # (o Android nao tem tabela de sangrias, entao nao ha trigger:
+                    # este registro garante o rastro na auditoria_acoes).
+                    db.registrar_auditoria(
+                        "SANGRIA", "Caixa",
+                        f"Sangria no caixa #{Session.caixa_id}: {desc} | "
+                        f"Valor: R$ {FormatUtils.format_money(valor)}")
                     # Carregar dados da empresa para o cupom
                     empresa = None
                     try:
@@ -13406,6 +13420,437 @@ class PDVApp:
     # ========================================================================
     # CADASTROS ESPECIFICOS
     # ========================================================================
+    # ========================================================================
+    # IMPORTACAO POR PLANILHA (produtos e clientes) - CSV/XLSX
+    # ========================================================================
+    def _get_import_spec(self, tipo):
+        """Especificacao das planilhas de importacao: colunas na ordem do modelo,
+        colunas obrigatorias, apelidos aceitos nos cabecalhos e linhas de exemplo."""
+        specs = {
+            "produtos": {
+                "titulo": "Produtos",
+                "colunas": ["codigo", "codigo_barras", "descricao", "tipo",
+                            "unidade", "preco_custo", "preco_venda", "estoque",
+                            "estoque_minimo", "ativo"],
+                "obrigatorias": ["descricao", "preco_venda"],
+                "aliases": {
+                    "codigo": ["cod", "codigo_interno", "codigo_produto"],
+                    "codigo_barras": ["ean", "barras", "gtin", "cod_barras",
+                                       "codigo_de_barras"],
+                    "descricao": ["nome", "produto", "descricao_produto"],
+                    "tipo": ["categoria", "tipo_produto", "grupo", "tipo_do_produto"],
+                    "unidade": ["un", "und", "unidade_medida"],
+                    "preco_custo": ["custo", "preco_de_custo", "valor_custo"],
+                    "preco_venda": ["preco", "venda", "preco_de_venda",
+                                     "valor_venda", "valor", "preco_final"],
+                    "estoque": ["quantidade", "qtd", "estoque_atual", "saldo"],
+                    "estoque_minimo": ["estoque_min", "minimo", "min"],
+                    "ativo": ["situacao", "status"],
+                },
+                "exemplo": [
+                    ["", "7891000100103", "Coca-Cola Lata 350ml", "Bebidas",
+                     "UN", "2,50", "5,00", "100", "10", "1"],
+                    ["", "7896005800010", "Arroz Tipo 1 5kg", "Mercearia",
+                     "UN", "18,00", "24,90", "50", "5", "1"],
+                    ["", "", "Pao Frances", "Padaria", "KG", "6,00", "12,90",
+                     "0", "0", "1"],
+                ],
+            },
+            "clientes": {
+                "titulo": "Clientes",
+                "colunas": ["nome", "cpf_cnpj", "celular", "endereco", "numero",
+                            "bairro", "cidade", "uf", "cep", "email", "ativo"],
+                "obrigatorias": ["nome"],
+                "aliases": {
+                    "nome": ["cliente", "razao_social", "nome_cliente"],
+                    "cpf_cnpj": ["cpf", "cnpj", "documento", "doc"],
+                    "celular": ["telefone", "fone", "whatsapp", "tel", "contato"],
+                    "endereco": ["logradouro", "rua"],
+                    "numero": ["num", "nro", "nr"],
+                    "bairro": [],
+                    "cidade": ["municipio"],
+                    "uf": ["estado"],
+                    "cep": [],
+                    "email": ["e_mail"],
+                    "ativo": ["situacao", "status"],
+                },
+                "exemplo": [
+                    ["Joao da Silva", "123.456.789-00", "(11) 91234-5678",
+                     "Rua das Flores", "100", "Centro", "Sao Paulo", "SP",
+                     "01001-000", "joao@email.com", "1"],
+                    ["Maria Souza", "", "(11) 99876-5432", "Av. Brasil", "2000",
+                     "Jardim", "Campinas", "SP", "13000-000", "maria@email.com", "1"],
+                ],
+            },
+        }
+        return specs.get(tipo)
+
+    @staticmethod
+    def _imp_num(v):
+        """Converte texto de planilha em numero, aceitando os formatos brasileiro
+        (1.234,56) e internacional (1234.56). Retorna 0.0 se vazio/invalido."""
+        s = str(v if v is not None else "").strip()
+        if not s:
+            return 0.0
+        s = s.replace("R$", "").replace(" ", "").strip()
+        if "," in s and "." in s:
+            s = s.replace(".", "").replace(",", ".")   # ponto = milhar, virgula = decimal
+        elif "," in s:
+            s = s.replace(",", ".")                      # virgula = decimal
+        elif s.count(".") > 1:
+            s = s.replace(".", "")                        # varios pontos = separador de milhar
+        try:
+            return float(s)
+        except ValueError:
+            return 0.0
+
+    @staticmethod
+    def _imp_bool(v, default=1):
+        """Interpreta um valor de planilha como ativo(1)/inativo(0)."""
+        s = str(v if v is not None else "").strip().lower()
+        if s == "":
+            return default
+        if s in ("1", "sim", "s", "true", "t", "ativo", "yes", "y", "verdadeiro"):
+            return 1
+        if s in ("0", "nao", "n", "false", "f", "inativo", "no", "falso"):
+            return 0
+        return default
+
+    def _ler_planilha(self, filepath):
+        """Le uma planilha CSV (delimitador ; ou ,) ou XLSX. Retorna
+        (cabecalhos, linhas_de_dados). XLSX exige o pacote openpyxl."""
+        ext = os.path.splitext(filepath)[1].lower()
+        if ext in (".xlsx", ".xlsm"):
+            try:
+                import openpyxl
+            except ImportError:
+                raise RuntimeError(
+                    "Para importar .xlsx e necessario o pacote 'openpyxl' "
+                    "(instale com: pip install openpyxl) ou salve a planilha "
+                    "como CSV e importe novamente.")
+            wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
+            ws = wb.active
+            linhas = []
+            for r in ws.iter_rows(values_only=True):
+                linhas.append(["" if c is None else str(c) for c in r])
+            wb.close()
+            return (linhas[0], linhas[1:]) if linhas else ([], [])
+        # CSV: detecta delimitador
+        with open(filepath, "r", encoding="utf-8-sig", newline="") as f:
+            amostra = f.read(4096)
+            f.seek(0)
+            if amostra.count(";") >= amostra.count(","):
+                delim = ";"
+            else:
+                delim = ","
+            try:
+                dialect = csv.Sniffer().sniff(amostra, delimiters=";,\t")
+                delim = dialect.delimiter
+            except Exception:
+                pass
+            linhas = [list(r) for r in csv.reader(f, delimiter=delim)]
+        return (linhas[0], linhas[1:]) if linhas else ([], [])
+
+    def _mapear_colunas(self, cabecalhos, spec):
+        """Mapeia cada coluna esperada para o indice da coluna correspondente na
+        planilha, tolerando acentos, maiusculas, espacos e apelidos."""
+        import unicodedata
+
+        def norm(s):
+            s = str(s if s is not None else "").strip().lower()
+            s = "".join(c for c in unicodedata.normalize("NFD", s)
+                        if unicodedata.category(c) != "Mn")
+            for ch in (" ", "/", "-", "."):
+                s = s.replace(ch, "_")
+            while "__" in s:
+                s = s.replace("__", "_")
+            return s.strip("_")
+
+        norm_headers = {}
+        for i, h in enumerate(cabecalhos):
+            nh = norm(h)
+            if nh and nh not in norm_headers:
+                norm_headers[nh] = i
+        aliases = spec.get("aliases", {})
+        idx_map = {}
+        for col in spec["colunas"]:
+            for cand in [col] + list(aliases.get(col, [])):
+                nc = norm(cand)
+                if nc in norm_headers:
+                    idx_map[col] = norm_headers[nc]
+                    break
+        return idx_map
+
+    def _resolver_tipo_produto(self, db, nome):
+        """Encontra o tipo de produto pelo nome; cria se nao existir. Retorna o id."""
+        nome = (nome or "").strip()
+        if not nome:
+            return None
+        try:
+            r = db.execute_query(
+                "SELECT id FROM tipos_produto WHERE LOWER(descricao)=LOWER(%s) LIMIT 1",
+                (nome,))
+            if r:
+                return r[0]["id"]
+            return db.execute_update(
+                "INSERT INTO tipos_produto (descricao, ativo) VALUES (%s, 1)", (nome,))
+        except Exception:
+            return None
+
+    def _importar_produtos(self, dict_rows):
+        db = DatabaseHelper.get_instance()
+        ins = upd = ign = 0
+        erros = []
+        try:
+            r = db.execute_query(
+                "SELECT MAX(CAST(codigo AS UNSIGNED)) AS m FROM produtos "
+                "WHERE codigo REGEXP '^[0-9]+$'")
+            prox_codigo = (int(r[0]["m"]) + 1) if (r and r[0].get("m") is not None) else 1
+        except Exception:
+            prox_codigo = 1
+        tipo_cache = {}
+        for i, row in enumerate(dict_rows, start=2):
+            try:
+                descricao = (row.get("descricao") or "").strip()
+                if not descricao:
+                    ign += 1
+                    erros.append(f"Linha {i}: coluna 'descricao' vazia - ignorada")
+                    continue
+                codigo = (row.get("codigo") or "").strip()
+                codigo_barras = (row.get("codigo_barras") or "").strip()
+                unidade = (row.get("unidade") or "UN").strip() or "UN"
+                preco_custo = self._imp_num(row.get("preco_custo"))
+                preco_venda = self._imp_num(row.get("preco_venda"))
+                estoque = self._imp_num(row.get("estoque"))
+                estoque_min = self._imp_num(row.get("estoque_minimo"))
+                ativo = self._imp_bool(row.get("ativo"), 1)
+                tipo_nome = (row.get("tipo") or "").strip()
+                tipo_id = None
+                if tipo_nome:
+                    chave = tipo_nome.lower()
+                    if chave in tipo_cache:
+                        tipo_id = tipo_cache[chave]
+                    else:
+                        tipo_id = self._resolver_tipo_produto(db, tipo_nome)
+                        tipo_cache[chave] = tipo_id
+                existente = None
+                if codigo:
+                    rr = db.execute_query(
+                        "SELECT id FROM produtos WHERE codigo=%s LIMIT 1", (codigo,))
+                    existente = rr[0]["id"] if rr else None
+                if not existente and codigo_barras:
+                    rr = db.execute_query(
+                        "SELECT id FROM produtos WHERE codigo_barras=%s LIMIT 1",
+                        (codigo_barras,))
+                    existente = rr[0]["id"] if rr else None
+                if existente:
+                    db.execute_update(
+                        "UPDATE produtos SET descricao=%s, unidade=%s, tipo_produto_id=%s, "
+                        "preco_custo=%s, preco_venda=%s, estoque=%s, estoque_minimo=%s, "
+                        "codigo_barras=%s, ativo=%s WHERE id=%s",
+                        (descricao, unidade, tipo_id, preco_custo, preco_venda, estoque,
+                         estoque_min, codigo_barras or None, ativo, existente))
+                    upd += 1
+                else:
+                    if not codigo:
+                        codigo = str(prox_codigo)
+                        prox_codigo += 1
+                    db.execute_update(
+                        "INSERT INTO produtos (codigo, descricao, unidade, tipo_produto_id, "
+                        "preco_custo, preco_venda, estoque, estoque_minimo, codigo_barras, ativo) "
+                        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                        (codigo, descricao, unidade, tipo_id, preco_custo, preco_venda,
+                         estoque, estoque_min, codigo_barras or None, ativo))
+                    ins += 1
+            except Exception as e:
+                ign += 1
+                erros.append(f"Linha {i}: erro - {e}")
+        return ins, upd, ign, erros
+
+    def _importar_clientes(self, dict_rows):
+        db = DatabaseHelper.get_instance()
+        ins = upd = ign = 0
+        erros = []
+        for i, row in enumerate(dict_rows, start=2):
+            try:
+                nome = (row.get("nome") or "").strip()
+                if not nome:
+                    ign += 1
+                    erros.append(f"Linha {i}: coluna 'nome' vazia - ignorada")
+                    continue
+                cpf = (row.get("cpf_cnpj") or "").strip()
+                vals = [
+                    nome,
+                    cpf or None,
+                    (row.get("celular") or "").strip() or None,
+                    (row.get("endereco") or "").strip() or None,
+                    (row.get("numero") or "").strip() or None,
+                    (row.get("bairro") or "").strip() or None,
+                    (row.get("cidade") or "").strip() or None,
+                    (row.get("uf") or "").strip() or None,
+                    (row.get("cep") or "").strip() or None,
+                    (row.get("email") or "").strip() or None,
+                    self._imp_bool(row.get("ativo"), 1),
+                ]
+                existente = None
+                if cpf:
+                    rr = db.execute_query(
+                        "SELECT id FROM clientes WHERE cpf_cnpj=%s LIMIT 1", (cpf,))
+                    existente = rr[0]["id"] if rr else None
+                if existente:
+                    db.execute_update(
+                        "UPDATE clientes SET nome=%s, cpf_cnpj=%s, celular=%s, endereco=%s, "
+                        "numero=%s, bairro=%s, cidade=%s, uf=%s, cep=%s, email=%s, ativo=%s "
+                        "WHERE id=%s",
+                        tuple(vals) + (existente,))
+                    upd += 1
+                else:
+                    db.execute_update(
+                        "INSERT INTO clientes (nome, cpf_cnpj, celular, endereco, numero, "
+                        "bairro, cidade, uf, cep, email, ativo) "
+                        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                        tuple(vals))
+                    ins += 1
+            except Exception as e:
+                ign += 1
+                erros.append(f"Linha {i}: erro - {e}")
+        return ins, upd, ign, erros
+
+    def baixar_modelo_planilha(self, tipo):
+        """Gera a planilha modelo (com cabecalho e exemplos) para o usuario
+        preencher. Salva em CSV; se escolher .xlsx e houver openpyxl, salva XLSX."""
+        spec = self._get_import_spec(tipo)
+        if not spec:
+            return
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filepath = filedialog.asksaveasfilename(
+            parent=self.root, initialdir=EXPORT_DIR,
+            initialfile=f"modelo_{tipo}_{ts}.csv",
+            defaultextension=".csv",
+            filetypes=[("CSV (Excel)", "*.csv"), ("Excel", "*.xlsx"), ("Todos", "*.*")])
+        if not filepath:
+            return
+        try:
+            headers = spec["colunas"]
+            exemplos = spec.get("exemplo", [])
+            ext = os.path.splitext(filepath)[1].lower()
+            usar_xlsx = ext in (".xlsx", ".xlsm")
+            if usar_xlsx:
+                try:
+                    import openpyxl
+                except ImportError:
+                    usar_xlsx = False
+                    filepath = os.path.splitext(filepath)[0] + ".csv"
+            if usar_xlsx:
+                import openpyxl
+                wb = openpyxl.Workbook()
+                ws = wb.active
+                ws.title = spec["titulo"]
+                ws.append(headers)
+                for ex in exemplos:
+                    ws.append(ex)
+                wb.save(filepath)
+            else:
+                with open(filepath, "w", newline="", encoding="utf-8-sig") as f:
+                    w = csv.writer(f, delimiter=";")
+                    w.writerow(headers)
+                    for ex in exemplos:
+                        w.writerow(ex)
+            ToastManager.success(f"Modelo salvo: {os.path.basename(filepath)}")
+            messagebox.showinfo(
+                "Modelo de planilha",
+                f"Modelo de {spec['titulo']} salvo em:\n{filepath}\n\n"
+                f"COLUNAS: {', '.join(headers)}\n\n"
+                f"OBRIGATORIAS: {', '.join(spec['obrigatorias'])}\n\n"
+                "Preencha as linhas (mantenha o cabecalho) e depois use o botao "
+                "'Importar Planilha'. Formatos aceitos: CSV (separado por ; ou ,) "
+                "e XLSX. As linhas de exemplo podem ser apagadas.")
+        except Exception as e:
+            ToastManager.error(f"Erro ao gerar modelo: {e}")
+
+    def importar_dados_planilha(self, tipo):
+        """Importa produtos ou clientes de uma planilha CSV/XLSX. Registros com
+        mesmo codigo/codigo de barras (produtos) ou mesmo CPF/CNPJ (clientes) sao
+        atualizados; os demais sao criados."""
+        spec = self._get_import_spec(tipo)
+        if not spec:
+            return
+        perm = (PermissionConstants.PRODUTOS_CRIAR if tipo == "produtos"
+                else PermissionConstants.CLIENTES_CRIAR)
+        if not Session.has_permission(perm):
+            self.show_error(
+                f"Voce nao tem permissao para importar {spec['titulo'].lower()}.")
+            return
+        filepath = filedialog.askopenfilename(
+            parent=self.root, initialdir=EXPORT_DIR,
+            title=f"Selecione a planilha de {spec['titulo']}",
+            filetypes=[("Planilhas", "*.csv *.xlsx *.xlsm"), ("CSV", "*.csv"),
+                       ("Excel", "*.xlsx"), ("Todos", "*.*")])
+        if not filepath:
+            return
+        try:
+            cabecalhos, linhas = self._ler_planilha(filepath)
+        except Exception as e:
+            self.show_error(f"Nao foi possivel ler a planilha:\n\n{e}")
+            return
+        if not cabecalhos or not linhas:
+            self.show_error("A planilha esta vazia ou nao tem linhas de dados.")
+            return
+        idx_map = self._mapear_colunas(cabecalhos, spec)
+        faltando = [c for c in spec["obrigatorias"] if c not in idx_map]
+        if faltando:
+            self.show_error(
+                "A planilha nao possui a(s) coluna(s) obrigatoria(s): "
+                + ", ".join(faltando)
+                + ".\n\nUse 'Baixar Modelo' para ver o formato correto.")
+            return
+        dict_rows = []
+        for r in linhas:
+            if not any(str(c).strip() for c in r):
+                continue
+            dict_rows.append({col: (r[idx] if idx < len(r) else "")
+                              for col, idx in idx_map.items()})
+        if not dict_rows:
+            self.show_error("Nenhuma linha de dados encontrada na planilha.")
+            return
+        if not messagebox.askyesno(
+                "Confirmar importacao",
+                f"Importar {len(dict_rows)} linha(s) de {spec['titulo']}?\n\n"
+                "Registros existentes (mesmo codigo/CPF) serao ATUALIZADOS; "
+                "os demais serao CRIADOS."):
+            return
+
+        def _do():
+            if tipo == "produtos":
+                return self._importar_produtos(dict_rows)
+            return self._importar_clientes(dict_rows)
+
+        def _done(res):
+            ins, upd, ign, erros = res
+            try:
+                DatabaseHelper.get_instance().registrar_auditoria(
+                    "IMPORTAR_PLANILHA", spec["titulo"],
+                    f"Importacao de {spec['titulo']}: {ins} criado(s), "
+                    f"{upd} atualizado(s), {ign} ignorado(s). "
+                    f"Arquivo: {os.path.basename(filepath)}")
+            except Exception:
+                pass
+            resumo = (f"Importacao de {spec['titulo']} concluida!\n\n"
+                      f"Criados: {ins}\nAtualizados: {upd}\nIgnorados: {ign}")
+            if erros:
+                resumo += (f"\n\nAvisos ({len(erros)}):\n"
+                           + "\n".join(erros[:15]))
+                if len(erros) > 15:
+                    resumo += f"\n... e mais {len(erros) - 15}."
+            messagebox.showinfo("Importacao de planilha", resumo)
+            if tipo == "produtos":
+                self.show_cadastro_produto()
+            else:
+                self.show_cadastro_cliente()
+
+        ToastManager.info(f"Importando {spec['titulo'].lower()}... aguarde.")
+        self.run_async(_do, _done)
+
     def show_cadastro_produto(self):
         """Tela de Cadastro de Produtos - Alinhada com CadastroProdutoActivity.java do Android.
         Campos: Foto, Codigo (automatico), Codigo de Barras + Gerar EAN-13, Descricao,
@@ -13466,6 +13911,19 @@ class PDVApp:
         btn_novo = StyledButton(busca_frame, text="+ Novo Produto", color=COR_BOTAO_VERDE, width=14)
         if Session.has_permission(PermissionConstants.PRODUTOS_CRIAR):
             btn_novo.pack(side="left", padx=5)
+
+        # --- Importacao por planilha (CSV/XLSX) ---
+        if Session.has_permission(PermissionConstants.PRODUTOS_CRIAR):
+            _btn_imp = StyledButton(busca_frame, text="⬇ Importar Planilha",
+                                    color=COR_BOTAO_AZUL, width=16,
+                                    command=lambda: self.importar_dados_planilha("produtos"))
+            _btn_imp.pack(side="left", padx=5)
+            add_tooltip(_btn_imp, "Importar produtos de uma planilha CSV ou XLSX")
+            _btn_mod = StyledButton(busca_frame, text="⬆ Baixar Modelo",
+                                    color=COR_FUNDO3, width=14,
+                                    command=lambda: self.baixar_modelo_planilha("produtos"))
+            _btn_mod.pack(side="left", padx=5)
+            add_tooltip(_btn_mod, "Baixar planilha modelo com as colunas corretas")
 
         # --- Painel dividido: formulario (esquerda) + lista (direita) ---
         paned = tk.PanedWindow(content, orient=tk.HORIZONTAL, bg=COR_FUNDO,
@@ -13967,7 +14425,11 @@ class PDVApp:
             ],
             "SELECT id, nome, cpf_cnpj, celular, endereco, numero, bairro, cidade, uf, cep, email, ativo FROM clientes ORDER BY nome",
             "INSERT INTO clientes (nome, cpf_cnpj, celular, endereco, numero, bairro, cidade, uf, cep, email, ativo) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-            "UPDATE clientes SET nome=%s, cpf_cnpj=%s, celular=%s, endereco=%s, numero=%s, bairro=%s, cidade=%s, uf=%s, cep=%s, email=%s, ativo=%s WHERE id=%s"
+            "UPDATE clientes SET nome=%s, cpf_cnpj=%s, celular=%s, endereco=%s, numero=%s, bairro=%s, cidade=%s, uf=%s, cep=%s, email=%s, ativo=%s WHERE id=%s",
+            extra_buttons=[
+                ("⬇ Importar Planilha", lambda _id: self.importar_dados_planilha("clientes")),
+                ("⬆ Baixar Modelo", lambda _id: self.baixar_modelo_planilha("clientes")),
+            ]
         )
 
     def show_cadastro_vendedor(self):
@@ -15070,6 +15532,12 @@ class PDVApp:
                      color=COR_ERRO, width=15).pack(side="left", padx=5)
         add_tooltip(btn_frame.winfo_children()[-1], "Cancelar venda e devolver estoque")
 
+        StyledButton(btn_frame, text=f"{Icons.REFRESH} Devolver Venda",
+                     command=self.devolver_venda_historico,
+                     color="#9C27B0", width=15).pack(side="left", padx=5)
+        add_tooltip(btn_frame.winfo_children()[-1],
+                    "Registrar devolucao (status DEVOLVIDA) com motivo e devolver estoque")
+
         StyledButton(btn_frame, text=f"{Icons.EXPORT} Exportar CSV",
                      command=lambda: DataExporter.export_treeview_csv(
                          self.tree_historico, "historico_vendas", parent=self.root),
@@ -15384,6 +15852,87 @@ class PDVApp:
             ToastManager.info(f"Venda #{venda_id} cancelada. Estoque devolvido.")
             self.show_historico()
         self.run_async(cancelar, on_cancelado)
+
+    def devolver_venda_historico(self):
+        """Devolucao de venda (status 'devolvida', paridade com o Android): exige
+        motivo obrigatorio, devolve o estoque dos itens e cancela contas a receber
+        pendentes vinculadas. Registrada explicitamente na auditoria compartilhada."""
+        if not Session.has_permission(PermissionConstants.HISTORICO_CANCELAR_VENDA):
+            self.show_error("Voce nao tem permissao para devolver vendas.")
+            return
+        sel = self.tree_historico.selection()
+        if not sel:
+            self.show_error("Selecione uma venda.")
+            return
+        venda_id = self.tree_historico.item(sel[0])["values"][0]
+        status = str(self.tree_historico.item(sel[0])["values"][4]).lower()
+        if status in ("cancelada", "devolvida"):
+            ToastManager.warning(f"Esta venda ja esta {status}.")
+            return
+        # Motivo obrigatorio (mesmo padrao do cancelamento)
+        motivo = ""
+        while True:
+            motivo = simpledialog.askstring(
+                "Devolucao de Venda",
+                f"Informe o MOTIVO da devolucao da venda #{venda_id}.\n"
+                "A venda passara para o status DEVOLVIDA e o estoque dos itens\n"
+                "sera devolvido automaticamente.\n\n"
+                "(Campo obrigatorio - ficara registrado na auditoria.)",
+                parent=self.root)
+            if motivo is None:
+                return  # operador desistiu
+            motivo = motivo.strip()
+            if len(motivo) >= 3:
+                break
+            messagebox.showwarning(
+                "Motivo obrigatorio",
+                "Informe um motivo valido (minimo 3 caracteres) para a devolucao.")
+
+        def devolver():
+            db = DatabaseHelper.get_instance()
+            linhas = db.execute_update(
+                "UPDATE vendas SET status = 'devolvida' "
+                "WHERE id = %s AND status NOT IN ('cancelada','devolvida')",
+                (venda_id,))
+            if not linhas:
+                return 0
+            # Devolve o estoque dos itens da venda
+            itens = db.execute_query(
+                "SELECT produto_id, quantidade FROM itens_venda WHERE venda_id = %s",
+                (venda_id,)) or []
+            for item in itens:
+                if item.get("produto_id"):
+                    db.execute_update(
+                        "UPDATE produtos SET estoque = estoque + %s WHERE id = %s",
+                        (item["quantidade"], item["produto_id"]))
+            # Cancela contas a receber pendentes vinculadas (igual ao Android)
+            try:
+                db.execute_update(
+                    "UPDATE contas_receber SET status = 'cancelado', "
+                    "observacao = CONCAT(COALESCE(observacao,''), ' | Venda devolvida') "
+                    "WHERE venda_id = %s AND status <> 'quitada'",
+                    (venda_id,))
+            except Exception:
+                pass
+            return linhas
+
+        def on_devolvido(linhas):
+            if not linhas:
+                ToastManager.warning(
+                    "Venda ja estava cancelada/devolvida ou nao foi encontrada.")
+                return
+            AuditLogger.log("VENDA_DEVOLVIDA",
+                            f"Venda #{venda_id} | Motivo: {motivo}",
+                            usuario=Session.user_login)
+            try:
+                DatabaseHelper.get_instance().registrar_auditoria(
+                    "DEVOLVER_VENDA", "Historico de Vendas",
+                    f"Venda #{venda_id} devolvida. Motivo: {motivo}")
+            except Exception:
+                pass
+            ToastManager.info(f"Venda #{venda_id} devolvida. Estoque devolvido.")
+            self.show_historico()
+        self.run_async(devolver, on_devolvido)
 
     def reabrir_venda_historico(self):
         """Reabre uma venda finalizada para edicao. O operador pode adicionar/
@@ -17521,6 +18070,11 @@ class PDVApp:
                  f"Recebimento conta #{conta_id} - {cliente_nome}",
                  valor, conta_id, getattr(Session, "user_nome", "") or "")
             )
+            # Auditoria individual da entrada de caixa na trilha compartilhada.
+            db.registrar_auditoria(
+                "ENTRADA_CAIXA", "Caixa",
+                f"Entrada (recebimento conta #{conta_id} - {cliente_nome}) no "
+                f"caixa #{caixa_id_receb} | Valor: R$ {FormatUtils.format_money(valor)}")
             return status
 
         def on_recebido(status):
