@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/balloonLicencaAlerta"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_alerta_licenca"
+    android:orientation="vertical"
+    android:padding="14dp"
+    android:layout_marginLeft="12dp"
+    android:layout_marginRight="12dp"
+    android:layout_marginTop="4dp"
+    android:layout_marginBottom="8dp"
+    android:visibility="gone">
+
+    <!-- Linha superior: icone warning + titulo + botao fechar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_warning_license"
+            android:contentDescription="Alerta" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Licenca Prestes a Vencer!"
+            android:textColor="@color/accent_gold"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:layout_marginLeft="10dp" />
+
+        <ImageView
+            android:id="@+id/btnFecharAlertaLicenca"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_close_alert"
+            android:contentDescription="Fechar"
+            android:padding="2dp" />
+    </LinearLayout>
+
+    <!-- Mensagem principal com dias restantes -->
+    <TextView
+        android:id="@+id/tvAlertaLicencaMensagem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Faltam X dias para a licenca do sistema vencer."
+        android:textColor="#FFFFFF"
+        android:textSize="13sp"
+        android:layout_marginTop="8dp"
+        android:lineSpacingExtra="3dp" />
+
+    <!-- Linha de contato -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="8dp">
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/ic_phone_contact"
+            android:contentDescription="Telefone" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Contato para renovacao: (85) 98123-7727"
+            android:textColor="@color/accent_cyan"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:layout_marginLeft="8dp" />
+    </LinearLayout>
+
+</LinearLayout>

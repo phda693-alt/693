@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!-- USB Host para impressoras USB -->
+    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+
+    <application
+        android:name=".PDVApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="PDV Pro"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme"
+        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:largeHeap="true">
+
+        <activity android:name=".activities.SplashActivity"
+            android:theme="@style/SplashTheme"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".activities.LicencaActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.LoginActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.MainActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustPan" />
+        <activity android:name=".activities.MultiImpressorasActivity" android:screenOrientation="portrait" />
+        <activity android:name=".activities.ConfigImpressoraActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.SmbBrowserActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.BluetoothWindowsBrowserActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.ConfigBancoActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.TrocaSenhaActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.EsqueciSenhaActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.CadastroProdutoActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.GerenciarProdutosActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.CadastroTipoProdutoActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.CadastroClienteActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.CadastroEmpresaActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.CadastroEntregadorActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.CadastroVendedorActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.CadastroUsuarioActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.GerenciarPerfisActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.CadastroFormaPagamentoActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.CadastroAdicionalActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.CadastroObservacaoActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.VendaActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustPan" />
+        <activity android:name=".activities.BarcodeScannerActivity" android:theme="@style/AppTheme"
+            android:screenOrientation="portrait" />
+        <activity android:name=".activities.PagamentoActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.ComandasActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.ComandaDetalheActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustPan" />
+        <activity android:name=".activities.CaixaActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.RelatoriosActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.HistoricoVendasActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.ContasReceberActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.BackupConfigActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.SystemHealthActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.SobreActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.ModoEntregadorActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.GerenciarEntregasActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.EntradaNotasActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.TaxaEntregaBairroActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.PainelChamadosActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.PainelSenhasActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.PainelSenhasWebActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.GerenciadorChamadosActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.CadastroGarcomActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.CadastroMesaActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.GerenciarMesasActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.CardapioQRCodeActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.PainelCozinhaActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" android:screenOrientation="unspecified" />
+        <activity android:name=".activities.CadastroArmarioSaunaActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.GerenciarArmariosSaunaActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustPan" />
+        <activity android:name=".activities.OrdemServicoActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.OrdemServicoDetalheActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.EstacionamentoActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.CadastroServicoActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.AgendaActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.ConfiguracoesActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.CadastroFornecedorActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.MirrorDatabaseActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".whatsbot.WhatsAppBotActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.ContasPagarActivity" android:theme="@style/AppTheme" />
+        <activity android:name=".activities.CadastroCaixasNominaisActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.CadastroTurnosActivity" android:theme="@style/AppTheme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".activities.VinculosActivity" android:theme="@style/AppTheme" />
+
+        <service android:name=".whatsbot.WhatsAppBotService"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <service android:name=".services.EntregadorGpsService"
+            android:foregroundServiceType="location"
+            android:exported="false" />
+
+        <service android:name=".services.BackupService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false" />
+
+        <service
+            android:name=".agenda.AgendaReminderService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Lembretes persistentes da agenda verificados a cada 30 segundos" />
+        </service>
+
+        <service android:name=".server.EmbeddedMariaDbService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false" />
+
+        <service android:name=".whatsbot.WhatsAppAutoClickService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <receiver android:name=".receivers.BootReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name=".receivers.PhServerAutoStartReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="com.pdv.app.action.SUPERVISE_PHSERVER_AUTOSTART" />
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name=".receivers.BackupAlarmReceiver" android:exported="false" />
+        <receiver android:name=".agenda.AgendaReminderActionReceiver" android:exported="false" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!-- ============================================================ -->
+        <!-- MariaDB integrado: Criar Banco + Gerenciar Usuarios          -->
+        <!-- Estas activities usam MySqlMiniClient interno e nao dependem  -->
+        <!-- de APK PHSERVER separado. Podem ser abertas diretamente.      -->
+        <!-- ============================================================ -->
+        <activity
+            android:name="com.phda.phserver.CreateDatabaseActivity"
+            android:theme="@style/AppTheme"
+            android:label="PDV Pro - Criar Banco"
+            android:windowSoftInputMode="adjustResize|stateHidden" />
+
+        <activity
+            android:name="com.phda.phserver.ManageUsersActivity"
+            android:theme="@style/AppTheme"
+            android:label="PDV Pro - Gerenciar Usuarios MySQL"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize|stateHidden" />
+
+    </application>
+</manifest>

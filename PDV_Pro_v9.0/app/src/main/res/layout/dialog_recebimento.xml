@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Info da conta -->
+    <TextView
+        android:id="@+id/tvInfoConta"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Valor pendente -->
+    <TextView
+        android:id="@+id/tvPendenteDialog"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#FFFF5252"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Valor do recebimento -->
+    <EditText
+        android:id="@+id/etValorRecebimento"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Valor do Recebimento"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_hint"
+        android:background="@drawable/input_bg"
+        android:padding="12dp"
+        android:inputType="numberDecimal"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Forma de pagamento do recebimento -->
+    <Spinner
+        android:id="@+id/spFormaPagRecebimento"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:background="@drawable/input_bg"
+        android:padding="4dp"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Observacao -->
+    <EditText
+        android:id="@+id/etObsRecebimento"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Observacao (opcional)"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_hint"
+        android:background="@drawable/input_bg"
+        android:padding="12dp"
+        android:inputType="textMultiLine"
+        android:minLines="2" />
+</LinearLayout>

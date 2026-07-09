@@ -1,0 +1,71 @@
+PDV Pro v8.0.23.2 - Relatorio de correcoes aplicadas
+Data: 2026-06-21
+
+PEDIDOS CORRIGIDOS
+
+1) Entrada de nota gerando Contas a Pagar
+- Corrigido bug em ContasPagarActivity.criarContasPorParcelamento():
+  quando a nota era a vista ou vinha sem datas de vencimento, a lista de parcelas ficava vazia,
+  o loop nao executava e nenhuma conta era inserida no modulo Contas a Pagar.
+- Agora toda nota confirmada gera automaticamente registro no modulo Contas a Pagar.
+- Nota a vista ou sem vencimento gera 1 parcela com vencimento na data atual.
+- Nota parcelada gera uma conta por vencimento.
+- Datas em dd/MM/yyyy sao convertidas para yyyy-MM-dd antes de gravar no MySQL.
+- Adicionada protecao contra duplicidade: se a nota ja possuir contas a pagar nao canceladas,
+  o sistema nao duplica os lancamentos.
+- Valor parcelado ajustado para evitar diferenca de centavos na ultima parcela.
+
+Arquivos alterados:
+- app/src/main/java/com/pdv/app/activities/EntradaNotasActivity.java
+- app/src/main/java/com/pdv/app/activities/ContasPagarActivity.java
+
+2) Dropdown no modulo Caixa para escolher qual caixa usar
+- Adicionado dropdown no topo da tela Controle de Caixa.
+- O usuario pode escolher o caixa nominal de trabalho.
+- A tela passa a carregar o caixa aberto correspondente ao caixa selecionado.
+- Ao abrir caixa, o registro e gravado com caixa_nominal_id.
+- Ao fechar, adicionar vale e consultar totais, o sistema usa o caixa selecionado/aberto.
+- Se o caixa nominal escolhido ainda nao estiver aberto, o sistema mostra caixa fechado para aquele caixa.
+- Adicionada protecao para nao abrir dois caixas simultaneos para o mesmo caixa nominal.
+- PagamentoActivity e ComandasActivity passam a respeitar o caixa nominal selecionado no dropdown.
+  Assim, venda/comanda nao cai automaticamente no ultimo caixa aberto errado quando houver mais de um caixa.
+
+Arquivos alterados:
+- app/src/main/res/layout/activity_caixa.xml
+- app/src/main/java/com/pdv/app/activities/CaixaActivity.java
+- app/src/main/java/com/pdv/app/activities/PagamentoActivity.java
+- app/src/main/java/com/pdv/app/activities/ComandasActivity.java
+
+3) Banco de dados / migracao
+- Schema atualizado para versao 25.
+- Adicionada coluna caixa.caixa_nominal_id para vincular abertura/fechamento ao caixa nominal.
+- Adicionado indice idx_caixa_nominal_status em caixa(caixa_nominal_id, status, data_abertura).
+- Inicializacao do app forcada para versao 25 no SplashActivity, garantindo migracao em banco antigo.
+- Criacao automatica de Caixa Principal em bancos antigos sem nenhum caixa nominal ativo.
+
+Arquivos alterados:
+- app/src/main/java/com/pdv/app/database/DatabaseHelper.java
+- app/src/main/java/com/pdv/app/activities/SplashActivity.java
+
+4) Versao/build
+- versionCode atualizado para 833.
+- versionName atualizado para 8.0.23.2.
+- Scripts de build/verificacao atualizados para APK PDV_Pro_v8.0.23.2_RELEASE_ASSINADO.apk.
+
+Arquivos alterados:
+- app/build.gradle
+- COMPILAR_RELEASE_ASSINADO.bat
+- VERIFICAR_APK_FINAL.bat
+
+VALIDACOES REALIZADAS NESTE AMBIENTE
+- Validacao de XML do layout activity_caixa.xml: OK.
+- Validacao sintatica parcial via javac nos arquivos alterados: sem erros de sintaxe Java detectados.
+  O javac do sandbox acusa apenas dependencias Android ausentes, pois nao existe android.jar local.
+- Tentativa de assembleRelease: falhou por limite do ambiente, nao por alteracao do codigo.
+  Motivo: o Gradle Wrapper tentou baixar https://services.gradle.org/distributions/gradle-8.7-bin.zip,
+  mas o sandbox nao tem internet/DNS externo (UnknownHostException: services.gradle.org).
+
+OBSERVACAO IMPORTANTE
+- Nao foi possivel gerar APK real neste sandbox porque nao ha Android SDK/Gradle local nem internet para baixar o Gradle.
+- No Windows com Android SDK 34, build-tools 34.0.0 e JDK 17, use COMPILAR_RELEASE_ASSINADO.bat.
+- Depois use VERIFICAR_APK_FINAL.bat para confirmar zipalign, assinatura e resources.arsc STORED.

@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/gradient_bg">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Painel de Senhas"
+        android:textColor="@color/accent_cyan"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        android:paddingBottom="10dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="18dp"
+        android:background="@drawable/card_bg">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SENHA CHAMADA"
+            android:textColor="@color/colorTextSecondary"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:letterSpacing="0" />
+
+        <TextView
+            android:id="@+id/tvSenhaAtual"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="--"
+            android:textColor="@color/colorWarning"
+            android:textSize="86sp"
+            android:textStyle="bold"
+            android:includeFontPadding="false"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tvClienteAtual"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Nenhuma senha chamada"
+            android:textColor="@color/colorTextPrimary"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:maxLines="2" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="12dp">
+
+        <Button
+            android:id="@+id/btnChamarProxima"
+            android:layout_width="0dp"
+            android:layout_height="54dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:text="CHAMAR PROXIMA"
+            android:textColor="@color/black"
+            android:textStyle="bold"
+            android:backgroundTint="@color/colorSuccess" />
+
+        <Button
+            android:id="@+id/btnChamarSelecionada"
+            android:layout_width="0dp"
+            android:layout_height="54dp"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:text="CHAMAR SELECIONADA"
+            android:textColor="@color/black"
+            android:textStyle="bold"
+            android:backgroundTint="@color/accent_cyan" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="12dp">
+
+        <TextView
+            android:id="@+id/tvTotalSenhas"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Total: 0 senha(s)"
+            android:textColor="@color/colorTextPrimary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnAtualizarSenhas"
+            android:layout_width="wrap_content"
+            android:layout_height="42dp"
+            android:text="Atualizar"
+            android:textAllCaps="false"
+            android:textColor="@color/colorTextPrimary"
+            android:backgroundTint="@color/colorCardLight" />
+
+        <Button
+            android:id="@+id/btnLimparSenhas"
+            android:layout_width="wrap_content"
+            android:layout_height="42dp"
+            android:layout_marginStart="8dp"
+            android:text="Limpar"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:backgroundTint="@color/colorDanger" />
+
+        <Button
+            android:id="@+id/btnZerarSenhasAtendimento"
+            android:layout_width="wrap_content"
+            android:layout_height="42dp"
+            android:layout_marginStart="8dp"
+            android:text="Zerar"
+            android:textAllCaps="false"
+            android:textColor="@color/black"
+            android:textStyle="bold"
+            android:backgroundTint="@color/colorWarning" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvStatusSenhas"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Carregando senhas..."
+        android:textColor="@color/colorTextSecondary"
+        android:textSize="12sp"
+        android:paddingTop="4dp"
+        android:paddingBottom="6dp" />
+
+    <ListView
+        android:id="@+id/listSenhas"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:divider="@color/colorDivider"
+        android:dividerHeight="1dp"
+        android:choiceMode="singleChoice"
+        android:cacheColorHint="@color/transparent"
+        android:background="@drawable/card_bg" />
+
+</LinearLayout>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- v9.1.0 - Animacao de layout escalonada para as grades do dashboard.
+     Cada item entra com leve atraso, criando efeito futurista e animado. -->
+<layoutAnimation xmlns:android="http://schemas.android.com/apk/res/android"
+    android:delay="8%"
+    android:animationOrder="normal"
+    android:animation="@anim/card_pop_in" />

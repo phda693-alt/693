@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PDV Pro - Pedidos Web</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0A0E27;--bg2:#141832;--card:#1A1F3D;--card2:#232850;--cyan:#00BCD4;--cyan2:#00E5FF;--green:#00E676;--red:#FF5252;--gold:#FFD700;--orange:#FF9800;--purple:#7C4DFF;--text:#FFFFFF;--text2:#B0BEC5}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.container{max-width:800px;margin:0 auto;padding:15px}
+header{text-align:center;padding:15px 0}
+h1{font-size:1.4em;color:var(--cyan2);font-weight:800;letter-spacing:1px}
+.subtitle{color:var(--text2);font-size:0.8em;margin-top:3px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:15px 0}
+.stat{background:var(--card);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(0,188,212,0.1)}
+.stat-num{font-size:1.8em;font-weight:900;color:var(--cyan2)}
+.stat-num.orange{color:var(--orange)}
+.stat-num.cyan{color:var(--cyan2)}
+.stat-num.green{color:var(--green)}
+.stat-num.purple{color:var(--purple)}
+.stat-label{font-size:0.7em;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.filter-btn{padding:6px 14px;border:1px solid rgba(0,188,212,0.2);background:transparent;color:var(--text2);border-radius:15px;cursor:pointer;font-size:0.8em;transition:all 0.3s}
+.filter-btn.active{background:rgba(0,188,212,0.15);color:var(--cyan2);border-color:var(--cyan)}
+.pedido-card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid rgba(0,188,212,0.1);transition:all 0.3s}
+.pedido-card.pendente{border-left:3px solid var(--orange)}
+.pedido-card.preparando{border-left:3px solid var(--cyan)}
+.pedido-card.pronto{border-left:3px solid var(--green)}
+.pedido-card.entregue{border-left:3px solid var(--purple);opacity:0.6}
+.pedido-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.pedido-num{font-size:1.2em;font-weight:800;color:var(--cyan2)}
+.pedido-mesa{background:rgba(0,188,212,0.15);color:var(--cyan2);padding:3px 10px;border-radius:8px;font-size:0.8em;font-weight:600}
+.pedido-badge{padding:3px 10px;border-radius:10px;font-size:0.7em;font-weight:700;text-transform:uppercase}
+.pedido-badge.pendente{background:rgba(255,152,0,0.15);color:var(--orange);border:1px solid rgba(255,152,0,0.3)}
+.pedido-badge.preparando{background:rgba(0,188,212,0.15);color:var(--cyan2);border:1px solid rgba(0,188,212,0.3)}
+.pedido-badge.pronto{background:rgba(0,230,118,0.15);color:var(--green);border:1px solid rgba(0,230,118,0.3)}
+.pedido-badge.entregue{background:rgba(124,77,255,0.15);color:var(--purple);border:1px solid rgba(124,77,255,0.3)}
+.pedido-info{font-size:0.85em;color:var(--text2);margin:5px 0}
+.pedido-info strong{color:var(--text)}
+.pedido-total{font-size:1.1em;font-weight:700;color:var(--green)}
+.pedido-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.btn{padding:7px 14px;border:none;border-radius:10px;font-size:0.75em;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:1px;transition:all 0.3s}
+.btn-preparar{background:linear-gradient(135deg,var(--cyan),#0097A7);color:#fff}
+.btn-pronto{background:linear-gradient(135deg,var(--green),#00C853);color:#000}
+.btn-entregar{background:linear-gradient(135deg,var(--purple),#B388FF);color:#fff}
+.btn-cancelar{background:rgba(255,82,82,0.15);color:var(--red);border:1px solid rgba(255,82,82,0.3)}
+.empty{text-align:center;padding:40px;color:var(--text2)}
+.empty .icon{font-size:3em;opacity:0.3;margin-bottom:10px}
+.refresh-bar{display:flex;align-items:center;gap:8px;justify-content:center;margin:10px 0;font-size:0.8em;color:var(--text2)}
+.refresh-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.toast{position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:12px;color:#fff;font-weight:600;z-index:9999;opacity:0;transition:all 0.4s;pointer-events:none}
+.toast.show{opacity:1}
+.toast.success{background:linear-gradient(135deg,var(--green),#00C853)}
+.toast.error{background:linear-gradient(135deg,var(--red),#D50000)}
+@media(max-width:500px){.stats{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+<div class="container">
+    <header>
+        <h1>&#128203; Pedidos via QR Code</h1>
+        <div class="subtitle">Gerenciamento de pedidos recebidos pelo cardápio digital</div>
+    </header>
+
+    <div class="stats">
+        <div class="stat"><div class="stat-num orange" id="statPendente">0</div><div class="stat-label">Pendentes</div></div>
+        <div class="stat"><div class="stat-num cyan" id="statPreparando">0</div><div class="stat-label">Preparando</div></div>
+        <div class="stat"><div class="stat-num green" id="statPronto">0</div><div class="stat-label">Prontos</div></div>
+        <div class="stat"><div class="stat-num purple" id="statEntregue">0</div><div class="stat-label">Entregues</div></div>
+    </div>
+
+    <div class="filter-bar">
+        <button class="filter-btn active" onclick="filtrar('todos', this)">Todos</button>
+        <button class="filter-btn" onclick="filtrar('pendente', this)">Pendentes</button>
+        <button class="filter-btn" onclick="filtrar('preparando', this)">Preparando</button>
+        <button class="filter-btn" onclick="filtrar('pronto', this)">Prontos</button>
+        <button class="filter-btn" onclick="filtrar('entregue', this)">Entregues</button>
+    </div>
+
+    <div class="refresh-bar"><div class="refresh-dot"></div>Atualização automática a cada 5 segundos</div>
+
+    <div id="pedidosList"></div>
+</div>
+
+<script>
+const API = window.location.origin;
+let pedidos = [];
+let filtroAtual = 'todos';
+
+async function carregarPedidos() {
+    try {
+        const url = filtroAtual === 'todos' ? '/api/cardapio/pedidos' : '/api/cardapio/pedidos?status=' + filtroAtual;
+        const resp = await fetch(API + url);
+        pedidos = await resp.json();
+        renderPedidos();
+        atualizarStats();
+    } catch(e) { console.error(e); }
+}
+
+function renderPedidos() {
+    const container = document.getElementById('pedidosList');
+    if (!pedidos || pedidos.length === 0) {
+        container.innerHTML = '<div class="empty"><div class="icon">&#128203;</div><p>Nenhum pedido encontrado</p></div>';
+        return;
+    }
+    let html = '';
+    pedidos.forEach(p => {
+        const statusLabels = {pendente:'Pendente',preparando:'Preparando',pronto:'Pronto',entregue:'Entregue'};
+        html += '<div class="pedido-card ' + p.status + '">' +
+            '<div class="pedido-header">' +
+                '<span class="pedido-num">Pedido #' + p.numero_pedido + '</span>' +
+                '<span class="pedido-mesa">Mesa ' + p.mesa_numero + '</span>' +
+                '<span class="pedido-badge ' + p.status + '">' + (statusLabels[p.status] || p.status) + '</span>' +
+            '</div>' +
+            '<div class="pedido-info"><strong>' + escHtml(p.cliente_nome) + '</strong></div>' +
+            (p.observacao ? '<div class="pedido-info" style="font-style:italic;color:var(--orange)">"' + escHtml(p.observacao) + '"</div>' : '') +
+            '<div class="pedido-info">Total: <span class="pedido-total">R$ ' + parseFloat(p.total).toFixed(2).replace('.',',') + '</span></div>' +
+            '<div class="pedido-info" style="font-size:0.75em">' + (p.data_criacao || '') + '</div>' +
+            '<div class="pedido-actions">' + getActions(p) + '</div>' +
+        '</div>';
+    });
+    container.innerHTML = html;
+}
+
+function getActions(p) {
+    switch(p.status) {
+        case 'pendente':
+            return '<button class="btn btn-preparar" onclick="atualizarStatus(' + p.id + ',\'preparando\')">&#127859; Preparar</button>' +
+                   '<button class="btn btn-cancelar" onclick="atualizarStatus(' + p.id + ',\'cancelado\')">Cancelar</button>';
+        case 'preparando':
+            return '<button class="btn btn-pronto" onclick="atualizarStatus(' + p.id + ',\'pronto\')">&#9989; Pronto</button>';
+        case 'pronto':
+            return '<button class="btn btn-entregar" onclick="atualizarStatus(' + p.id + ',\'entregue\')">&#128230; Entregar</button>';
+        default: return '';
+    }
+}
+
+function atualizarStats() {
+    const counts = {pendente:0, preparando:0, pronto:0, entregue:0};
+    // Recarregar todos para stats
+    fetch(API + '/api/cardapio/pedidos').then(r => r.json()).then(all => {
+        all.forEach(p => { if (counts[p.status] !== undefined) counts[p.status]++; });
+        document.getElementById('statPendente').textContent = counts.pendente;
+        document.getElementById('statPreparando').textContent = counts.preparando;
+        document.getElementById('statPronto').textContent = counts.pronto;
+        document.getElementById('statEntregue').textContent = counts.entregue;
+    }).catch(() => {});
+}
+
+async function atualizarStatus(id, status) {
+    try {
+        const resp = await fetch(API + '/api/cardapio/pedido/atualizar-status', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: id, status: status})
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToast('Status atualizado!', 'success');
+            carregarPedidos();
+        } else {
+            showToast(data.error || 'Erro', 'error');
+        }
+    } catch(e) { showToast('Erro de conexão', 'error'); }
+}
+
+function filtrar(status, btn) {
+    filtroAtual = status;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    carregarPedidos();
+}
+
+function escHtml(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''; }
+
+function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + type + ' show';
+    setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+carregarPedidos();
+setInterval(carregarPedidos, 5000);
+</script>
+</body>
+</html>

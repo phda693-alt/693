@@ -1,0 +1,28 @@
+PDV PRO v8.0.22.0 - NOTAS DA VERSAO
+====================================
+
+CONFIGURACOES E TAXA DE SERVICO
+- Novo botao Configuracoes na dashboard.
+- Opcoes persistentes para cobrar taxa de 10% em mesas, comandas e armarios.
+- A taxa e registrada como acrescimo percentual e integrada ao pagamento e a venda.
+
+PESQUISAS E RELATORIOS
+- Busca instantanea na dashboard por nome de botao ou titulo de secao.
+- Busca instantanea por nome, descricao, modulo ou chave nas permissoes de perfis e usuarios.
+- Relatorio de Acoes dos Usuarios com filtros por usuario, data inicial e data final.
+
+FORNECEDORES E ENTRADAS
+- Novo cadastro completo de fornecedores com pesquisa, edicao e ativacao/inativacao.
+- Fornecedor selecionado por dropdown pesquisavel na Nova Nota de Entrada.
+- Numero da nota gerado automaticamente a partir de 001.
+- Vinculo entre a nota e o fornecedor cadastrado, preservando tambem o nome na nota.
+
+AGENDA E LEMBRETES
+- Verificacao insistente dos lembretes a cada 30 segundos ate a confirmacao.
+- Servico persistente mantem os lembretes com o aplicativo fechado.
+- Restauracao automatica do servico apos reinicio do aparelho ou atualizacao do app.
+- Confirmacao disponivel tanto no pop-up quanto diretamente na notificacao.
+
+BANCO E PERMISSOES
+- Migracao automatica da tabela de fornecedores e do vinculo nas notas de entrada.
+- Novas permissoes granulares para Configuracoes e Fornecedores.

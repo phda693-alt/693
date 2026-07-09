@@ -1,0 +1,154 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/gradient_bg">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical">
+
+        <ImageView
+            android:id="@+id/btnVoltar"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_arrow_back"
+            android:padding="4dp"
+            android:layout_marginEnd="8dp"
+            android:contentDescription="Voltar" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Entrada de Notas"
+            android:textSize="20sp"
+            android:textColor="@color/accent_cyan"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnNovaNota"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="+ NOVA"
+            android:textSize="12sp"
+            android:textColor="@color/white"
+            android:background="@drawable/btn_success"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp" />
+    </LinearLayout>
+
+    <!-- Busca -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="8dp">
+
+        <EditText
+            android:id="@+id/etBusca"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:hint="Buscar nota (numero, fornecedor)..."
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"
+            android:background="@drawable/input_bg"
+            android:padding="8dp"
+            android:textSize="14sp"
+            android:imeOptions="actionSearch"
+            android:inputType="text" />
+
+        <Button
+            android:id="@+id/btnBuscar"
+            android:layout_width="60dp"
+            android:layout_height="40dp"
+            android:text="IR"
+            android:textColor="@color/white"
+            android:background="@drawable/btn_secondary"
+            android:layout_marginLeft="8dp" />
+    </LinearLayout>
+
+    <!-- Filtros -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="8dp"
+        android:gravity="center_vertical">
+
+        <Button
+            android:id="@+id/btnFiltroTodas"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="TODAS"
+            android:textSize="11sp"
+            android:textColor="@color/text_primary"
+            android:background="@drawable/btn_secondary"
+            android:layout_marginEnd="4dp" />
+
+        <Button
+            android:id="@+id/btnFiltroConfirmadas"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="CONFIRMADAS"
+            android:textSize="11sp"
+            android:textColor="@color/white"
+            android:background="@drawable/btn_success"
+            android:layout_marginEnd="4dp" />
+
+        <Button
+            android:id="@+id/btnFiltroPendentes"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="PENDENTES"
+            android:textSize="11sp"
+            android:textColor="@color/white"
+            android:background="@drawable/btn_primary" />
+    </LinearLayout>
+
+    <!-- Contador -->
+    <TextView
+        android:id="@+id/tvContador"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="0 notas"
+        android:textSize="12sp"
+        android:textColor="@color/text_secondary"
+        android:paddingLeft="12dp"
+        android:paddingBottom="4dp" />
+
+    <!-- Lista de Notas -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="8dp"
+        android:clipToPadding="false" />
+
+    <!-- Texto vazio -->
+    <TextView
+        android:id="@+id/tvEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:text="Nenhuma nota de entrada encontrada.\nToque em + NOVA para registrar uma entrada."
+        android:textColor="@color/text_hint"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:visibility="gone" />
+
+</LinearLayout>

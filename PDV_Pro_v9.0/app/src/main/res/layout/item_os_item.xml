@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="6dp"
+    android:background="@drawable/item_list_bg"
+    android:layout_marginBottom="2dp">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvItemNome"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Item"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <!-- Detalhe: quantidade, preço e usuário que adicionou (v8.0.8) -->
+        <TextView
+            android:id="@+id/tvItemDetalhe"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1x R$ 0,00 = R$ 0,00"
+            android:textColor="#B0BEC5"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- v8.0.8 - Botão de remover visível apenas para administradores (controlado por código) -->
+    <Button
+        android:id="@+id/btnRemoverItem"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:background="@drawable/btn_danger"
+        android:text="X"
+        android:textColor="#FFFFFF"
+        android:textSize="10sp"
+        android:padding="0dp" />
+</LinearLayout>

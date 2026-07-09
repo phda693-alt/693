@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/card_bg"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Numero da Nota"
+            android:textColor="#B0BEC5"
+            android:textSize="12sp"
+            android:layout_marginBottom="4dp" />
+
+        <EditText
+            android:id="@+id/etNumeroNota"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:hint="Gerado automaticamente"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#607D8B"
+            android:background="@drawable/input_bg"
+            android:padding="10dp"
+            android:textSize="14sp"
+            android:focusable="false"
+            android:inputType="text" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Fornecedor"
+            android:textColor="#B0BEC5"
+            android:textSize="12sp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="4dp" />
+
+        <AutoCompleteTextView
+            android:id="@+id/etFornecedor"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:hint="Digite ou clique para buscar"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#607D8B"
+            android:background="@drawable/input_bg"
+            android:padding="10dp"
+            android:completionThreshold="0"
+            android:dropDownHeight="wrap_content"
+            android:textSize="14sp"
+            android:inputType="text" />
+
+        <!-- Condição de Pagamento -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Condicao de Pagamento"
+            android:textColor="#00BCD4"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="4dp" />
+
+        <Spinner
+            android:id="@+id/spCondicaoPagamento"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:background="@drawable/input_bg"
+            android:padding="4dp" />
+
+        <!-- Parcelas editáveis - exibido quando condição é selecionada -->
+        <LinearLayout
+            android:id="@+id/llParcelasContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:layout_marginTop="8dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Datas de Vencimento das Parcelas:"
+                android:textColor="#B0BEC5"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp" />
+
+            <LinearLayout
+                android:id="@+id/llParcelas"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <Button
+                android:id="@+id/btnEditarParcelas"
+                android:layout_width="match_parent"
+                android:layout_height="36dp"
+                android:text="EDITAR PARCELAS"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/btn_secondary"
+                android:textSize="11sp"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <!-- Caixa para débito -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Caixa para Debito (opcional)"
+            android:textColor="#00BCD4"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="4dp" />
+
+        <Spinner
+            android:id="@+id/spCaixaNota"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:background="@drawable/input_bg"
+            android:padding="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Observacao (opcional)"
+            android:textColor="#B0BEC5"
+            android:textSize="12sp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="4dp" />
+
+        <EditText
+            android:id="@+id/etObservacao"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:hint="Observacoes sobre a nota..."
+            android:textColor="#FFFFFF"
+            android:textColorHint="#607D8B"
+            android:background="@drawable/input_bg"
+            android:padding="10dp"
+            android:textSize="14sp"
+            android:inputType="textMultiLine"
+            android:gravity="top" />
+
+    </LinearLayout>
+</ScrollView>

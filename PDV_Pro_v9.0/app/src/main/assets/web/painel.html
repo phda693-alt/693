@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDV Pro - Painel de Chamadas</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#050816;--card:#111535;--cyan:#00BCD4;--cyan2:#00E5FF;--green:#00E676;--gold:#FFD700;--red:#FF5252;--pink:#FF1493;--purple:#7C4DFF;--text:#FFFFFF;--text2:#B0BEC5}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.bg-anim{position:fixed;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse at 20% 50%,rgba(0,188,212,0.05),transparent 50%),radial-gradient(ellipse at 80% 50%,rgba(124,77,255,0.05),transparent 50%);z-index:0}
+.scan{position:fixed;top:0;left:0;width:100%;height:4px;background:linear-gradient(90deg,transparent,var(--cyan2),transparent);z-index:1;animation:scan 5s linear infinite;opacity:0.2}
+@keyframes scan{0%{top:0}100%{top:100%}}
+.header{position:relative;z-index:2;text-align:center;padding:20px;background:linear-gradient(180deg,rgba(5,8,22,0.95),transparent)}
+.header h1{font-size:2em;background:linear-gradient(135deg,var(--cyan2),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:5px;font-weight:900}
+.header .sub{color:var(--text2);font-size:0.9em;letter-spacing:3px}
+.clock-big{position:absolute;right:30px;top:50%;transform:translateY(-50%);font-size:1.5em;color:var(--cyan2);font-weight:700;font-variant-numeric:tabular-nums}
+.main{flex:1;display:flex;position:relative;z-index:2;padding:20px;gap:20px}
+.chamada-atual{flex:2;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--card),rgba(26,31,61,0.8));border:2px solid rgba(255,215,0,0.2);border-radius:30px;position:relative;overflow:hidden}
+.chamada-atual.ativo{border-color:var(--gold);animation:mainPulse 2s infinite}
+@keyframes mainPulse{0%,100%{box-shadow:0 0 40px rgba(255,215,0,0.15)}50%{box-shadow:0 0 80px rgba(255,215,0,0.3),0 0 120px rgba(255,215,0,0.1)}}
+.chamada-atual::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--gold),var(--cyan2),var(--purple),var(--gold));background-size:300%;animation:grad 3s linear infinite}
+@keyframes grad{0%{background-position:0%}100%{background-position:300%}}
+.chamada-content{text-align:center;padding:30px}
+.chamada-label{font-size:1.5em;color:var(--gold);text-transform:uppercase;letter-spacing:8px;font-weight:700}
+.chamada-numero{font-size:14em;font-weight:900;line-height:1;background:linear-gradient(135deg,var(--gold),#FFA000);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 40px rgba(255,215,0,0.3));transition:all 0.5s}
+.chamada-numero.pop{animation:numPop 1s ease-out}
+@keyframes numPop{0%{transform:scale(0.2);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+.chamada-cliente{font-size:3em;color:var(--cyan2);font-weight:700;margin-top:10px}
+.chamada-info{font-size:1.2em;color:var(--text2);margin-top:10px;letter-spacing:3px}
+.chamada-empty{text-align:center;color:var(--text2);font-size:1.5em}
+.chamada-empty .icon{font-size:4em;opacity:0.2;margin-bottom:15px}
+.fila-lateral{flex:1;display:flex;flex-direction:column;gap:10px;overflow-y:auto;padding-right:5px}
+.fila-lateral::-webkit-scrollbar{width:3px}
+.fila-lateral::-webkit-scrollbar-thumb{background:var(--cyan);border-radius:3px}
+.fila-title{text-align:center;font-size:1em;color:var(--cyan2);text-transform:uppercase;letter-spacing:3px;padding:10px;border-bottom:1px solid rgba(0,188,212,0.2);margin-bottom:5px}
+.fila-item{background:linear-gradient(135deg,var(--card),rgba(26,31,61,0.8));border:1px solid rgba(0,188,212,0.1);border-radius:15px;padding:15px;transition:all 0.3s}
+.fila-item.chamando{border-color:var(--gold);background:linear-gradient(135deg,rgba(255,215,0,0.05),var(--card))}
+.fila-item .num{font-size:1.8em;font-weight:900;color:var(--cyan2);display:inline}
+.fila-item .nome{font-size:0.95em;margin-top:5px;color:var(--text)}
+.fila-item .meta{font-size:0.75em;color:var(--text2);margin-top:3px}
+.fila-item .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.65em;font-weight:700;text-transform:uppercase}
+.fila-item .badge.aguardando{background:rgba(0,188,212,0.12);color:var(--cyan2)}
+.fila-item .badge.chamando{background:rgba(255,215,0,0.15);color:var(--gold);animation:badgePulse 1s infinite}
+@keyframes badgePulse{0%,100%{opacity:1}50%{opacity:0.5}}
+.footer{position:relative;z-index:2;text-align:center;padding:10px;color:var(--text2);font-size:0.8em;background:linear-gradient(0deg,rgba(5,8,22,0.95),transparent)}
+@media(max-width:1024px){.chamada-numero{font-size:8em}.chamada-cliente{font-size:2em}.main{flex-direction:column}.fila-lateral{flex-direction:row;overflow-x:auto;overflow-y:hidden}.fila-item{min-width:200px}}
+</style>
+</head>
+<body>
+<div class="bg-anim"></div>
+<div class="scan"></div>
+<div class="header">
+    <h1>PAINEL DE CHAMADAS</h1>
+    <div class="sub">PDV Pro &bull; Sistema Inteligente</div>
+    <div class="clock-big" id="clock"></div>
+</div>
+<div class="main">
+    <div class="chamada-atual" id="chamadaAtual">
+        <div class="chamada-content">
+            <div id="chamadaEmpty" class="chamada-empty">
+                <div class="icon">📢</div>
+                <p>Aguardando chamada...</p>
+            </div>
+            <div id="chamadaContent" style="display:none">
+                <div class="chamada-label">CHAMANDO</div>
+                <div class="chamada-numero" id="chNumero">000</div>
+                <div class="chamada-cliente" id="chCliente">-</div>
+                <div class="chamada-info" id="chInfo">-</div>
+            </div>
+        </div>
+    </div>
+    <div class="fila-lateral">
+        <div class="fila-title">📋 Próximos</div>
+        <div id="filaLateral"></div>
+    </div>
+</div>
+<div class="footer">PDV Pro &copy; 2024-2026 &bull; Sistema de Chamados Inteligente</div>
+
+<script>
+const API = window.location.origin;
+let ultimoId = 0;
+let audioCtx = null;
+
+function init() {
+    updateClock();
+    setInterval(updateClock, 1000);
+    carregar();
+    setInterval(carregar, 2000);
+}
+
+function updateClock() {
+    document.getElementById('clock').textContent = new Date().toLocaleTimeString('pt-BR');
+}
+
+function getAudioCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+}
+
+function tocarSom() {
+    try {
+        const ctx = getAudioCtx();
+        const t = ctx.currentTime;
+        [880,1100,880,1320].forEach((f,i) => {
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination);
+            o.type = 'sine';
+            o.frequency.setValueAtTime(f, t + i*0.2);
+            g.gain.setValueAtTime(0, t + i*0.2);
+            g.gain.linearRampToValueAtTime(0.3, t + i*0.2 + 0.02);
+            g.gain.linearRampToValueAtTime(0, t + i*0.2 + 0.18);
+            o.start(t + i*0.2);
+            o.stop(t + i*0.2 + 0.2);
+        });
+    } catch(e) {}
+}
+
+function falar(chamado) {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const n = String(chamado.numero_chamado).padStart(3,'0').split('').join(', ');
+    setTimeout(() => {
+        const u1 = new SpeechSynthesisUtterance(`Atenção! Chamado número ${n}. ${chamado.cliente_nome}, por favor, dirija-se ao atendimento.`);
+        u1.lang = 'pt-BR'; u1.rate = 0.85; u1.volume = 1;
+        window.speechSynthesis.speak(u1);
+        setTimeout(() => {
+            const u2 = new SpeechSynthesisUtterance(`Chamado ${n}. ${chamado.cliente_nome}.`);
+            u2.lang = 'pt-BR'; u2.rate = 0.9; u2.volume = 1;
+            window.speechSynthesis.speak(u2);
+        }, 5000);
+    }, 1000);
+}
+
+async function carregar() {
+    try {
+        const r1 = await fetch(API + '/api/chamados/ultimo-chamado');
+        const d1 = await r1.json();
+        
+        if (d1.chamado && d1.chamado !== 'null') {
+            const ch = d1.chamado;
+            if (ch.id !== ultimoId) {
+                ultimoId = ch.id;
+                mostrar(ch);
+                tocarSom();
+                falar(ch);
+            }
+        } else {
+            if (ultimoId !== 0) { ultimoId = 0; esconder(); }
+        }
+
+        const r2 = await fetch(API + '/api/chamados/fila');
+        const fila = await r2.json();
+        renderFila(fila);
+    } catch(e) { console.error(e); }
+}
+
+function mostrar(ch) {
+    document.getElementById('chamadaEmpty').style.display = 'none';
+    document.getElementById('chamadaContent').style.display = 'block';
+    document.getElementById('chamadaAtual').classList.add('ativo');
+    const el = document.getElementById('chNumero');
+    el.textContent = String(ch.numero_chamado).padStart(3,'0');
+    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+    document.getElementById('chCliente').textContent = ch.cliente_nome;
+    let info = ch.tipo.toUpperCase();
+    if (ch.comanda_numero > 0) info += ' • Comanda: ' + ch.comanda_numero;
+    document.getElementById('chInfo').textContent = info;
+}
+
+function esconder() {
+    document.getElementById('chamadaEmpty').style.display = 'block';
+    document.getElementById('chamadaContent').style.display = 'none';
+    document.getElementById('chamadaAtual').classList.remove('ativo');
+}
+
+function renderFila(fila) {
+    const c = document.getElementById('filaLateral');
+    if (!fila || fila.length === 0) { c.innerHTML = '<div style="text-align:center;color:var(--text2);padding:20px">Fila vazia</div>'; return; }
+    c.innerHTML = fila.slice(0, 15).map(ch => `
+        <div class="fila-item ${ch.status}">
+            <div class="num">#${String(ch.numero_chamado).padStart(3,'0')}</div>
+            <span class="badge ${ch.status}">${ch.status}</span>
+            <div class="nome">${esc(ch.cliente_nome)}</div>
+            <div class="meta">${ch.tipo}${ch.comanda_numero > 0 ? ' • Cmd: '+ch.comanda_numero : ''}</div>
+        </div>
+    `).join('');
+}
+
+function esc(s) { if(!s)return''; const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+document.addEventListener('click', () => { try { getAudioCtx().resume(); } catch(e){} }, { once: true });
+window.addEventListener('load', init);
+</script>
+</body>
+</html>

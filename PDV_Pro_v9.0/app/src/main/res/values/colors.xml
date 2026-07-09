@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- === CORES PRIMÁRIAS === -->
+    <color name="colorPrimary">#00E5CC</color>
+    <color name="colorPrimaryDark">#00B39E</color>
+    <color name="colorPrimaryVariant">#007A6E</color>
+    <color name="colorAccent">#FFB300</color>
+    <color name="colorAccentDark">#E65100</color>
+
+    <!-- === BACKGROUNDS === -->
+    <color name="colorBackground">#080C10</color>
+    <color name="colorBackgroundAlt">#0C1018</color>
+    <color name="colorSurface">#111820</color>
+    <color name="colorSurfaceVariant">#161E28</color>
+    <color name="colorCard">#1A2230</color>
+    <color name="colorCardLight">#202A3A</color>
+    <color name="colorCardElevated">#243040</color>
+    <color name="colorInputBg">#0F1520</color>
+    <color name="colorInputBorder">#2A3A50</color>
+    <color name="colorDivider">#1E2A3A</color>
+
+    <!-- === TEXTO === -->
+    <color name="colorTextPrimary">#F0F6FF</color>
+    <color name="colorTextSecondary">#8FA8C8</color>
+    <color name="colorTextHint">#4A6080</color>
+    <color name="colorTextDisabled">#2A3A50</color>
+    <color name="text_primary">#F0F6FF</color>
+    <color name="text_secondary">#8FA8C8</color>
+    <color name="text_hint">#4A6080</color>
+
+    <!-- === STATUS === -->
+    <color name="colorSuccess">#00D68F</color>
+    <color name="colorSuccessDark">#00A870</color>
+    <color name="colorDanger">#FF4D6A</color>
+    <color name="colorDangerDark">#CC2040</color>
+    <color name="colorWarning">#FFB300</color>
+    <color name="colorWarningDark">#E65100</color>
+    <color name="colorInfo">#00B0FF</color>
+    <color name="colorInfoDark">#0080CC</color>
+
+    <!-- === NEON / ACCENT === -->
+    <color name="colorNeon">#00E5CC</color>
+    <color name="colorNeonGreen">#00D68F</color>
+    <color name="colorNeonPink">#FF4D6A</color>
+    <color name="colorNeonBlue">#00B0FF</color>
+    <color name="colorNeonPurple">#A855F7</color>
+    <color name="colorNeonOrange">#FF7043</color>
+    <color name="colorGold">#FFB300</color>
+    <color name="colorGoldDark">#E65100</color>
+    <color name="colorSilver">#90A4AE</color>
+
+    <!-- === GRADIENTES === -->
+    <color name="colorGradientStart">#080C10</color>
+    <color name="colorGradientEnd">#0D1820</color>
+    <color name="colorSplashStart">#060A0E</color>
+    <color name="colorSplashEnd">#0A1A20</color>
+    <color name="colorToolbarStart">#0A0E14</color>
+    <color name="colorToolbarEnd">#0F1E28</color>
+
+    <!-- === PREMIUM === -->
+    <color name="colorPremiumInk">#060A0E</color>
+    <color name="colorPremiumLine">#2A3A50</color>
+    <color name="colorPremiumWine">#7B1FA2</color>
+    <color name="colorPremiumGold">#FFD700</color>
+
+    <!-- === MESAS / STATUS === -->
+    <color name="colorMesaLivre">#00D68F</color>
+    <color name="colorMesaOcupada">#FF4D6A</color>
+    <color name="colorMesaReservada">#FFB300</color>
+    <color name="colorMesaPronta">#00B0FF</color>
+
+    <!-- === BÁSICOS === -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="transparent">#00000000</color>
+    <color name="dark_bg">#080C10</color>
+    <color name="accent_cyan">#00E5CC</color>
+    <color name="accent_gold">#FFB300</color>
+
+    <!-- === OVERLAY === -->
+    <color name="colorOverlay">#CC000000</color>
+    <color name="colorOverlayLight">#80000000</color>
+    <color name="colorScrim">#99000000</color>
+
+    <!-- === RIPPLE === -->
+    <color name="colorRipple">#2000E5CC</color>
+    <color name="colorRippleGold">#20FFB300</color>
+    <color name="colorRippleDanger">#20FF4D6A</color>
+
+    <!-- ===================================================================== -->
+    <!-- v9.1.0 - PALETA FUTURISTA ESTENDIDA (apenas adicoes, nada removido)    -->
+    <!-- Tokens novos para acabamento glassmorphism, brilhos neon e gradientes  -->
+    <!-- ===================================================================== -->
+    <color name="colorGlassTop">#222D40</color>
+    <color name="colorGlassBottom">#141B27</color>
+    <color name="colorGlassBorder">#2E4A60</color>
+    <color name="colorGlassHighlight">#33FFFFFF</color>
+    <color name="colorNeonGlow">#6600E5CC</color>
+    <color name="colorNeonGlowSoft">#3300E5CC</color>
+    <color name="colorNeonEdge">#00E5CC</color>
+    <color name="colorAuroraStart">#00E5CC</color>
+    <color name="colorAuroraMid">#00B0FF</color>
+    <color name="colorAuroraEnd">#A855F7</color>
+    <color name="colorCyberCyan">#00F5E0</color>
+    <color name="colorCyberMagenta">#FF2D78</color>
+    <color name="colorCyberAmber">#FFC400</color>
+    <color name="colorElevatedHi">#26334A</color>
+    <color name="colorElevatedLo">#10161F</color>
+    <color name="colorShimmerBase">#1A2230</color>
+    <color name="colorShimmerHi">#2A3A52</color>
+</resources>

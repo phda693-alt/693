@@ -1,0 +1,18 @@
+MariaDB embedded runtime notice
+================================
+
+This application bundles MariaDB Server 12.3.2 binaries distributed by the
+official Termux package repository for Android (ARM and AArch64), together
+with their required runtime libraries.
+
+MariaDB Server is licensed under the GNU General Public License, version 2.
+Termux package recipes and corresponding source references are available at:
+
+https://github.com/termux/termux-packages
+https://mariadb.org/
+
+Runtime packages used by this build were obtained from:
+
+https://packages.termux.dev/apt/termux-main/
+
+The remaining bundled libraries retain their respective upstream licenses.

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Breathe (escala pulsante) - novo em 8.0.13 -->
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:interpolator="@android:anim/accelerate_decelerate_interpolator">
+    <scale
+        android:fromXScale="1.0" android:toXScale="1.06"
+        android:fromYScale="1.0" android:toYScale="1.06"
+        android:pivotX="50%" android:pivotY="50%"
+        android:duration="1300"
+        android:repeatMode="reverse"
+        android:repeatCount="infinite" />
+</set>

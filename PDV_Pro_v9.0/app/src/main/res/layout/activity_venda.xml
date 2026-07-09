@@ -1,0 +1,186 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/gradient_bg">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Nova Venda"
+            android:textSize="22sp"
+            android:textColor="@color/accent_cyan"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnEscolherCliente"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Cliente"
+            android:textSize="12sp"
+            android:textColor="@color/white"
+            android:background="@drawable/btn_secondary"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp" />
+
+        <Button
+            android:id="@+id/btnEscolherVendedor"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Vendedor"
+            android:textSize="12sp"
+            android:textColor="@color/white"
+            android:background="@drawable/btn_secondary"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:layout_marginLeft="4dp" />
+
+        <Button
+            android:id="@+id/btnEscolherEntregador"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="Entreg."
+            android:textSize="12sp"
+            android:textColor="@color/white"
+            android:background="@drawable/btn_secondary"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:layout_marginLeft="4dp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvCliente"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Cliente: Nao informado"
+        android:textColor="@color/text_secondary"
+        android:paddingLeft="12dp"
+        android:paddingBottom="4dp" />
+
+    <!-- Barcode Scanner Section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="6dp"
+        android:gravity="center_vertical">
+
+        <EditText
+            android:id="@+id/etCodigoBarras"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:hint="Codigo de barras ou descricao..."
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"
+            android:textSize="14sp"
+            android:background="@drawable/search_bg"
+            android:inputType="text"
+            android:imeOptions="actionSearch"
+            android:singleLine="true"
+            android:drawablePadding="8dp"
+            android:paddingLeft="14dp"
+            android:paddingRight="14dp" />
+
+        <ImageButton
+            android:id="@+id/btnScanBarcode"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginLeft="6dp"
+            android:background="@drawable/btn_scanner"
+            android:src="@drawable/ic_barcode_scan"
+            android:scaleType="centerInside"
+            android:padding="8dp"
+            android:contentDescription="Escanear codigo de barras" />
+
+        <ImageButton
+            android:id="@+id/btnBuscarProduto"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginLeft="4dp"
+            android:background="@drawable/btn_primary"
+            android:src="@drawable/ic_search_network"
+            android:scaleType="centerInside"
+            android:padding="8dp"
+            android:contentDescription="Buscar produto" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnAddItem"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:text="+ ADICIONAR PRODUTO (LISTA)"
+        android:textColor="@color/white"
+        android:background="@drawable/btn_primary"
+        android:layout_marginLeft="12dp"
+        android:layout_marginRight="12dp"
+        android:layout_marginBottom="4dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvCarrinho"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="8dp"
+        android:clipToPadding="false" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/card_bg"
+        android:padding="12dp"
+        android:layout_margin="8dp">
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Desconto: " android:textColor="@color/text_secondary" />
+            <Spinner android:id="@+id/spDescontoTipo" android:layout_width="120dp" android:layout_height="32dp" />
+            <EditText android:id="@+id/etDescontoValor" android:layout_width="0dp" android:layout_height="32dp"
+                android:layout_weight="1" android:hint="0.00" android:inputType="numberDecimal" android:textSize="14sp"
+                android:textColor="@color/text_primary" android:background="@drawable/input_bg" android:padding="4dp" android:layout_marginLeft="8dp" />
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="4dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Acrescimo: " android:textColor="@color/text_secondary" />
+            <Spinner android:id="@+id/spAcrescimoTipo" android:layout_width="120dp" android:layout_height="32dp" />
+            <EditText android:id="@+id/etAcrescimoValor" android:layout_width="0dp" android:layout_height="32dp"
+                android:layout_weight="1" android:hint="0.00" android:inputType="numberDecimal" android:textSize="14sp"
+                android:textColor="@color/text_primary" android:background="@drawable/input_bg" android:padding="4dp" android:layout_marginLeft="8dp" />
+        </LinearLayout>
+
+        <EditText android:id="@+id/etObservacao" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Observacao" android:textColor="@color/text_primary" android:textColorHint="@color/text_hint"
+            android:background="@drawable/input_bg" android:padding="8dp" android:layout_marginTop="4dp" android:textSize="14sp" />
+
+        <TextView android:id="@+id/tvTotal" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Total: R$ 0.00" android:textColor="@color/text_primary" android:textSize="14sp" android:layout_marginTop="4dp" />
+        <TextView android:id="@+id/tvDesconto" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Desconto: -R$ 0.00" android:textColor="#FFFF5252" android:textSize="14sp" />
+        <TextView android:id="@+id/tvAcrescimo" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Acrescimo: +R$ 0.00" android:textColor="@color/accent_gold" android:textSize="14sp" />
+        <TextView android:id="@+id/tvSubtotal" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Subtotal: R$ 0.00" android:textColor="@color/accent_cyan" android:textSize="18sp" android:textStyle="bold" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnFinalizar"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="FINALIZAR VENDA"
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:background="@drawable/btn_primary"
+        android:layout_margin="12dp" />
+</LinearLayout>

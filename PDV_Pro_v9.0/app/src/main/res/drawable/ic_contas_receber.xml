@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Documento/nota fiscal com cifrão - representando contas a receber -->
+    <path
+        android:fillColor="#FF9800"
+        android:pathData="M14,2H6C4.9,2 4,2.9 4,4V20C4,21.1 4.9,22 6,22H18C19.1,22 20,21.1 20,20V8L14,2ZM18,20H6V4H13V9H18V20Z" />
+    <path
+        android:fillColor="#FF9800"
+        android:pathData="M12.5,12.75C11.12,12.36 10.5,11.96 10.5,11.25C10.5,10.44 11.24,9.85 12.5,9.85C13.37,9.85 13.93,10.19 14.14,10.75L15.52,10.17C15.18,9.27 14.38,8.6 13.25,8.38V7.25H11.75V8.36C10.37,8.64 9.25,9.52 9.25,11.27C9.25,13.32 10.89,13.84 12.5,14.25C13.94,14.62 14.5,15.12 14.5,15.82C14.5,16.35 14.09,17.15 12.5,17.15C11.28,17.15 10.56,16.74 10.28,16.18L8.9,16.78C9.35,17.84 10.38,18.4 11.75,18.62V19.75H13.25V18.64C14.64,18.39 15.75,17.55 15.75,15.8C15.75,13.35 13.88,13.14 12.5,12.75Z" />
+</vector>

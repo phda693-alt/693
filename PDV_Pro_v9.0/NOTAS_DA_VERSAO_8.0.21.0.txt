@@ -1,0 +1,46 @@
+PDV PRO v8.0.21.0 - NOTAS DA VERSAO
+====================================
+
+ATUALIZACAO SEGURA DO BANCO
+- Verificacao obrigatoria de todas as tabelas e colunas antes do login.
+- Bancos antigos sao atualizados automaticamente antes de liberar operacoes.
+- Conversao para utf8mb4, com suporte a acentos, cedilha, simbolos e emoji.
+- Novos indices para vendas, caixa, relatorios, agenda e auditoria.
+
+PERMISSOES E AUDITORIA
+- Catalogo revisado com 232 permissoes granulares e nomes alinhados as acoes.
+- Todos os botoes da dashboard agora possuem permissao propria.
+- Grade da dashboard e reorganizada ao ocultar botoes; secoes vazias desaparecem.
+- Registro de login, logout, telas, inclusoes, alteracoes, exclusoes, relatorios e reimpressoes.
+- Relatorio de Acoes dos Usuarios com filtro por usuario e data.
+
+CAIXA E REIMPRESSOES
+- Subtotal do caixa e centro de custos nos vales.
+- Relatorio de vales por data, centro de custos e usuario.
+- Exclusao de lancamento somente por Administrador; outros perfis exigem senha de um Administrador ativo.
+- Reimpressao de fechamento por data e numero do caixa.
+- Botao direto para escolher e reimprimir cupons de venda.
+
+COMISSOES E ENTREGAS
+- Percentual no cadastro do garcom e gravacao do valor ganho em cada venda.
+- Relatorios de porcentagens por vendedor e por garcom, com data e totais.
+- Veiculo, modelo e placa no cadastro do entregador.
+- Relatorio de taxas de entrega por entregador e data.
+
+NOVOS RECURSOS
+- Agenda de servicos com cliente, servico, data/hora, duracao e alerta pop-up.
+- Assistentes para criar mesas, comandas e armarios em pequenas, medias, grandes ou quantidades personalizadas.
+- Configuracao de banco MySQL espelho, criacao automatica da estrutura e sincronizacao de dados.
+- Exibicao do IP local na configuracao do banco.
+- Configuracoes FTP iniciam vazias para preenchimento do usuario.
+
+CORRECOES E OTIMIZACOES
+- Correcao das permissoes individuais por usuario.
+- Correcao da duplicacao de categorias e adicionais.
+- Tratamento central de erros com mensagens amigaveis, sem detalhes tecnicos expostos.
+- Operacoes pesadas executadas em segundo plano e conexao/indexes otimizados.
+
+VALIDACAO
+- Compilacao release concluida com sucesso.
+- APK assinado e verificado nos esquemas v1, v2 e v3.
+- Arquitetura principal: ARM64, com MariaDB/MySQL integrado.
