@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    activity_splash.xml - VERSAO 8.0.13 REFORMULADA
+    Splash premium com particulas + aneis orbitais.
+    IDs preservados: ivLogo, tvAppName, tvVersion, progressBar, tvStatus
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/gradient_bg">
+
+    <!-- Particulas flutuantes -->
+    <com.pdv.app.ui.ParticleFieldView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp">
+
+        <!-- Logo container com aneis orbitais ao redor -->
+        <FrameLayout
+            android:layout_width="220dp"
+            android:layout_height="220dp">
+
+            <com.pdv.app.ui.OrbitalRingView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <ImageView
+                android:id="@+id/ivLogo"
+                android:layout_width="130dp"
+                android:layout_height="130dp"
+                android:layout_gravity="center"
+                android:background="@drawable/circle_logo"
+                android:padding="18dp"
+                android:src="@drawable/ic_pdv"
+                android:alpha="0" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/tvAppName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="PDV Pro"
+            android:textSize="40sp"
+            android:textColor="@color/text_primary"
+            android:textStyle="bold"
+            android:letterSpacing="0"
+            android:layout_marginTop="32dp"
+            android:alpha="0"
+            android:shadowColor="#662DD4BF"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:shadowRadius="14" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Premium Commercial Suite"
+            android:textSize="11sp"
+            android:textColor="@color/accent_gold"
+            android:letterSpacing="0"
+            android:textStyle="bold"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            android:id="@+id/tvVersion"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="v8.0.20"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginTop="6dp"
+            android:alpha="0" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="220dp"
+            android:layout_height="wrap_content"
+            style="@android:style/Widget.ProgressBar.Horizontal"
+            android:indeterminate="true"
+            android:layout_marginTop="40dp"
+            android:alpha="0" />
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Inicializando ambiente comercial..."
+            android:textSize="13sp"
+            android:textColor="@color/accent_cyan"
+            android:layout_marginTop="14dp"
+            android:alpha="0"
+            android:letterSpacing="0" />
+    </LinearLayout>
+</FrameLayout>

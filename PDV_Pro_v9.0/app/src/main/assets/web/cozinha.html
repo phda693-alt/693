@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PDV Pro - Painel da Cozinha</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#050816;--bg2:#0A0E27;--card:#111535;--card2:#1A1F3D;--cyan:#00BCD4;--cyan2:#00E5FF;--green:#00E676;--red:#FF5252;--gold:#FFD700;--orange:#FF9800;--purple:#7C4DFF;--pink:#FF1493;--text:#FFFFFF;--text2:#B0BEC5}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.bg-grid{position:fixed;top:0;left:0;width:100%;height:100%;background-image:linear-gradient(rgba(0,229,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.02) 1px,transparent 1px);background-size:60px 60px;z-index:0}
+.container{position:relative;z-index:2;max-width:1600px;margin:0 auto;padding:10px 15px}
+
+/* HEADER */
+header{text-align:center;padding:10px 0}
+.title-bar{display:inline-flex;align-items:center;gap:12px;padding:12px 30px;background:linear-gradient(135deg,rgba(255,152,0,0.1),rgba(255,87,34,0.08));border:1px solid rgba(255,152,0,0.3);border-radius:20px;backdrop-filter:blur(10px)}
+.title-icon{width:48px;height:48px;background:linear-gradient(135deg,var(--orange),#E65100);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 0 25px rgba(255,152,0,0.3)}
+h1{font-size:1.4em;background:linear-gradient(135deg,var(--orange),#FF5722,var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;font-weight:900}
+.subtitle{color:var(--text2);font-size:0.75em;letter-spacing:3px;text-transform:uppercase}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.stat{background:linear-gradient(135deg,var(--card),var(--card2));border-radius:14px;padding:12px;text-align:center;border:1px solid rgba(255,152,0,0.1);position:relative;overflow:hidden}
+.stat::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px}
+.stat.pendente::after{background:var(--orange)}
+.stat.preparando::after{background:var(--cyan2)}
+.stat.pronto::after{background:var(--green)}
+.stat.entregue::after{background:var(--purple)}
+.stat-num{font-size:2.2em;font-weight:900}
+.stat-num.orange{color:var(--orange)}
+.stat-num.cyan{color:var(--cyan2)}
+.stat-num.green{color:var(--green)}
+.stat-num.purple{color:var(--purple)}
+.stat-label{font-size:0.7em;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+
+/* FILTER */
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;justify-content:center}
+.filter-btn{padding:7px 16px;border:1px solid rgba(255,152,0,0.2);background:transparent;color:var(--text2);border-radius:15px;cursor:pointer;font-size:0.8em;font-weight:600;transition:all 0.3s}
+.filter-btn:hover{border-color:var(--orange)}
+.filter-btn.active{background:rgba(255,152,0,0.15);color:var(--orange);border-color:var(--orange);box-shadow:0 0 15px rgba(255,152,0,0.15)}
+
+/* BEEP TOGGLE */
+.beep-toggle{display:flex;align-items:center;justify-content:center;gap:8px;margin:8px 0}
+.beep-toggle label{color:var(--text2);font-size:0.8em;cursor:pointer}
+.toggle-switch{position:relative;width:44px;height:24px;cursor:pointer}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;top:0;left:0;right:0;bottom:0;background:var(--card2);border-radius:24px;border:1px solid rgba(255,152,0,0.3);transition:0.3s}
+.toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:2px;bottom:2px;background:var(--text2);border-radius:50%;transition:0.3s}
+.toggle-switch input:checked + .toggle-slider{background:rgba(255,152,0,0.3);border-color:var(--orange)}
+.toggle-switch input:checked + .toggle-slider::before{transform:translateX(20px);background:var(--orange)}
+
+/* REFRESH BAR */
+.refresh-bar{display:flex;align-items:center;gap:6px;justify-content:center;margin:6px 0;font-size:0.75em;color:var(--text2)}
+.refresh-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* PEDIDOS GRID */
+.pedidos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;margin:10px 0}
+
+/* PEDIDO CARD */
+.pedido-card{background:linear-gradient(135deg,var(--card),var(--card2));border-radius:16px;padding:0;border:1px solid rgba(255,152,0,0.1);transition:all 0.3s;overflow:hidden;position:relative}
+.pedido-card.novo{animation:novoCard 0.6s ease-out;border-color:var(--orange);box-shadow:0 0 25px rgba(255,152,0,0.3)}
+@keyframes novoCard{0%{transform:scale(0.9);opacity:0}50%{transform:scale(1.02)}100%{transform:scale(1);opacity:1}}
+.pedido-card.pendente{border-left:4px solid var(--orange)}
+.pedido-card.preparando{border-left:4px solid var(--cyan2)}
+.pedido-card.pronto{border-left:4px solid var(--green)}
+.pedido-card.entregue{border-left:4px solid var(--purple);opacity:0.5}
+.pedido-card.pendente .card-header{background:linear-gradient(135deg,rgba(255,152,0,0.12),rgba(255,87,34,0.06))}
+.pedido-card.preparando .card-header{background:linear-gradient(135deg,rgba(0,188,212,0.12),rgba(0,229,255,0.06))}
+.pedido-card.pronto .card-header{background:linear-gradient(135deg,rgba(0,230,118,0.12),rgba(0,200,83,0.06))}
+.pedido-card.entregue .card-header{background:linear-gradient(135deg,rgba(124,77,255,0.12),rgba(179,136,255,0.06))}
+
+/* Pulsação para pedidos pendentes */
+.pedido-card.pendente{animation:pendentePulse 3s ease-in-out infinite}
+@keyframes pendentePulse{0%,100%{box-shadow:0 0 10px rgba(255,152,0,0.1)}50%{box-shadow:0 0 25px rgba(255,152,0,0.3)}}
+
+.card-header{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card-header-left{display:flex;align-items:center;gap:10px}
+.pedido-num{font-size:1.3em;font-weight:900;color:var(--orange)}
+.pedido-card.preparando .pedido-num{color:var(--cyan2)}
+.pedido-card.pronto .pedido-num{color:var(--green)}
+.pedido-card.entregue .pedido-num{color:var(--purple)}
+.pedido-mesa{background:rgba(255,152,0,0.15);color:var(--orange);padding:3px 10px;border-radius:8px;font-size:0.75em;font-weight:700}
+.pedido-badge{padding:4px 10px;border-radius:10px;font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.pedido-badge.pendente{background:rgba(255,152,0,0.15);color:var(--orange);border:1px solid rgba(255,152,0,0.3)}
+.pedido-badge.preparando{background:rgba(0,188,212,0.15);color:var(--cyan2);border:1px solid rgba(0,188,212,0.3)}
+.pedido-badge.pronto{background:rgba(0,230,118,0.15);color:var(--green);border:1px solid rgba(0,230,118,0.3)}
+.pedido-badge.entregue{background:rgba(124,77,255,0.15);color:var(--purple);border:1px solid rgba(124,77,255,0.3)}
+
+.card-body{padding:10px 14px}
+.cliente-nome{font-size:0.9em;font-weight:700;color:var(--text);margin-bottom:6px}
+.pedido-obs{font-size:0.78em;color:var(--orange);font-style:italic;margin-bottom:8px;padding:5px 8px;background:rgba(255,152,0,0.06);border-radius:8px;border-left:2px solid var(--orange)}
+.pedido-tempo{font-size:0.7em;color:var(--text2);margin-bottom:8px}
+.pedido-tempo .tempo-valor{font-weight:700}
+.pedido-tempo .tempo-valor.urgente{color:var(--red);animation:tempoUrgente 1s infinite}
+@keyframes tempoUrgente{0%,100%{opacity:1}50%{opacity:0.5}}
+
+/* ITENS DO PEDIDO */
+.itens-lista{margin:8px 0;border-top:1px solid rgba(255,255,255,0.05);padding-top:8px}
+.item-row{display:flex;justify-content:space-between;align-items:flex-start;padding:4px 0;font-size:0.82em;border-bottom:1px dashed rgba(255,255,255,0.04)}
+.item-row:last-child{border-bottom:none}
+.item-qtd{color:var(--orange);font-weight:800;min-width:30px}
+.item-desc{flex:1;color:var(--text);padding:0 6px}
+.item-adicionais{font-size:0.78em;color:var(--cyan2);display:block;margin-top:2px}
+.item-obs{font-size:0.75em;color:var(--gold);font-style:italic;display:block;margin-top:1px}
+.item-preco{color:var(--green);font-weight:600;white-space:nowrap}
+.pedido-total-row{display:flex;justify-content:space-between;padding:8px 0 4px;border-top:1px solid rgba(255,152,0,0.2);margin-top:6px}
+.pedido-total-label{font-size:0.85em;color:var(--text2);font-weight:600}
+.pedido-total-valor{font-size:1.1em;font-weight:900;color:var(--green)}
+
+/* ACTIONS */
+.card-actions{padding:10px 14px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,0.04)}
+.btn{padding:8px 16px;border:none;border-radius:10px;font-size:0.75em;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:1px;transition:all 0.3s;display:inline-flex;align-items:center;gap:5px}
+.btn:active{transform:scale(0.95)}
+.btn-preparar{background:linear-gradient(135deg,var(--cyan),#0097A7);color:#fff;flex:1}
+.btn-pronto{background:linear-gradient(135deg,var(--green),#00C853);color:#000;flex:1}
+.btn-entregar{background:linear-gradient(135deg,var(--purple),#B388FF);color:#fff;flex:1}
+.btn-cancelar{background:rgba(255,82,82,0.12);color:var(--red);border:1px solid rgba(255,82,82,0.3)}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:60px 20px;color:var(--text2)}
+.empty .icon{font-size:4em;opacity:0.2;margin-bottom:15px}
+.empty p{font-size:1.1em}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;padding:14px 24px;border-radius:14px;color:#fff;font-weight:600;z-index:9999;opacity:0;transition:all 0.4s;pointer-events:none;font-size:0.9em;max-width:350px}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.success{background:linear-gradient(135deg,var(--green),#00C853);box-shadow:0 4px 20px rgba(0,230,118,0.3)}
+.toast.error{background:linear-gradient(135deg,var(--red),#D50000);box-shadow:0 4px 20px rgba(255,82,82,0.3)}
+.toast.info{background:linear-gradient(135deg,var(--orange),#E65100);box-shadow:0 4px 20px rgba(255,152,0,0.3)}
+
+/* NOVO PEDIDO OVERLAY */
+.novo-pedido-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,152,0,0.08);z-index:100;pointer-events:none;opacity:0;transition:opacity 0.3s}
+.novo-pedido-overlay.show{opacity:1;animation:flashOverlay 1s ease-out forwards}
+@keyframes flashOverlay{0%{opacity:1}100%{opacity:0}}
+
+/* RESPONSIVE */
+@media(max-width:700px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .pedidos-grid{grid-template-columns:1fr}
+    .title-bar{padding:10px 20px}
+    h1{font-size:1.1em}
+}
+@media(min-width:1200px){
+    .pedidos-grid{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="novo-pedido-overlay" id="novoOverlay"></div>
+<div class="toast" id="toast"></div>
+
+<div class="container">
+    <header>
+        <div class="title-bar">
+            <div class="title-icon">&#127859;</div>
+            <div>
+                <h1>PAINEL DA COZINHA</h1>
+                <div class="subtitle">Acompanhamento de pedidos em tempo real</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="stats">
+        <div class="stat pendente"><div class="stat-num orange" id="statPendente">0</div><div class="stat-label">Pendentes</div></div>
+        <div class="stat preparando"><div class="stat-num cyan" id="statPreparando">0</div><div class="stat-label">Preparando</div></div>
+        <div class="stat pronto"><div class="stat-num green" id="statPronto">0</div><div class="stat-label">Prontos</div></div>
+        <div class="stat entregue"><div class="stat-num purple" id="statEntregue">0</div><div class="stat-label">Entregues</div></div>
+    </div>
+
+    <div class="filter-bar">
+        <button class="filter-btn active" onclick="filtrar('todos', this)">Todos</button>
+        <button class="filter-btn" onclick="filtrar('pendente', this)">Pendentes</button>
+        <button class="filter-btn" onclick="filtrar('preparando', this)">Preparando</button>
+        <button class="filter-btn" onclick="filtrar('pronto', this)">Prontos</button>
+        <button class="filter-btn" onclick="filtrar('entregue', this)">Entregues</button>
+    </div>
+
+    <div class="beep-toggle">
+        <label for="beepToggle">&#128264; Alerta Sonoro</label>
+        <label class="toggle-switch">
+            <input type="checkbox" id="beepToggle" checked>
+            <span class="toggle-slider"></span>
+        </label>
+        <label for="beepToggle" id="beepStatus" style="color:var(--green);font-size:0.8em;font-weight:600">ATIVADO</label>
+    </div>
+
+    <div class="refresh-bar"><div class="refresh-dot"></div>Atualiza automaticamente a cada 3 segundos</div>
+
+    <div class="pedidos-grid" id="pedidosGrid"></div>
+</div>
+
+<script>
+const API = window.location.origin;
+let pedidos = [];
+let pedidosAnteriores = [];
+let filtroAtual = 'todos';
+let beepAtivo = true;
+let audioCtx = null;
+let primeiraCarrega = true;
+
+// Controle do toggle de beep
+document.getElementById('beepToggle').addEventListener('change', function() {
+    beepAtivo = this.checked;
+    document.getElementById('beepStatus').textContent = beepAtivo ? 'ATIVADO' : 'DESATIVADO';
+    document.getElementById('beepStatus').style.color = beepAtivo ? 'var(--green)' : 'var(--red)';
+    if (beepAtivo) {
+        // Inicializar AudioContext com interação do usuário
+        inicializarAudio();
+    }
+});
+
+function inicializarAudio() {
+    if (!audioCtx) {
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch(e) { console.warn('AudioContext nao disponivel'); }
+    }
+}
+
+/**
+ * Toca beep via Web Audio API (funciona em qualquer navegador)
+ * E também tenta usar o beep nativo Android via JavascriptInterface
+ */
+function tocarBeepNovoPedido() {
+    if (!beepAtivo) return;
+
+    // Tentar beep nativo Android
+    try {
+        if (typeof AndroidCozinha !== 'undefined') {
+            AndroidCozinha.tocarBeep();
+            AndroidCozinha.vibrar();
+            return; // Se nativo funcionar, não precisa do Web Audio
+        }
+    } catch(e) {}
+
+    // Fallback: Web Audio API (para acesso via navegador externo)
+    tocarBeepWebAudio([
+        {freq: 880, dur: 150, delay: 0},
+        {freq: 1100, dur: 150, delay: 200},
+        {freq: 880, dur: 150, delay: 400},
+        {freq: 1320, dur: 300, delay: 600}
+    ]);
+}
+
+function tocarBeepPronto() {
+    if (!beepAtivo) return;
+    try {
+        if (typeof AndroidCozinha !== 'undefined') {
+            AndroidCozinha.tocarBeepPronto();
+            return;
+        }
+    } catch(e) {}
+    tocarBeepWebAudio([
+        {freq: 1000, dur: 100, delay: 0},
+        {freq: 1200, dur: 100, delay: 150}
+    ]);
+}
+
+function tocarBeepWebAudio(notas) {
+    if (!audioCtx) inicializarAudio();
+    if (!audioCtx) return;
+    try {
+        notas.forEach(nota => {
+            setTimeout(() => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = 'sine';
+                osc.frequency.value = nota.freq;
+                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + nota.dur / 1000);
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + nota.dur / 1000);
+            }, nota.delay);
+        });
+    } catch(e) { console.warn('Erro ao tocar beep:', e); }
+}
+
+function mostrarFlashNovoPedido() {
+    const overlay = document.getElementById('novoOverlay');
+    overlay.classList.remove('show');
+    void overlay.offsetWidth; // force reflow
+    overlay.classList.add('show');
+}
+
+async function carregarPedidos() {
+    try {
+        const url = filtroAtual === 'todos'
+            ? '/api/cozinha/pedidos'
+            : '/api/cozinha/pedidos?status=' + filtroAtual;
+        const resp = await fetch(API + url);
+        const data = await resp.json();
+        pedidos = data;
+
+        // Detectar novos pedidos (comparar com anterior)
+        if (!primeiraCarrega) {
+            const idsAnteriores = new Set(pedidosAnteriores.map(p => p.id));
+            const novosPedidos = pedidos.filter(p => !idsAnteriores.has(p.id) && p.status === 'pendente');
+            if (novosPedidos.length > 0) {
+                tocarBeepNovoPedido();
+                mostrarFlashNovoPedido();
+                novosPedidos.forEach(p => {
+                    showToast('Novo pedido #' + p.numero_pedido + ' - Mesa ' + p.mesa_numero, 'info');
+                });
+            }
+        }
+        primeiraCarrega = false;
+        pedidosAnteriores = JSON.parse(JSON.stringify(pedidos));
+
+        renderPedidos();
+        atualizarStats();
+    } catch(e) {
+        console.error('Erro ao carregar pedidos:', e);
+    }
+}
+
+function calcularTempo(dataCriacao) {
+    if (!dataCriacao) return {texto: '', urgente: false};
+    try {
+        const dt = new Date(dataCriacao.replace(' ', 'T'));
+        const agora = new Date();
+        const diffMs = agora - dt;
+        const diffMin = Math.floor(diffMs / 60000);
+        if (diffMin < 1) return {texto: 'Agora mesmo', urgente: false};
+        if (diffMin < 60) return {texto: diffMin + ' min', urgente: diffMin > 15};
+        const horas = Math.floor(diffMin / 60);
+        const mins = diffMin % 60;
+        return {texto: horas + 'h ' + mins + 'min', urgente: true};
+    } catch(e) { return {texto: '', urgente: false}; }
+}
+
+function renderPedidos() {
+    const container = document.getElementById('pedidosGrid');
+    if (!pedidos || pedidos.length === 0) {
+        container.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="icon">&#127859;</div><p>Nenhum pedido no momento</p><p style="font-size:0.8em;margin-top:8px;color:var(--text2)">Os pedidos aparecerao aqui automaticamente</p></div>';
+        return;
+    }
+    let html = '';
+    pedidos.forEach(p => {
+        const statusLabels = {pendente:'Pendente',preparando:'Preparando',pronto:'Pronto',entregue:'Entregue'};
+        const tempo = calcularTempo(p.data_criacao);
+        const isNovo = p._isNovo ? ' novo' : '';
+
+        html += '<div class="pedido-card ' + p.status + isNovo + '" id="card-' + p.id + '">';
+
+        // Header
+        html += '<div class="card-header">';
+        html += '<div class="card-header-left">';
+        html += '<span class="pedido-num">#' + p.numero_pedido + '</span>';
+        html += '<span class="pedido-mesa">Mesa ' + p.mesa_numero + '</span>';
+        html += '</div>';
+        html += '<span class="pedido-badge ' + p.status + '">' + (statusLabels[p.status] || p.status) + '</span>';
+        html += '</div>';
+
+        // Body
+        html += '<div class="card-body">';
+        html += '<div class="cliente-nome">&#128100; ' + escHtml(p.cliente_nome) + '</div>';
+
+        if (p.observacao) {
+            html += '<div class="pedido-obs">&#128172; ' + escHtml(p.observacao) + '</div>';
+        }
+
+        if (tempo.texto) {
+            html += '<div class="pedido-tempo">&#9200; <span class="tempo-valor' + (tempo.urgente ? ' urgente' : '') + '">' + tempo.texto + '</span> atr&aacute;s</div>';
+        }
+
+        // Itens do pedido
+        if (p.itens && p.itens.length > 0) {
+            html += '<div class="itens-lista">';
+            p.itens.forEach(item => {
+                html += '<div class="item-row">';
+                html += '<span class="item-qtd">' + parseFloat(item.quantidade).toFixed(0) + 'x</span>';
+                html += '<span class="item-desc">' + escHtml(item.descricao_produto);
+                if (item.adicionais_desc) {
+                    html += '<span class="item-adicionais">+ ' + escHtml(item.adicionais_desc) + '</span>';
+                }
+                if (item.observacao) {
+                    html += '<span class="item-obs">&#128221; ' + escHtml(item.observacao) + '</span>';
+                }
+                html += '</span>';
+                html += '<span class="item-preco">R$ ' + parseFloat(item.total).toFixed(2).replace('.',',') + '</span>';
+                html += '</div>';
+            });
+            html += '</div>';
+        }
+
+        // Total
+        html += '<div class="pedido-total-row">';
+        html += '<span class="pedido-total-label">Total</span>';
+        html += '<span class="pedido-total-valor">R$ ' + parseFloat(p.total).toFixed(2).replace('.',',') + '</span>';
+        html += '</div>';
+
+        html += '</div>'; // card-body
+
+        // Actions
+        html += '<div class="card-actions">' + getActions(p) + '</div>';
+
+        html += '</div>'; // pedido-card
+    });
+    container.innerHTML = html;
+}
+
+function getActions(p) {
+    switch(p.status) {
+        case 'pendente':
+            return '<button class="btn btn-preparar" onclick="atualizarStatus(' + p.id + ',\'preparando\')">&#127859; Preparar</button>' +
+                   '<button class="btn btn-cancelar" onclick="confirmarCancelar(' + p.id + ','+p.numero_pedido+')">&#10060;</button>';
+        case 'preparando':
+            return '<button class="btn btn-pronto" onclick="atualizarStatus(' + p.id + ',\'pronto\')">&#9989; Pronto!</button>';
+        case 'pronto':
+            return '<button class="btn btn-entregar" onclick="atualizarStatus(' + p.id + ',\'entregue\')">&#128230; Entregue</button>';
+        default:
+            return '';
+    }
+}
+
+function atualizarStats() {
+    // Buscar todos para contagem correta
+    fetch(API + '/api/cozinha/pedidos').then(r => r.json()).then(all => {
+        const counts = {pendente:0, preparando:0, pronto:0, entregue:0};
+        all.forEach(p => { if (counts[p.status] !== undefined) counts[p.status]++; });
+        document.getElementById('statPendente').textContent = counts.pendente;
+        document.getElementById('statPreparando').textContent = counts.preparando;
+        document.getElementById('statPronto').textContent = counts.pronto;
+        document.getElementById('statEntregue').textContent = counts.entregue;
+    }).catch(() => {});
+}
+
+async function atualizarStatus(id, status) {
+    try {
+        const resp = await fetch(API + '/api/cardapio/pedido/atualizar-status', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: id, status: status})
+        });
+        const data = await resp.json();
+        if (data.success) {
+            const labels = {preparando:'Preparando',pronto:'Pronto!',entregue:'Entregue',cancelado:'Cancelado'};
+            showToast('Pedido atualizado: ' + (labels[status] || status), 'success');
+            if (status === 'pronto') tocarBeepPronto();
+            carregarPedidos();
+        } else {
+            showToast(data.error || 'Erro ao atualizar', 'error');
+        }
+    } catch(e) {
+        showToast('Erro de conexao', 'error');
+    }
+}
+
+function confirmarCancelar(id, numero) {
+    if (confirm('Cancelar pedido #' + numero + '?')) {
+        atualizarStatus(id, 'cancelado');
+    }
+}
+
+function filtrar(status, btn) {
+    filtroAtual = status;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    carregarPedidos();
+}
+
+function escHtml(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + type + ' show';
+    setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+// Inicializar AudioContext na primeira interação do usuário
+document.addEventListener('click', function initAudio() {
+    inicializarAudio();
+    document.removeEventListener('click', initAudio);
+}, {once: true});
+
+// Carregar pedidos e iniciar loop
+carregarPedidos();
+setInterval(carregarPedidos, 3000);
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <ImageView
+            android:id="@+id/ivFoto"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_gravity="center_horizontal"
+            android:scaleType="centerCrop"
+            android:background="#33FFFFFF"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnFoto"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_gravity="center_horizontal"
+            android:text="Escolher Foto"
+            android:textSize="12sp"
+            android:layout_marginBottom="12dp" />
+
+        <EditText android:id="@+id/etCodigo" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Codigo (automatico)" android:padding="12dp" android:layout_marginBottom="4dp" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="4dp"
+            android:gravity="center_vertical">
+
+            <EditText android:id="@+id/etCodigoBarras"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Codigo de Barras (EAN-13)"
+                android:padding="12dp"
+                android:inputType="number"
+                android:maxLength="13" />
+
+            <Button android:id="@+id/btnGerarEan"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="Gerar"
+                android:textSize="11sp"
+                android:layout_marginStart="4dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp" />
+
+        </LinearLayout>
+        <EditText android:id="@+id/etDescricao" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Descricao" android:padding="12dp" android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tipo do Produto:"
+            android:textSize="13sp"
+            android:paddingStart="12dp"
+            android:paddingTop="4dp"
+            android:textColor="#888888" />
+
+        <Spinner
+            android:id="@+id/spinnerTipoProduto"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:padding="12dp"
+            android:layout_marginBottom="4dp"
+            android:background="@android:drawable/btn_dropdown" />
+
+        <EditText android:id="@+id/etUnidade" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Unidade (UN, KG, etc)" android:padding="12dp" android:layout_marginBottom="4dp" />
+        <EditText android:id="@+id/etPrecoCusto" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Preco de Custo" android:padding="12dp" android:layout_marginBottom="4dp" android:inputType="numberDecimal" />
+        <EditText android:id="@+id/etPrecoVenda" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Preco de Venda" android:padding="12dp" android:layout_marginBottom="4dp" android:inputType="numberDecimal" />
+        <EditText android:id="@+id/etEstoque" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Estoque" android:padding="12dp" android:layout_marginBottom="4dp" android:inputType="numberDecimal" />
+        <EditText android:id="@+id/etEstoqueMin" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Estoque Minimo" android:padding="12dp" android:inputType="numberDecimal" />
+    </LinearLayout>
+</ScrollView>

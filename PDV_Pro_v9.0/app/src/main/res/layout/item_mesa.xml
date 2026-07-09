@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cardMesa"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="6dp"
+    app:cardBackgroundColor="@color/colorCard"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:id="@+id/llMesaContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:gravity="center">
+
+        <!-- Numero da mesa -->
+        <TextView
+            android:id="@+id/tvMesaNumero"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Mesa 1"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <!-- Status -->
+        <TextView
+            android:id="@+id/tvMesaStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Livre"
+            android:textColor="#4CAF50"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:layout_marginTop="2dp" />
+
+        <!-- Reservado por (v6.7.8) -->
+        <TextView
+            android:id="@+id/tvMesaReservadoPor"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#FF9800"
+            android:textSize="10sp"
+            android:textStyle="italic"
+            android:layout_marginTop="2dp"
+            android:gravity="center"
+            android:visibility="gone" />
+
+        <!-- Garcom -->
+        <TextView
+            android:id="@+id/tvMesaGarcom"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#B0BEC5"
+            android:textSize="11sp"
+            android:layout_marginTop="4dp"
+            android:visibility="gone" />
+
+        <!-- Pessoas -->
+        <TextView
+            android:id="@+id/tvMesaPessoas"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#B0BEC5"
+            android:textSize="11sp"
+            android:visibility="gone" />
+
+        <!-- Total -->
+        <TextView
+            android:id="@+id/tvMesaTotal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#FFD700"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:layout_marginTop="4dp"
+            android:visibility="gone" />
+
+        <!-- Qtd itens -->
+        <TextView
+            android:id="@+id/tvMesaItens"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#B0BEC5"
+            android:textSize="10sp"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

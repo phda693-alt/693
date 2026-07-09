@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/gradient_bg"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Backup e Restauracao" android:textSize="24sp" android:textColor="@color/accent_cyan"
+            android:textStyle="bold" android:layout_marginBottom="16dp" />
+
+        <EditText android:id="@+id/etFtpHost" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Host FTP" android:textColor="@color/text_primary" android:textColorHint="@color/text_hint"
+            android:background="@drawable/input_bg" android:padding="12dp" android:layout_marginBottom="8dp" />
+
+        <EditText android:id="@+id/etFtpUser" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Usuario FTP" android:textColor="@color/text_primary" android:textColorHint="@color/text_hint"
+            android:background="@drawable/input_bg" android:padding="12dp" android:layout_marginBottom="8dp" />
+
+        <EditText android:id="@+id/etFtpPassword" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Senha FTP" android:textColor="@color/text_primary" android:textColorHint="@color/text_hint"
+            android:background="@drawable/input_bg" android:padding="12dp" android:layout_marginBottom="8dp" android:inputType="textPassword" />
+
+        <CheckBox android:id="@+id/cbAutoBackup" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Backup Automatico" android:textColor="@color/text_primary" android:layout_marginBottom="4dp" />
+
+        <CheckBox android:id="@+id/cbSqlBackup" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Incluir backup em formato .sql (MySQL dump)" android:textColor="@color/text_primary"
+            android:layout_marginBottom="12dp" />
+
+        <Button android:id="@+id/btnSalvar" android:layout_width="match_parent" android:layout_height="44dp"
+            android:text="SALVAR CONFIGURACAO" android:textColor="@color/white" android:background="@drawable/btn_primary"
+            android:layout_marginBottom="8dp" />
+
+        <Button android:id="@+id/btnBackupAgora" android:layout_width="match_parent" android:layout_height="44dp"
+            android:text="FAZER BACKUP AGORA" android:textColor="@color/white" android:background="@drawable/btn_secondary"
+            android:layout_marginBottom="8dp" />
+
+        <Button android:id="@+id/btnBackupSqlAgora" android:layout_width="match_parent" android:layout_height="44dp"
+            android:text="FAZER BACKUP SQL AGORA" android:textColor="@color/white" android:background="@drawable/btn_secondary"
+            android:layout_marginBottom="8dp" />
+
+        <Button android:id="@+id/btnListarBackups" android:layout_width="match_parent" android:layout_height="44dp"
+            android:text="LISTAR BACKUPS / RESTAURAR" android:textColor="#FFFFFF" android:background="@drawable/btn_danger"
+            android:layout_marginBottom="8dp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#33FFFFFF"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Zona de Perigo" android:textSize="18sp" android:textColor="#FF5252"
+            android:textStyle="bold" android:layout_marginBottom="8dp" />
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="As acoes abaixo sao irreversiveis e requerem senha de seguranca."
+            android:textSize="12sp" android:textColor="#AAAAAA"
+            android:layout_marginBottom="12dp" />
+
+        <Button android:id="@+id/btnApagarDadosBD" android:layout_width="match_parent" android:layout_height="44dp"
+            android:text="APAGAR DADOS DO BANCO" android:textColor="#FFFFFF" android:background="@drawable/btn_danger"
+            android:layout_marginBottom="8dp" />
+
+        <Button android:id="@+id/btnApagarArquivosFTP" android:layout_width="match_parent" android:layout_height="44dp"
+            android:text="APAGAR ARQUIVOS DO FTP" android:textColor="#FFFFFF" android:background="@drawable/btn_danger"
+            android:layout_marginBottom="8dp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvBackups"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="200dp" />
+
+    </LinearLayout>
+</ScrollView>

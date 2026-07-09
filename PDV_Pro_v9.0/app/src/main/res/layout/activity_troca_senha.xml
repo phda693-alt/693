@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/gradient_bg"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Trocar Senha" android:textSize="24sp" android:textColor="@color/accent_cyan"
+            android:textStyle="bold" android:layout_marginBottom="24dp" />
+
+        <EditText android:id="@+id/etSenhaAtual" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Senha Atual" android:textColor="@color/text_primary" android:textColorHint="@color/text_hint"
+            android:background="@drawable/input_bg" android:padding="16dp" android:layout_marginBottom="8dp" android:inputType="textPassword" />
+
+        <EditText android:id="@+id/etNovaSenha" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Nova Senha" android:textColor="@color/text_primary" android:textColorHint="@color/text_hint"
+            android:background="@drawable/input_bg" android:padding="16dp" android:layout_marginBottom="8dp" android:inputType="textPassword" />
+
+        <EditText android:id="@+id/etConfirmarSenha" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Confirmar Nova Senha" android:textColor="@color/text_primary" android:textColorHint="@color/text_hint"
+            android:background="@drawable/input_bg" android:padding="16dp" android:layout_marginBottom="16dp" android:inputType="textPassword" />
+
+        <Button android:id="@+id/btnTrocar" android:layout_width="match_parent" android:layout_height="48dp"
+            android:text="TROCAR SENHA" android:textColor="@color/white" android:background="@drawable/btn_primary" />
+    </LinearLayout>
+</ScrollView>

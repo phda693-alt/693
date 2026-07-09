@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- v9.1.0 - Fundo aurora futurista (novo recurso, opcional).
+     Mantem a base escura do app e sobrepoe um halo radial ciano sutil. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#080C10"
+                android:centerColor="#0A121A"
+                android:endColor="#0D1820"
+                android:angle="120"
+                android:type="linear" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="600"
+                android:centerX="0.15"
+                android:centerY="0.1"
+                android:startColor="#2200E5CC"
+                android:endColor="#0000E5CC" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="700"
+                android:centerX="0.9"
+                android:centerY="0.95"
+                android:startColor="#1AA855F7"
+                android:endColor="#00A855F7" />
+        </shape>
+    </item>
+</layer-list>

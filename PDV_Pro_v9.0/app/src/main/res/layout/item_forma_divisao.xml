@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="6dp"
+    android:layout_marginBottom="4dp"
+    android:background="@drawable/item_list_bg">
+
+    <CheckBox
+        android:id="@+id/cbForma"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textColor="#FFFFFF"
+        android:textSize="15sp"
+        android:buttonTint="#00BCD4" />
+
+    <EditText
+        android:id="@+id/etValorForma"
+        android:layout_width="130dp"
+        android:layout_height="40dp"
+        android:hint="R$ 0.00"
+        android:inputType="numberDecimal"
+        android:textSize="15sp"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#607D8B"
+        android:background="#1E2247"
+        android:padding="8dp"
+        android:gravity="end"
+        android:enabled="false"
+        android:visibility="gone" />
+
+</LinearLayout>

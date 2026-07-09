@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- v9.1.0 - Barra superior com gradiente de 3 estagios e fina linha ciano inferior,
+     reforcando o visual futurista sem alterar o tom escuro original. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#0A0E14"
+                android:centerColor="#0C1622"
+                android:endColor="#11212E"
+                android:angle="0"
+                android:type="linear" />
+        </shape>
+    </item>
+    <!-- Linha de acento ciano na base da toolbar -->
+    <item android:gravity="bottom">
+        <shape android:shape="rectangle">
+            <size android:height="2dp" />
+            <gradient
+                android:startColor="#0000E5CC"
+                android:centerColor="#6600E5CC"
+                android:endColor="#0000E5CC"
+                android:angle="0"
+                android:type="linear" />
+        </shape>
+    </item>
+</layer-list>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- v9.1.0 - Cartao base com gradiente diagonal sutil e borda discreta.
+     Preserva o tom escuro original (#1A2230) e adiciona leve profundidade. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:startColor="#1E2838"
+        android:endColor="#161D29"
+        android:angle="135"
+        android:type="linear" />
+    <corners android:radius="16dp" />
+    <stroke android:width="1dp" android:color="#28384C" />
+</shape>

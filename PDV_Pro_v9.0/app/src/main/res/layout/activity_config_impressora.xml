@@ -1,0 +1,619 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/gradient_bg"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Configurar Impressora" android:textSize="24sp" android:textColor="@color/accent_cyan"
+            android:textStyle="bold" android:layout_marginBottom="16dp" />
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Tipo de Impressora:" android:textColor="@color/text_primary" android:textSize="16sp" />
+
+        <RadioGroup android:id="@+id/rgTipo" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp">
+            <RadioButton android:id="@+id/rbRede" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Rede (TCP/IP)" android:textColor="@color/text_primary" />
+            <RadioButton android:id="@+id/rbBluetooth" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Bluetooth" android:textColor="@color/text_primary" />
+            <RadioButton android:id="@+id/rbUsb" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="USB" android:textColor="@color/text_primary" />
+            <RadioButton android:id="@+id/rbSmb" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Rede Windows (SMB/CIFS)" android:textColor="@color/text_primary" />
+            <RadioButton android:id="@+id/rbSmbDireto" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Rede Windows Direta (\\\\SERVIDOR\\IMPRESSORA)" android:textColor="@color/colorGold"
+                android:textStyle="bold" />
+            <RadioButton android:id="@+id/rbBtWindows" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Bluetooth Windows (via PC/Notebook)" android:textColor="#2196F3"
+                android:textStyle="bold" />
+            <RadioButton android:id="@+id/rbPrintServer" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Servidor de Impressao (PC)" android:textColor="#4CAF50"
+                android:textStyle="bold" />
+            <RadioButton android:id="@+id/rbRedeRaw" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Rede IP Direto (RAW/LPR)" android:textColor="#FF9800"
+                android:textStyle="bold" />
+            <RadioButton android:id="@+id/rbNenhuma" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Nenhuma" android:textColor="@color/text_primary" />
+        </RadioGroup>
+
+        <LinearLayout android:id="@+id/layoutRede" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:visibility="gone">
+            <EditText android:id="@+id/etIp" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="IP da Impressora" android:textColor="@color/text_primary" android:textColorHint="@color/text_hint"
+                android:background="@drawable/input_bg" android:padding="12dp" android:layout_marginBottom="8dp" />
+            <EditText android:id="@+id/etPorta" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="Porta (padrao: 9100)" android:textColor="@color/text_primary" android:textColorHint="@color/text_hint"
+                android:background="@drawable/input_bg" android:padding="12dp" android:layout_marginBottom="8dp" android:inputType="number" />
+
+            <Button android:id="@+id/btnTestarRede" android:layout_width="match_parent" android:layout_height="42dp"
+                android:text="TESTAR CONEXAO REDE" android:textColor="@color/white"
+                android:background="@drawable/btn_secondary" android:textSize="13sp" android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+        </LinearLayout>
+
+        <LinearLayout android:id="@+id/layoutBluetooth" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:visibility="gone">
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="16dp"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp">
+
+                    <ImageView android:layout_width="28dp" android:layout_height="28dp"
+                        android:src="@drawable/ic_bluetooth_search"
+                        android:scaleType="centerInside"
+                        android:layout_marginRight="10dp" />
+
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Bluetooth Direto" android:textColor="#2196F3"
+                        android:textSize="18sp" android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Conecta diretamente a uma impressora termica Bluetooth pareada no seu celular. Basta clicar no botao abaixo para buscar automaticamente nos dispositivos emparelhados."
+                    android:textColor="@color/text_secondary" android:textSize="13sp"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Como funciona:\n1. Parear a impressora nas configuracoes Bluetooth do Android\n2. Clicar em BUSCAR IMPRESSORAS BLUETOOTH\n3. Selecionar a impressora na lista\n4. Testar a conexao\n5. Salvar!"
+                    android:textColor="@color/text_secondary" android:textSize="12sp"
+                    android:lineSpacingExtra="4dp"
+                    android:padding="10dp"
+                    android:background="@drawable/neon_border" />
+            </LinearLayout>
+
+            <!-- Botao para buscar impressoras Bluetooth emparelhadas -->
+            <Button android:id="@+id/btnBuscarBluetooth" android:layout_width="match_parent" android:layout_height="48dp"
+                android:text="BUSCAR IMPRESSORAS BLUETOOTH"
+                android:textColor="@color/white"
+                android:background="@drawable/btn_bluetooth"
+                android:textSize="14sp" android:textStyle="bold"
+                android:layout_marginBottom="12dp"
+                android:drawableLeft="@drawable/ic_bluetooth_search"
+                android:drawablePadding="8dp" />
+
+            <!-- Impressora Bluetooth selecionada -->
+            <LinearLayout android:id="@+id/layoutBtSelecionado" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="14dp"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Impressora Selecionada:" android:textColor="#2196F3"
+                    android:textSize="13sp" android:textStyle="bold" android:layout_marginBottom="6dp" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp"
+                        android:src="@drawable/ic_printer"
+                        android:scaleType="centerInside"
+                        android:layout_marginRight="8dp" />
+
+                    <TextView android:id="@+id/tvBtDeviceName" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="" android:textColor="@color/text_primary" android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView android:id="@+id/tvBtDeviceMac" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="" android:textColor="@color/text_secondary" android:textSize="13sp"
+                    android:layout_marginTop="2dp" android:layout_marginLeft="32dp" />
+
+                <TextView android:id="@+id/tvBtDeviceType" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="" android:textColor="@color/colorSuccess" android:textSize="12sp"
+                    android:layout_marginTop="4dp" android:layout_marginLeft="32dp" />
+
+                <TextView android:id="@+id/tvBtStatus" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="" android:textColor="@color/colorSuccess" android:textSize="12sp"
+                    android:layout_marginTop="6dp" />
+            </LinearLayout>
+
+            <!-- Campo MAC manual (oculto por padrao, pode ser expandido) -->
+            <LinearLayout android:id="@+id/layoutBtManual" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:visibility="gone">
+
+                <EditText android:id="@+id/etMacBt" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:hint="MAC Bluetooth (ex: 00:11:22:33:44:55)" android:textColor="@color/text_primary" android:textColorHint="@color/text_hint"
+                    android:background="@drawable/input_bg" android:padding="12dp" android:layout_marginBottom="8dp" />
+            </LinearLayout>
+
+            <TextView android:id="@+id/tvBtDigitarManual" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="Digitar MAC manualmente"
+                android:textColor="#2196F3" android:textSize="13sp"
+                android:gravity="center" android:padding="8dp"
+                android:layout_marginBottom="8dp" />
+
+            <Button android:id="@+id/btnTestarBluetooth" android:layout_width="match_parent" android:layout_height="42dp"
+                android:text="TESTAR CONEXAO BLUETOOTH" android:textColor="@color/white"
+                android:background="@drawable/btn_secondary" android:textSize="13sp" android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+        </LinearLayout>
+
+        <!-- Layout SMB/CIFS -->
+        <LinearLayout android:id="@+id/layoutSmb" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:visibility="gone">
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Conexao via Rede Windows (SMB/CIFS)" android:textColor="@color/accent_cyan"
+                android:textSize="14sp" android:textStyle="bold" android:layout_marginBottom="8dp" />
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Conecta a uma impressora compartilhada no Windows via protocolo SMB/CIFS. Use o botao abaixo para navegar na rede e encontrar a impressora, ou preencha manualmente."
+                android:textColor="@color/text_secondary" android:textSize="12sp" android:layout_marginBottom="12dp" />
+
+            <!-- BOTAO NAVEGAR NA REDE - Destaque principal -->
+            <Button android:id="@+id/btnNavegar" android:layout_width="match_parent" android:layout_height="48dp"
+                android:text="NAVEGAR NA REDE E ESCOLHER IMPRESSORA"
+                android:textColor="@color/white"
+                android:background="@drawable/btn_gold"
+                android:textSize="14sp" android:textStyle="bold"
+                android:layout_marginBottom="16dp"
+                android:drawableLeft="@drawable/ic_search_network"
+                android:drawablePadding="8dp" />
+
+            <View android:layout_width="match_parent" android:layout_height="1dp"
+                android:background="@color/colorDivider" android:layout_marginBottom="12dp" />
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Ou preencha manualmente:" android:textColor="@color/text_secondary"
+                android:textSize="12sp" android:layout_marginBottom="8dp" />
+
+            <EditText android:id="@+id/etSmbHost" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="IP ou Nome do PC (ex: 192.168.1.10)" android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" android:background="@drawable/input_bg"
+                android:padding="12dp" android:layout_marginBottom="8dp" />
+
+            <EditText android:id="@+id/etSmbShare" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="Nome do Compartilhamento (ex: EPSON_TM)" android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" android:background="@drawable/input_bg"
+                android:padding="12dp" android:layout_marginBottom="8dp" />
+
+            <EditText android:id="@+id/etSmbDomain" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="Dominio (padrao: WORKGROUP)" android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" android:background="@drawable/input_bg"
+                android:padding="12dp" android:layout_marginBottom="8dp" />
+
+            <EditText android:id="@+id/etSmbUser" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="Usuario (deixe vazio para acesso guest)" android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" android:background="@drawable/input_bg"
+                android:padding="12dp" android:layout_marginBottom="8dp" />
+
+            <EditText android:id="@+id/etSmbPassword" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="Senha" android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" android:background="@drawable/input_bg"
+                android:padding="12dp" android:layout_marginBottom="12dp"
+                android:inputType="textPassword" />
+
+            <Button android:id="@+id/btnTestarSmb" android:layout_width="match_parent" android:layout_height="42dp"
+                android:text="TESTAR CONEXAO SMB" android:textColor="@color/white"
+                android:background="@drawable/btn_secondary" android:layout_marginBottom="12dp"
+                android:textSize="13sp" android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <!-- Layout SMB DIRETO - Nova opcao de conexao direta \\SERVIDOR\IMPRESSORA -->
+        <LinearLayout android:id="@+id/layoutSmbDireto" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:visibility="gone">
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="16dp"
+                android:layout_marginBottom="12dp">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Conexao Direta - Rede Windows" android:textColor="@color/colorGold"
+                    android:textSize="16sp" android:textStyle="bold" android:layout_marginBottom="4dp" />
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Digite o caminho da impressora compartilhada no Windows no formato:"
+                    android:textColor="@color/text_secondary" android:textSize="13sp" android:layout_marginBottom="8dp" />
+
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="\\\\SERVIDOR\\IMPRESSORA"
+                    android:textColor="@color/colorNeonGreen" android:textSize="16sp" android:textStyle="bold"
+                    android:gravity="center" android:padding="8dp"
+                    android:background="@drawable/neon_border"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Exemplos:\n\\\\DESKTOP-K8R2HBI\\mp-4200 th\n\\\\192.168.1.100\\EPSON_TM\n\\\\SERVIDOR\\ImpressoraTermica"
+                    android:textColor="@color/text_secondary" android:textSize="12sp"
+                    android:lineSpacingExtra="4dp" />
+
+            </LinearLayout>
+
+            <EditText android:id="@+id/etSmbDiretoCaminho" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="\\\\SERVIDOR\\IMPRESSORA" android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" android:background="@drawable/input_bg"
+                android:padding="14dp" android:layout_marginBottom="10dp"
+                android:textSize="16sp" android:inputType="text"
+                android:imeOptions="actionDone" />
+
+            <TextView android:id="@+id/tvSmbDiretoStatus" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:textColor="@color/text_secondary" android:textSize="12sp"
+                android:visibility="gone" android:layout_marginBottom="8dp"
+                android:padding="4dp" />
+
+            <!-- Campos opcionais de credenciais -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="12dp"
+                android:layout_marginBottom="10dp">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Credenciais (opcional - deixe vazio para acesso sem senha)"
+                    android:textColor="@color/text_secondary" android:textSize="12sp"
+                    android:layout_marginBottom="8dp" />
+
+                <EditText android:id="@+id/etSmbDiretoDomain" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:hint="Dominio (padrao: WORKGROUP)" android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_hint" android:background="@drawable/input_bg"
+                    android:padding="10dp" android:layout_marginBottom="6dp" android:textSize="14sp" />
+
+                <EditText android:id="@+id/etSmbDiretoUser" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:hint="Usuario" android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_hint" android:background="@drawable/input_bg"
+                    android:padding="10dp" android:layout_marginBottom="6dp" android:textSize="14sp" />
+
+                <EditText android:id="@+id/etSmbDiretoPassword" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:hint="Senha" android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_hint" android:background="@drawable/input_bg"
+                    android:padding="10dp" android:layout_marginBottom="6dp" android:textSize="14sp"
+                    android:inputType="textPassword" />
+
+            </LinearLayout>
+
+            <Button android:id="@+id/btnTestarSmbDireto" android:layout_width="match_parent" android:layout_height="48dp"
+                android:text="TESTAR CONEXAO DIRETA"
+                android:textColor="@color/white"
+                android:background="@drawable/btn_gold"
+                android:textSize="14sp" android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+        </LinearLayout>
+
+        <!-- Layout Bluetooth Windows - Impressao via PC/Notebook com Bluetooth -->
+        <LinearLayout android:id="@+id/layoutBtWindows" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:visibility="gone">
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="16dp"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp">
+
+                    <ImageView android:layout_width="28dp" android:layout_height="28dp"
+                        android:src="@drawable/ic_bluetooth_search"
+                        android:scaleType="centerInside"
+                        android:layout_marginRight="10dp" />
+
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Bluetooth Windows" android:textColor="#2196F3"
+                        android:textSize="18sp" android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Conecta automaticamente a um computador ou notebook Windows via Bluetooth e envia a impressao para a impressora compartilhada nele."
+                    android:textColor="@color/text_secondary" android:textSize="13sp"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Como funciona:\n1. O app busca computadores com Bluetooth\n2. Voce seleciona o PC/Notebook\n3. O app conecta e lista as impressoras do Windows\n   (Painel de Controle > Hardware e Sons > Dispositivos e Impressoras)\n4. Voce escolhe a impressora desejada\n5. A impressao e enviada para a impressora selecionada"
+                    android:textColor="@color/text_secondary" android:textSize="12sp"
+                    android:lineSpacingExtra="4dp"
+                    android:padding="10dp"
+                    android:background="@drawable/neon_border" />
+            </LinearLayout>
+
+            <!-- Botao para buscar dispositivos Bluetooth -->
+            <Button android:id="@+id/btnBuscarBtWindows" android:layout_width="match_parent" android:layout_height="48dp"
+                android:text="BUSCAR COMPUTADORES BLUETOOTH"
+                android:textColor="@color/white"
+                android:background="@drawable/btn_bluetooth"
+                android:textSize="14sp" android:textStyle="bold"
+                android:layout_marginBottom="12dp"
+                android:drawableLeft="@drawable/ic_bluetooth_search"
+                android:drawablePadding="8dp" />
+
+            <!-- Dispositivo selecionado -->
+            <LinearLayout android:id="@+id/layoutBtWinSelecionado" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="14dp"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Computador Selecionado:" android:textColor="#2196F3"
+                    android:textSize="13sp" android:textStyle="bold" android:layout_marginBottom="6dp" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp"
+                        android:src="@drawable/ic_computer"
+                        android:scaleType="centerInside"
+                        android:layout_marginRight="8dp" />
+
+                    <TextView android:id="@+id/tvBtWinDeviceName" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="" android:textColor="@color/text_primary" android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView android:id="@+id/tvBtWinDeviceMac" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="" android:textColor="@color/text_secondary" android:textSize="13sp"
+                    android:layout_marginTop="2dp" android:layout_marginLeft="32dp" />
+
+                <!-- Impressora do Windows selecionada -->
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:background="@color/colorDivider" android:layout_marginTop="10dp" android:layout_marginBottom="10dp" />
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Impressora do Windows:" android:textColor="#00E676"
+                    android:textSize="13sp" android:textStyle="bold" android:layout_marginBottom="6dp" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp"
+                        android:src="@drawable/ic_printer"
+                        android:scaleType="centerInside"
+                        android:layout_marginRight="8dp" />
+
+                    <TextView android:id="@+id/tvBtWinPrinterName" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="(nenhuma selecionada)" android:textColor="@color/text_primary" android:textSize="15sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView android:id="@+id/tvBtWinStatus" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="" android:textColor="@color/colorSuccess" android:textSize="12sp"
+                    android:layout_marginTop="6dp" />
+            </LinearLayout>
+
+            <!-- Botao para testar conexao Bluetooth -->
+            <Button android:id="@+id/btnTestarBtWindows" android:layout_width="match_parent" android:layout_height="42dp"
+                android:text="TESTAR CONEXAO BLUETOOTH"
+                android:textColor="@color/white"
+                android:background="@drawable/btn_secondary"
+                android:textSize="13sp" android:textStyle="bold"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Tamanho do Papel:" android:textColor="@color/text_primary" android:textSize="16sp"
+            android:layout_marginTop="12dp" />
+
+        <RadioGroup android:id="@+id/rgPapel" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginBottom="16dp">
+            <RadioButton android:id="@+id/rb58mm" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="58mm" android:textColor="@color/text_primary" />
+            <RadioButton android:id="@+id/rb80mm" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="80mm" android:textColor="@color/text_primary" android:layout_marginLeft="24dp" />
+        </RadioGroup>
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Driver / Modelo da Impressora:" android:textColor="@color/text_primary" android:textSize="16sp"
+            android:layout_marginTop="4dp" />
+
+        <Spinner android:id="@+id/spDriverImpressora"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="@drawable/input_bg"
+            android:padding="8dp"
+            android:layout_marginBottom="6dp" />
+
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Escolha o modelo mais proximo da sua impressora. Isso ajusta acentos, QR Code, corte, largura e comandos ESC/POS."
+            android:textColor="@color/text_secondary" android:textSize="12sp"
+            android:layout_marginBottom="14dp" />
+
+        <!-- Layout Servidor de Impressao (PC) -->
+        <LinearLayout android:id="@+id/layoutPrintServer" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:visibility="gone">
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="16dp"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp">
+
+                    <ImageView android:layout_width="28dp" android:layout_height="28dp"
+                        android:src="@drawable/ic_network"
+                        android:scaleType="centerInside"
+                        android:layout_marginRight="10dp" />
+
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Servidor de Impressao (PC)" android:textColor="#4CAF50"
+                        android:textSize="18sp" android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Conecta ao servidor de impressao Python rodando no seu computador Windows. O servidor recebe os dados via Wi-Fi e imprime na impressora local do PC."
+                    android:textColor="@color/text_secondary" android:textSize="13sp"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Como funciona:\n1. Execute o PDV_Print_Server.py no seu PC\n2. Informe o IP do PC e a porta (padrao: 9200)\n3. Teste a conexao\n4. Escolha a impressora do PC\n5. Salve e pronto!"
+                    android:textColor="@color/text_secondary" android:textSize="12sp"
+                    android:lineSpacingExtra="4dp"
+                    android:padding="10dp"
+                    android:background="@drawable/neon_border" />
+            </LinearLayout>
+
+            <EditText android:id="@+id/etPrintServerIp" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="IP do Computador (ex: 192.168.1.100)" android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" android:background="@drawable/input_bg"
+                android:padding="12dp" android:layout_marginBottom="8dp" />
+
+            <EditText android:id="@+id/etPrintServerPorta" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="Porta (padrao: 9200)" android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" android:background="@drawable/input_bg"
+                android:padding="12dp" android:layout_marginBottom="8dp" android:inputType="number" />
+
+            <Button android:id="@+id/btnTestarPrintServer" android:layout_width="match_parent" android:layout_height="48dp"
+                android:text="TESTAR CONEXAO COM SERVIDOR"
+                android:textColor="@color/white"
+                android:background="@drawable/btn_gold"
+                android:textSize="14sp" android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <Button android:id="@+id/btnBuscarImpressorasServer" android:layout_width="match_parent" android:layout_height="42dp"
+                android:text="BUSCAR IMPRESSORAS DO PC"
+                android:textColor="@color/white"
+                android:background="@drawable/btn_secondary"
+                android:textSize="13sp" android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Impressora selecionada do servidor -->
+            <LinearLayout android:id="@+id/layoutPrintServerSelecionada" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="14dp"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Impressora Selecionada:" android:textColor="#4CAF50"
+                    android:textSize="13sp" android:textStyle="bold" android:layout_marginBottom="6dp" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp"
+                        android:src="@drawable/ic_printer"
+                        android:scaleType="centerInside"
+                        android:layout_marginRight="8dp" />
+
+                    <TextView android:id="@+id/tvPrintServerImpressora" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="(nenhuma selecionada)" android:textColor="@color/text_primary" android:textSize="15sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView android:id="@+id/tvPrintServerStatus" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="" android:textColor="@color/colorSuccess" android:textSize="12sp"
+                    android:layout_marginTop="6dp" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Layout Rede IP Direto (RAW/LPR) -->
+        <LinearLayout android:id="@+id/layoutRedeRaw" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:visibility="gone">
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="16dp"
+                android:layout_marginBottom="12dp">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp">
+
+                    <ImageView android:layout_width="28dp" android:layout_height="28dp"
+                        android:src="@drawable/ic_network"
+                        android:scaleType="centerInside"
+                        android:layout_marginRight="10dp" />
+
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Rede IP Direto (RAW/LPR)" android:textColor="#FF9800"
+                        android:textSize="18sp" android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Conecta diretamente a uma impressora de rede via protocolo RAW (porta 9100) ou LPR (porta 515). Ideal para impressoras com IP fixo na rede local."
+                    android:textColor="@color/text_secondary" android:textSize="13sp"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Protocolos suportados:\n- RAW (porta 9100) - Mais comum\n- LPR/LPD (porta 515) - Impressoras corporativas\n- IPP (porta 631) - Internet Printing Protocol"
+                    android:textColor="@color/text_secondary" android:textSize="12sp"
+                    android:lineSpacingExtra="4dp"
+                    android:padding="10dp"
+                    android:background="@drawable/neon_border" />
+            </LinearLayout>
+
+            <EditText android:id="@+id/etRedeRawIp" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="IP da Impressora (ex: 192.168.1.200)" android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" android:background="@drawable/input_bg"
+                android:padding="12dp" android:layout_marginBottom="8dp" />
+
+            <EditText android:id="@+id/etRedeRawPorta" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:hint="Porta (padrao: 9100)" android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint" android:background="@drawable/input_bg"
+                android:padding="12dp" android:layout_marginBottom="8dp" android:inputType="number" />
+
+            <Spinner android:id="@+id/spProtocolo" android:layout_width="match_parent" android:layout_height="48dp"
+                android:background="@drawable/input_bg" android:padding="12dp"
+                android:layout_marginBottom="8dp" />
+
+            <Button android:id="@+id/btnTestarRedeRaw" android:layout_width="match_parent" android:layout_height="48dp"
+                android:text="TESTAR CONEXAO REDE DIRETA"
+                android:textColor="@color/white"
+                android:background="@drawable/btn_gold"
+                android:textSize="14sp" android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+        </LinearLayout>
+
+        <Button android:id="@+id/btnTestarUsb" android:layout_width="match_parent" android:layout_height="42dp"
+            android:text="TESTAR IMPRESSORA USB" android:textColor="@color/white"
+            android:background="@drawable/btn_secondary" android:textSize="13sp" android:textStyle="bold"
+            android:layout_marginBottom="8dp" android:visibility="gone" />
+
+        <Button android:id="@+id/btnImprimirTeste" android:layout_width="match_parent" android:layout_height="48dp"
+            android:text="IMPRIMIR PAGINA DE TESTE" android:textColor="@color/white"
+            android:background="@drawable/btn_gold" android:textSize="14sp" android:textStyle="bold"
+            android:layout_marginBottom="12dp" />
+
+        <Button android:id="@+id/btnSalvar" android:layout_width="match_parent" android:layout_height="48dp"
+            android:text="SALVAR" android:textColor="@color/white" android:background="@drawable/btn_primary" />
+    </LinearLayout>
+</ScrollView>

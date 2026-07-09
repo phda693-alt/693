@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PDV Pro</string>
+    <string name="version">v9.0.0</string>
+    <string name="app_full_name">PDV Pro v9.0 — Sistema Comercial Completo</string>
+
+    <!-- Botões -->
+    <string name="btn_entrar">ENTRAR</string>
+    <string name="btn_salvar">SALVAR</string>
+    <string name="btn_cancelar">CANCELAR</string>
+    <string name="btn_excluir">EXCLUIR</string>
+    <string name="btn_novo">NOVO</string>
+    <string name="btn_editar">EDITAR</string>
+    <string name="btn_buscar">BUSCAR</string>
+    <string name="btn_imprimir">IMPRIMIR</string>
+    <string name="btn_whatsapp">WHATSAPP</string>
+    <string name="btn_finalizar">FINALIZAR VENDA</string>
+    <string name="btn_config_banco">CONFIGURAR BANCO DE DADOS</string>
+    <string name="btn_testar">TESTAR CONEXÃO</string>
+    <string name="btn_confirmar">CONFIRMAR</string>
+    <string name="btn_fechar">FECHAR</string>
+    <string name="btn_voltar">VOLTAR</string>
+    <string name="btn_exportar">EXPORTAR</string>
+    <string name="btn_compartilhar">COMPARTILHAR</string>
+    <string name="btn_atualizar">ATUALIZAR</string>
+    <string name="btn_limpar">LIMPAR</string>
+    <string name="btn_filtrar">FILTRAR</string>
+    <string name="btn_aplicar">APLICAR</string>
+    <string name="btn_reativar">REATIVAR</string>
+    <string name="btn_inativar">INATIVAR</string>
+    <string name="btn_adicionar">ADICIONAR</string>
+    <string name="btn_remover">REMOVER</string>
+    <string name="btn_pagar">PAGAR</string>
+    <string name="btn_receber">RECEBER</string>
+    <string name="btn_abrir">ABRIR</string>
+    <string name="btn_fechar_caixa">FECHAR CAIXA</string>
+    <string name="btn_abrir_caixa">ABRIR CAIXA</string>
+    <string name="btn_sangria">SANGRIA</string>
+    <string name="btn_suprimento">SUPRIMENTO</string>
+
+    <!-- Hints -->
+    <string name="hint_usuario">Usuário</string>
+    <string name="hint_senha">Senha</string>
+    <string name="hint_buscar">Buscar…</string>
+    <string name="hint_descricao">Descrição</string>
+    <string name="hint_valor">Valor (R$)</string>
+    <string name="hint_quantidade">Quantidade</string>
+    <string name="hint_observacao">Observação</string>
+    <string name="hint_telefone">Telefone / WhatsApp</string>
+    <string name="hint_email">E-mail</string>
+    <string name="hint_cpf_cnpj">CPF / CNPJ</string>
+    <string name="hint_endereco">Endereço</string>
+    <string name="hint_bairro">Bairro</string>
+    <string name="hint_cidade">Cidade</string>
+    <string name="hint_cep">CEP</string>
+
+    <!-- Mensagens -->
+    <string name="msg_erro_conexao">Erro de conexão com o servidor</string>
+    <string name="msg_sucesso">Operação realizada com sucesso!</string>
+    <string name="msg_erro">Ocorreu um erro inesperado</string>
+    <string name="msg_confirmar_exclusao">Deseja realmente excluir este registro?\n\nEsta ação não pode ser desfeita.</string>
+    <string name="msg_campo_obrigatorio">Campo obrigatório não preenchido</string>
+    <string name="msg_sem_registros">Nenhum registro encontrado</string>
+    <string name="msg_carregando">Carregando…</string>
+    <string name="msg_salvando">Salvando…</string>
+    <string name="msg_aguarde">Aguarde…</string>
+    <string name="msg_conexao_ok">Conexão estabelecida com sucesso!</string>
+    <string name="msg_sem_conexao">Sem conexão com o banco de dados</string>
+    <string name="msg_operacao_cancelada">Operação cancelada pelo usuário</string>
+    <string name="msg_dados_invalidos">Dados inválidos. Verifique os campos.</string>
+    <string name="msg_valor_invalido">Valor inválido informado</string>
+    <string name="msg_estoque_insuficiente">Estoque insuficiente para esta operação</string>
+    <string name="msg_caixa_fechado">Caixa não está aberto. Abra o caixa primeiro.</string>
+    <string name="msg_venda_finalizada">Venda finalizada com sucesso!</string>
+    <string name="msg_backup_ok">Backup realizado com sucesso!</string>
+    <string name="msg_impressao_ok">Impressão enviada com sucesso!</string>
+    <string name="msg_sem_impressora">Nenhuma impressora configurada</string>
+
+    <!-- Títulos -->
+    <string name="title_dashboard">Painel Principal</string>
+    <string name="title_produtos">Produtos</string>
+    <string name="title_clientes">Clientes</string>
+    <string name="title_vendas">Nova Venda</string>
+    <string name="title_caixa">Controle de Caixa</string>
+    <string name="title_relatorios">Relatórios</string>
+    <string name="title_config">Configurações</string>
+    <string name="title_backup">Backup</string>
+    <string name="title_licenca">Licença</string>
+    <string name="title_historico">Histórico de Vendas</string>
+    <string name="title_fornecedores">Fornecedores</string>
+    <string name="title_contas_pagar">Contas a Pagar</string>
+    <string name="title_contas_receber">Contas a Receber</string>
+    <string name="title_estoque">Controle de Estoque</string>
+    <string name="title_mesas">Gerenciar Mesas</string>
+    <string name="title_comandas">Comandas</string>
+    <string name="title_entregas">Gerenciar Entregas</string>
+    <string name="title_ordem_servico">Ordens de Serviço</string>
+    <string name="title_agenda">Agenda</string>
+    <string name="title_diagnostico">Diagnóstico Pro</string>
+    <string name="title_sobre">Sobre o PDV Pro</string>
+    <string name="title_impressora">Configurar Impressora</string>
+    <string name="title_empresa">Dados da Empresa</string>
+    <string name="title_usuarios">Usuários do Sistema</string>
+    <string name="title_perfis">Perfis e Permissões</string>
+    <string name="title_whatsbot">Bot WhatsApp</string>
+    <string name="title_estacionamento">Estacionamento</string>
+    <string name="title_sauna">Armários / Sauna</string>
+    <string name="title_painel_cozinha">Painel da Cozinha</string>
+    <string name="title_painel_chamados">Painel de Chamados</string>
+    <string name="title_painel_senhas">Painel de Senhas</string>
+    <string name="title_cardapio_qr">Cardápio QR Code</string>
+    <string name="title_taxas_entrega">Taxas de Entrega</string>
+    <string name="title_formas_pagamento">Formas de Pagamento</string>
+    <string name="title_obs_cupom">Observações do Cupom</string>
+    <string name="title_vinculos">Vínculos de Usuários</string>
+    <string name="title_turno">Turnos</string>
+    <string name="title_caixas_nominais">Caixas Nominais</string>
+    <string name="title_garcons">Garçons</string>
+    <string name="title_vendedores">Vendedores</string>
+    <string name="title_entregadores">Entregadores</string>
+    <string name="title_categorias">Categorias</string>
+    <string name="title_adicionais">Adicionais</string>
+    <string name="title_nota_entrada">Nota de Entrada</string>
+    <string name="title_servidor_mysql">Servidor MySQL</string>
+    <string name="title_mirror_db">MySQL Espelho</string>
+    <string name="title_criar_banco">Criar Banco de Dados</string>
+    <string name="title_gerenciar_usuarios_db">Gerenciar Usuários MySQL</string>
+    <string name="title_modo_entregador">Modo Entregador</string>
+    <string name="title_smb_browser">Navegador SMB</string>
+    <string name="title_multi_impressoras">Multi Impressoras</string>
+    <string name="title_gerenciador_chamados">Gerenciador de Chamados</string>
+    <string name="title_bluetooth_windows">Bluetooth / Windows</string>
+
+    <!-- Outros -->
+    <string name="cliente_nao_informado">Cliente não informado</string>
+    <string name="accessibility_service_description">Permite que o PDV Pro envie notificações automáticas ao cliente via WhatsApp sem precisar abrir o aplicativo manualmente. O serviço detecta a tela do WhatsApp e clica automaticamente no botão enviar quando uma notificação é disparada pelo sistema.</string>
+
+    <!-- Seções do Dashboard -->
+    <string name="section_vendas">VENDAS E CAIXA</string>
+    <string name="section_cadastros">CADASTROS</string>
+    <string name="section_financeiro">FINANCEIRO</string>
+    <string name="section_restaurante">RESTAURANTE / MESA</string>
+    <string name="section_delivery">DELIVERY E WHATSAPP</string>
+    <string name="section_sistema">CONFIGURAÇÕES E SISTEMA</string>
+    <string name="section_outros">OUTROS RECURSOS</string>
+    <string name="section_agenda">AGENDA E SERVIÇOS</string>
+
+    <!-- Licença -->
+    <string name="licenca_ativa">Licença Ativa</string>
+    <string name="licenca_expirada">Licença Expirada</string>
+    <string name="licenca_sem">Sem Licença</string>
+    <string name="licenca_vence_hoje">ATENÇÃO! A licença vence HOJE!</string>
+    <string name="licenca_renovar">Renovar Licença</string>
+
+    <!-- Caixa -->
+    <string name="caixa_aberto">Caixa Aberto</string>
+    <string name="caixa_fechado">Caixa Fechado</string>
+    <string name="caixa_saldo">Saldo em Caixa</string>
+    <string name="caixa_total_vendas">Total de Vendas</string>
+    <string name="caixa_sangria">Sangria</string>
+    <string name="caixa_suprimento">Suprimento</string>
+
+    <!-- Venda -->
+    <string name="venda_total">Total</string>
+    <string name="venda_desconto">Desconto</string>
+    <string name="venda_acrescimo">Acréscimo</string>
+    <string name="venda_subtotal">Subtotal</string>
+    <string name="venda_troco">Troco</string>
+    <string name="venda_pago">Valor Pago</string>
+    <string name="venda_restante">Valor Restante</string>
+    <string name="venda_cliente">Cliente</string>
+    <string name="venda_vendedor">Vendedor</string>
+    <string name="venda_garcom">Garçom</string>
+    <string name="venda_obs">Observação</string>
+    <string name="venda_nova">Nova Venda</string>
+    <string name="venda_cancelar">Cancelar Venda</string>
+    <string name="venda_finalizar">Finalizar Venda</string>
+    <string name="venda_adicionar_produto">+ Adicionar Produto</string>
+    <string name="venda_buscar_produto">Buscar produto…</string>
+    <string name="venda_carrinho_vazio">Carrinho vazio\nAdicione produtos para iniciar</string>
+
+    <!-- Produto -->
+    <string name="produto_descricao">Descrição</string>
+    <string name="produto_codigo">Código</string>
+    <string name="produto_codigo_barras">Código de Barras</string>
+    <string name="produto_preco_venda">Preço de Venda</string>
+    <string name="produto_preco_custo">Preço de Custo</string>
+    <string name="produto_estoque">Estoque</string>
+    <string name="produto_estoque_minimo">Estoque Mínimo</string>
+    <string name="produto_unidade">Unidade</string>
+    <string name="produto_categoria">Categoria</string>
+    <string name="produto_ativo">Ativo</string>
+    <string name="produto_inativo">Inativo</string>
+    <string name="produto_estoque_baixo">Estoque Baixo</string>
+    <string name="produto_sem_estoque">Sem Estoque</string>
+</resources>

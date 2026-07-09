@@ -1,0 +1,204 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/gradient_bg"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- Titulo -->
+        <TextView
+            android:id="@+id/tvTitulo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Recuperar Senha"
+            android:textSize="24sp"
+            android:textColor="@color/accent_cyan"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Descricao -->
+        <TextView
+            android:id="@+id/tvDescricao"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Para redefinir sua senha, selecione o usuario e solicite a autorizacao de um administrador."
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp"
+            android:layout_marginBottom="24dp"
+            android:lineSpacingExtra="4dp" />
+
+        <!-- Separador: Passo 1 -->
+        <TextView
+            android:id="@+id/tvPasso1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="1. Selecione o usuario"
+            android:textColor="@color/accent_cyan"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Spinner de usuario -->
+        <FrameLayout
+            android:id="@+id/spinnerContainerRecuperar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/spinner_bg"
+            android:minHeight="52dp"
+            android:layout_marginBottom="16dp">
+
+            <Spinner
+                android:id="@+id/spinnerUsuarioRecuperar"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="40dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:background="@android:color/transparent"
+                android:popupBackground="@color/colorSurface"
+                android:spinnerMode="dropdown" />
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center_vertical|end"
+                android:layout_marginEnd="12dp"
+                android:src="@drawable/ic_dropdown_arrow"
+                android:contentDescription="Dropdown" />
+
+        </FrameLayout>
+
+        <!-- Separador: Passo 2 -->
+        <TextView
+            android:id="@+id/tvPasso2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="2. Autorizacao do administrador"
+            android:textColor="@color/accent_cyan"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tvDescAdmin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Peca para um administrador digitar a senha dele abaixo para autorizar a redefinicao."
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"
+            android:layout_marginBottom="8dp"
+            android:lineSpacingExtra="3dp" />
+
+        <!-- Login do admin -->
+        <FrameLayout
+            android:id="@+id/spinnerContainerAdmin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/spinner_bg"
+            android:minHeight="52dp"
+            android:layout_marginBottom="8dp">
+
+            <Spinner
+                android:id="@+id/spinnerAdmin"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="40dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:background="@android:color/transparent"
+                android:popupBackground="@color/colorSurface"
+                android:spinnerMode="dropdown" />
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center_vertical|end"
+                android:layout_marginEnd="12dp"
+                android:src="@drawable/ic_dropdown_arrow"
+                android:contentDescription="Dropdown" />
+
+        </FrameLayout>
+
+        <!-- Senha do admin -->
+        <EditText
+            android:id="@+id/etSenhaAdmin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Senha do Administrador"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"
+            android:background="@drawable/input_bg"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp"
+            android:inputType="textPassword" />
+
+        <!-- Separador: Passo 3 -->
+        <TextView
+            android:id="@+id/tvPasso3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="3. Defina a nova senha"
+            android:textColor="@color/accent_cyan"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Nova senha -->
+        <EditText
+            android:id="@+id/etNovaSenha"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Nova Senha"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"
+            android:background="@drawable/input_bg"
+            android:padding="16dp"
+            android:layout_marginBottom="8dp"
+            android:inputType="textPassword" />
+
+        <!-- Confirmar nova senha -->
+        <EditText
+            android:id="@+id/etConfirmarNovaSenha"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Confirmar Nova Senha"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"
+            android:background="@drawable/input_bg"
+            android:padding="16dp"
+            android:layout_marginBottom="24dp"
+            android:inputType="textPassword" />
+
+        <!-- Botao redefinir -->
+        <Button
+            android:id="@+id/btnRedefinir"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="REDEFINIR SENHA"
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:background="@drawable/btn_primary" />
+
+        <!-- Botao voltar -->
+        <TextView
+            android:id="@+id/tvVoltar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="VOLTAR AO LOGIN"
+            android:textColor="@color/accent_cyan"
+            android:textSize="14sp"
+            android:padding="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_gravity="center_horizontal" />
+
+    </LinearLayout>
+</ScrollView>

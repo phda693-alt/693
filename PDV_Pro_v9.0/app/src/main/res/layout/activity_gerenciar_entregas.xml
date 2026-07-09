@@ -1,0 +1,234 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/gradient_bg">
+
+    <!-- Header com titulo -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Gerenciar Entregas"
+            android:textSize="22sp"
+            android:textColor="@color/accent_cyan"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnAtualizar"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="ATUALIZAR"
+            android:textColor="@color/white"
+            android:textSize="12sp"
+            android:background="@drawable/btn_primary"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp" />
+    </LinearLayout>
+
+    <!-- Filtros de status -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:paddingLeft="8dp"
+        android:paddingRight="8dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="8dp">
+
+            <Button
+                android:id="@+id/btnFiltroTodas"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="Todas"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:textAllCaps="false"
+                android:background="@drawable/btn_primary"
+                android:paddingLeft="14dp"
+                android:paddingRight="14dp"
+                android:layout_marginRight="6dp" />
+
+            <Button
+                android:id="@+id/btnFiltroPendente"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="Pendentes"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:textAllCaps="false"
+                android:background="@drawable/btn_gold"
+                android:paddingLeft="14dp"
+                android:paddingRight="14dp"
+                android:layout_marginRight="6dp" />
+
+            <Button
+                android:id="@+id/btnFiltroEmRota"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="Em Rota"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:textAllCaps="false"
+                android:background="@drawable/btn_secondary"
+                android:paddingLeft="14dp"
+                android:paddingRight="14dp"
+                android:layout_marginRight="6dp" />
+
+            <Button
+                android:id="@+id/btnFiltroEntregue"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="Entregues"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:textAllCaps="false"
+                android:background="@drawable/btn_success"
+                android:paddingLeft="14dp"
+                android:paddingRight="14dp"
+                android:layout_marginRight="6dp" />
+
+            <Button
+                android:id="@+id/btnFiltroCancelada"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="Canceladas"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:textAllCaps="false"
+                android:background="@drawable/btn_danger"
+                android:paddingLeft="14dp"
+                android:paddingRight="14dp"
+                android:layout_marginRight="6dp" />
+
+            <Button
+                android:id="@+id/btnFiltroWhatsApp"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="WhatsApp"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:textAllCaps="false"
+                android:paddingLeft="14dp"
+                android:paddingRight="14dp" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- Busca -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="8dp">
+
+        <EditText
+            android:id="@+id/etBusca"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:hint="Buscar por ID, cliente ou entregador..."
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"
+            android:background="@drawable/input_bg"
+            android:padding="8dp"
+            android:textSize="14sp"
+            android:imeOptions="actionSearch"
+            android:inputType="text" />
+
+        <Button
+            android:id="@+id/btnBuscar"
+            android:layout_width="60dp"
+            android:layout_height="40dp"
+            android:text="IR"
+            android:textColor="@color/white"
+            android:background="@drawable/btn_secondary"
+            android:layout_marginLeft="8dp" />
+    </LinearLayout>
+
+    <!-- Contador de resultados -->
+    <TextView
+        android:id="@+id/tvContador"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="0 entregas encontradas"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp"
+        android:paddingLeft="14dp"
+        android:paddingBottom="4dp" />
+
+    <!-- Lista de entregas -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="8dp"
+        android:clipToPadding="false" />
+
+    <!-- Barra inferior com resumo -->
+    <LinearLayout
+        android:id="@+id/layoutResumo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@color/colorCard"
+        android:padding="10dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tvResumoPendentes"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/colorWarning"
+            android:textSize="11sp"
+            android:gravity="center"
+            android:text="Pend: 0" />
+
+        <TextView
+            android:id="@+id/tvResumoEmRota"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/colorNeon"
+            android:textSize="11sp"
+            android:gravity="center"
+            android:text="Rota: 0" />
+
+        <TextView
+            android:id="@+id/tvResumoEntregues"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/colorSuccess"
+            android:textSize="11sp"
+            android:gravity="center"
+            android:text="Entregues: 0" />
+
+        <TextView
+            android:id="@+id/tvResumoTotal"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/accent_cyan"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:text="Total: R$ 0,00" />
+    </LinearLayout>
+</LinearLayout>

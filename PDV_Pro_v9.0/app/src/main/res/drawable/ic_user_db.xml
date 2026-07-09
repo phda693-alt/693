@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icone de usuario de banco de dados (novo em 8.0.14) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Pessoa -->
+    <path android:fillColor="@color/accent_cyan"
+        android:pathData="M12,4 a3,3 0 1,0 0.001,0 z M12,10 c-4,0 -6,2 -6,3.5 v0.5 h12 v-0.5 c0,-1.5 -2,-3.5 -6,-3.5 z" />
+    <!-- Cilindro DB -->
+    <path android:fillColor="@color/accent_gold"
+        android:pathData="M15,16 h6 c0.5,0 1,0.5 1,1 v4 c0,0.5 -0.5,1 -1,1 h-6 c-0.5,0 -1,-0.5 -1,-1 v-4 c0,-0.5 0.5,-1 1,-1 z" />
+    <path android:fillColor="#FF8F00"
+        android:pathData="M14,18.5 h8 M14,20 h8" android:strokeColor="#FF8F00" android:strokeWidth="0.5" />
+</vector>

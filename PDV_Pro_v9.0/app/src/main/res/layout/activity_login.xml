@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ============================================================
+    activity_login.xml - VERSAO 8.0.18 PREMIUM
+    ============================================================
+    Layout premium mantendo TODOS os IDs originais
+    para compatibilidade total com LoginActivity.java existente.
+
+    IDs preservados (nao podem ser renomeados):
+      ivLogo, tvTitle, tvLabelUsuario, spinnerContainer,
+      spinnerUsuario, etSenha, btnToggleSenha, btnEntrar,
+      btnEntrarBiometria, btnCadastrarBiometria,
+      tvConfigBanco, tvTrocarSenha, tvEsqueciSenha,
+      tvNovaLicenca, tvAtualizarBanco, tvVersao
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/gradient_bg">
+
+    <!-- Camada animada de fundo -->
+    <com.pdv.app.ui.ParticleFieldView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Movimento sutil de marca -->
+    <com.pdv.app.ui.OrbitalRingView
+        android:layout_width="190dp"
+        android:layout_height="190dp"
+        android:layout_gravity="center_horizontal|top"
+        android:layout_marginTop="52dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:paddingTop="42dp"
+            android:paddingBottom="32dp">
+
+            <!-- LOGO PRINCIPAL -->
+            <ImageView
+                android:id="@+id/ivLogo"
+                android:layout_width="112dp"
+                android:layout_height="112dp"
+                android:background="@drawable/circle_logo"
+                android:padding="14dp"
+                android:src="@drawable/ic_pdv"
+                android:contentDescription="PDV Pro" />
+
+            <!-- TITULO -->
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="PDV Pro"
+                android:textSize="30sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:letterSpacing="0"
+                android:layout_marginTop="20dp"
+                android:shadowColor="#662DD4BF"
+                android:shadowDx="0"
+                android:shadowDy="0"
+                android:shadowRadius="10" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Gestao comercial premium"
+                android:textSize="10sp"
+                android:textColor="@color/accent_gold"
+                android:letterSpacing="0"
+                android:textStyle="bold"
+                android:layout_marginTop="2dp" />
+
+            <!-- Card premium com campos -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/holo_card_bg"
+                android:padding="20dp"
+                android:layout_marginTop="28dp">
+
+                <!-- Label do campo Usuario -->
+                <TextView
+                    android:id="@+id/tvLabelUsuario"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="USUARIO"
+                    android:textColor="@color/accent_gold"
+                    android:textSize="11sp"
+                    android:letterSpacing="0"
+                    android:textStyle="bold"
+                    android:paddingStart="4dp" />
+
+                <!-- Container do Spinner -->
+                <FrameLayout
+                    android:id="@+id/spinnerContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/input_bg"
+                    android:layout_marginTop="6dp"
+                    android:minHeight="54dp">
+
+                    <Spinner
+                        android:id="@+id/spinnerUsuario"
+                        android:layout_width="match_parent"
+                        android:layout_height="54dp"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="44dp"
+                        android:paddingTop="8dp"
+                        android:paddingBottom="8dp"
+                        android:background="@android:color/transparent"
+                        android:popupBackground="@color/colorSurface"
+                        android:spinnerMode="dropdown" />
+
+                    <ImageView
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:layout_gravity="center_vertical|end"
+                        android:layout_marginEnd="14dp"
+                        android:src="@drawable/ic_dropdown_arrow"
+                        android:contentDescription="Dropdown" />
+                </FrameLayout>
+
+                <!-- Label senha -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="SENHA"
+                    android:textColor="@color/accent_gold"
+                    android:textSize="11sp"
+                    android:letterSpacing="0"
+                    android:textStyle="bold"
+                    android:layout_marginTop="14dp"
+                    android:paddingStart="4dp" />
+
+                <!-- Campo de senha + olho -->
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp">
+
+                    <EditText
+                        android:id="@+id/etSenha"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Digite sua senha"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint"
+                        android:background="@drawable/input_bg"
+                        android:padding="16dp"
+                        android:paddingEnd="56dp"
+                        android:inputType="textPassword"
+                        android:textSize="16sp"
+                        android:letterSpacing="0" />
+
+                    <ImageButton
+                        android:id="@+id/btnToggleSenha"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center_vertical|end"
+                        android:layout_marginEnd="4dp"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_eye_off"
+                        android:contentDescription="Mostrar/Ocultar senha" />
+                </FrameLayout>
+
+                <!-- BOTAO ENTRAR -->
+                <Button
+                    android:id="@+id/btnEntrar"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="Acessar Sistema"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    android:textSize="15sp"
+                    android:letterSpacing="0"
+                    android:background="@drawable/btn_primary"
+                    android:layout_marginTop="22dp"
+                    android:elevation="6dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="12dp">
+
+                    <Button
+                        android:id="@+id/btnEntrarBiometria"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:text="Entrar com Digital"
+                        android:textAllCaps="false"
+                        android:textStyle="bold"
+                        android:textColor="@color/white"
+                        android:textSize="12sp"
+                        android:letterSpacing="0"
+                        android:background="@drawable/btn_secondary"
+                        android:layout_marginEnd="6dp" />
+
+                    <Button
+                        android:id="@+id/btnCadastrarBiometria"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:text="Cadastrar Digital"
+                        android:textAllCaps="false"
+                        android:textStyle="bold"
+                        android:textColor="@color/white"
+                        android:textSize="12sp"
+                        android:letterSpacing="0"
+                        android:background="@drawable/btn_gold"
+                        android:layout_marginStart="6dp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- LINKS RAPIDOS -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:layout_marginTop="28dp">
+
+                <TextView
+                    android:id="@+id/tvConfigBanco"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Configurar Banco de Dados"
+                    android:textColor="@color/accent_gold"
+                    android:textSize="13sp"
+                    android:padding="8dp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvTrocarSenha"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Trocar Senha"
+                    android:textColor="@color/accent_cyan"
+                    android:textSize="13sp"
+                    android:padding="6dp" />
+
+                <TextView
+                    android:id="@+id/tvEsqueciSenha"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Esqueci minha senha"
+                    android:textColor="@color/accent_cyan"
+                    android:textSize="13sp"
+                    android:padding="6dp" />
+
+                <View
+                    android:layout_width="120dp"
+                    android:layout_height="1dp"
+                    android:background="@color/colorDivider"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="10dp" />
+
+                <TextView
+                    android:id="@+id/tvNovaLicenca"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Inserir nova licenca"
+                    android:textColor="@color/accent_gold"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0"
+                    android:padding="8dp" />
+
+                <TextView
+                    android:id="@+id/tvAtualizarBanco"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Atualizar tabelas e colunas do banco de dados"
+                    android:textColor="@color/colorDanger"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0"
+                    android:padding="8dp"
+                    android:gravity="center" />
+
+                <!-- Botao Servidor MySQL integrado -->
+                <Button
+                    android:id="@+id/btnServidorMySQL"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Servidor MySQL"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0"
+                    android:background="@drawable/btn_servidor_mysql"
+                    android:drawableStart="@drawable/ic_user_db"
+                    android:drawablePadding="12dp"
+                    android:padding="14dp"
+                    android:layout_marginTop="14dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:elevation="6dp" />
+            </LinearLayout>
+
+            <!-- VERSAO -->
+            <TextView
+                android:id="@+id/tvVersao"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="v8.0.20"
+                android:textColor="@color/text_hint"
+                android:textSize="11sp"
+                android:layout_marginTop="20dp"
+                android:letterSpacing="0" />
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>

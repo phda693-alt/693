@@ -1,0 +1,370 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/card_bg">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Info de status atual -->
+        <LinearLayout
+            android:id="@+id/llStatusInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/item_list_bg"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:id="@+id/tvStatusArmario"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="LIVRE"
+                android:textColor="#4CAF50"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/tvInfoCliente"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#FFB74D"
+                android:textSize="13sp"
+                android:gravity="center"
+                android:layout_marginTop="4dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvInfoHorario"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#B0BEC5"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:layout_marginTop="4dp"
+                android:visibility="gone" />
+
+            <!-- v7.0.2 - Hora de saida (fechamento da conta) -->
+            <TextView
+                android:id="@+id/tvInfoHoraSaida"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#EF9A9A"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:layout_marginTop="4dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvInfoTempo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#FFD700"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:layout_marginTop="4dp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- Nome do cliente (para entregar chave) -->
+        <TextView
+            android:id="@+id/tvLabelCliente"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Nome do Cliente:"
+            android:textColor="#00BCD4"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etNomeCliente"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/input_bg"
+            android:hint="Nome do cliente"
+            android:inputType="textPersonName"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textColorHint="#607D8B" />
+
+        <!-- Observacao -->
+        <TextView
+            android:id="@+id/tvLabelObs"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Observacao:"
+            android:textColor="#00BCD4"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etObservacao"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/input_bg"
+            android:hint="Observacao (opcional)"
+            android:inputType="textMultiLine"
+            android:gravity="top"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:paddingTop="8dp"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textColorHint="#607D8B" />
+
+        <!-- Adicionar produto/consumo -->
+        <TextView
+            android:id="@+id/tvLabelProduto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Adicionar Consumo:"
+            android:textColor="#00BCD4"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <!-- Spinner de Categoria/Tipo -->
+        <Spinner
+            android:id="@+id/spCategoria"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/spinner_bg"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:visibility="gone" />
+
+        <!-- Produto com leitor de codigo de barras -->
+        <LinearLayout
+            android:id="@+id/llProdutoArmarioScanner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <Spinner
+                android:id="@+id/spProduto"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:background="@drawable/spinner_bg"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp" />
+
+            <ImageButton
+                android:id="@+id/btnScanProdutoArmario"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginLeft="6dp"
+                android:background="@drawable/btn_scanner"
+                android:contentDescription="Ler codigo de barras"
+                android:padding="8dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_barcode_scan" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/llAddProduto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="12dp"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <EditText
+                android:id="@+id/etQtdProduto"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/input_bg"
+                android:hint="Qtd"
+                android:inputType="numberDecimal"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:text="1"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textColorHint="#607D8B" />
+
+            <Button
+                android:id="@+id/btnAddProduto"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp"
+                android:layout_marginLeft="8dp"
+                android:background="@drawable/btn_primary"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:text="Adicionar"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- Lista de itens consumidos -->
+        <TextView
+            android:id="@+id/tvLabelItens"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Itens Consumidos:"
+            android:textColor="#00BCD4"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp"
+            android:visibility="gone" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerItensArmario"
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            android:background="@drawable/item_list_bg"
+            android:padding="4dp"
+            android:visibility="gone" />
+
+        <!-- Total -->
+        <TextView
+            android:id="@+id/tvTotalArmario"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="end"
+            android:text="Total: R$ 0,00"
+            android:textColor="#FFD700"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <!-- v6.9.7 - Botoes de Impressao (igual a mesa) -->
+        <LinearLayout
+            android:id="@+id/llBotoesImpressaoArmario"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:visibility="gone">
+
+            <Button
+                android:id="@+id/btnImprimirPedidoCompletoArmario"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginRight="4dp"
+                android:background="@drawable/btn_printer"
+                android:text="IMPRIMIR PEDIDO COMPLETO"
+                android:textColor="#FFFFFF"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnImprimirUltimoItemArmario"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginLeft="4dp"
+                android:background="@drawable/btn_printer"
+                android:text="IMPRIMIR ULTIMO ITEM"
+                android:textColor="#FFFFFF"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Botao Entregar Chave (para armario livre) -->
+        <Button
+            android:id="@+id/btnEntregarChave"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/btn_entregar_chave"
+            android:text="ENTREGAR CHAVE"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <!-- Botao Encaminhar para Pagamento (para armario ocupado) -->
+        <Button
+            android:id="@+id/btnEncaminharPagamento"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/btn_success"
+            android:text="ENCAMINHAR P/ PAGAMENTO"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <!-- Botao Devolver Chave / Liberar (para armario ocupado) -->
+        <Button
+            android:id="@+id/btnDevolverChave"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/btn_danger"
+            android:text="DEVOLVER CHAVE / LIBERAR"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <!-- Botao Manutencao (para armario livre) -->
+        <Button
+            android:id="@+id/btnManutencao"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/btn_manutencao"
+            android:text="COLOCAR EM MANUTENCAO"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <!-- Botao Liberar Manutencao (para armario em manutencao) -->
+        <Button
+            android:id="@+id/btnLiberarManutencao"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/btn_success"
+            android:text="LIBERAR MANUTENCAO"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <!-- Botao Salvar (para armario ocupado - salvar itens) -->
+        <Button
+            android:id="@+id/btnSalvarArmario"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/btn_primary"
+            android:text="SALVAR"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</ScrollView>

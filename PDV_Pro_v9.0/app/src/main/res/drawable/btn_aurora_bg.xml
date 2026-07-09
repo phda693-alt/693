@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- v9.1.0 - Botao com gradiente aurora (ciano -> azul -> roxo) e ripple (novo recurso, opcional). -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#40FFFFFF">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="#00E5CC"
+                android:centerColor="#00B0FF"
+                android:endColor="#A855F7"
+                android:angle="0"
+                android:type="linear" />
+            <corners android:radius="14dp" />
+        </shape>
+    </item>
+</ripple>

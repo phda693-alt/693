@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="etDialogInput" type="id" />
+    <item name="btnEditar" type="id" />
+    <item name="btnInativar" type="id" />
+    <item name="llBotoes" type="id" />
+</resources>

@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PDV Pro - Gerenciador de Chamadas</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#050816;--bg2:#0A0E27;--card:#111535;--card2:#1A1F3D;--cyan:#00BCD4;--cyan2:#00E5FF;--green:#00E676;--red:#FF5252;--gold:#FFD700;--pink:#FF1493;--purple:#7C4DFF;--text:#FFFFFF;--text2:#B0BEC5}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.bg-grid{position:fixed;top:0;left:0;width:100%;height:100%;background-image:linear-gradient(rgba(0,229,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.02) 1px,transparent 1px);background-size:60px 60px;z-index:0}
+.scan-line{position:fixed;top:0;left:0;width:100%;height:3px;background:linear-gradient(90deg,transparent,var(--cyan2),transparent);z-index:1;animation:scanLine 4s linear infinite;opacity:0.3}
+@keyframes scanLine{0%{top:0}100%{top:100%}}
+.container{position:relative;z-index:2;max-width:1600px;margin:0 auto;padding:15px}
+header{text-align:center;padding:15px 0}
+.title-bar{display:inline-flex;align-items:center;gap:15px;padding:15px 40px;background:linear-gradient(135deg,rgba(0,188,212,0.08),rgba(124,77,255,0.08));border:1px solid rgba(0,229,255,0.2);border-radius:25px;backdrop-filter:blur(10px)}
+.title-icon{width:55px;height:55px;background:linear-gradient(135deg,var(--gold),#FFA000);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 0 30px rgba(255,215,0,0.3)}
+h1{font-size:1.6em;background:linear-gradient(135deg,var(--gold),#FFA000,var(--cyan2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:3px;font-weight:900}
+.subtitle{color:var(--text2);font-size:0.8em;letter-spacing:4px;text-transform:uppercase}
+.nav-links{display:flex;gap:10px;justify-content:center;margin:12px 0}
+.nav-link{padding:10px 25px;background:linear-gradient(135deg,var(--card),var(--card2));border:1px solid rgba(0,188,212,0.2);border-radius:15px;color:var(--cyan2);text-decoration:none;font-weight:600;transition:all 0.3s;font-size:0.85em}
+.nav-link:hover,.nav-link.active{border-color:var(--cyan);box-shadow:0 0 20px rgba(0,188,212,0.3)}
+
+/* DISPLAY PRINCIPAL - Chamada Atual */
+.display-principal{background:linear-gradient(135deg,var(--card),rgba(26,31,61,0.9));border:2px solid rgba(255,215,0,0.3);border-radius:30px;padding:40px;margin:20px 0;text-align:center;position:relative;overflow:hidden;min-height:280px}
+.display-principal::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--gold),var(--cyan2),var(--purple),var(--gold));background-size:300% 100%;animation:gradientMove 3s linear infinite}
+@keyframes gradientMove{0%{background-position:0% 50%}100%{background-position:300% 50%}}
+.display-principal::after{content:'';position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--purple),var(--gold),var(--cyan2),var(--purple));background-size:300% 100%;animation:gradientMove 3s linear infinite reverse}
+.display-label{font-size:1em;color:var(--gold);text-transform:uppercase;letter-spacing:5px;font-weight:700;margin-bottom:10px}
+.display-numero{font-size:8em;font-weight:900;line-height:1;background:linear-gradient(135deg,var(--gold),#FFA000);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none;filter:drop-shadow(0 0 30px rgba(255,215,0,0.3));transition:all 0.5s}
+.display-numero.animating{animation:numberPop 0.8s ease-out}
+@keyframes numberPop{0%{transform:scale(0.3);opacity:0}50%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+.display-cliente{font-size:2.2em;color:var(--cyan2);font-weight:700;margin-top:10px;letter-spacing:2px}
+.display-tipo{font-size:1em;color:var(--text2);margin-top:8px;letter-spacing:3px;text-transform:uppercase}
+.display-comanda{font-size:1.2em;color:var(--gold);margin-top:5px}
+.display-empty{color:var(--text2);font-size:1.3em;padding:60px 0}
+.display-empty .icon{font-size:3em;opacity:0.3;margin-bottom:10px}
+
+/* Chamada ativa - efeito pulsante */
+.display-principal.ativo{border-color:var(--gold);animation:displayPulse 2s ease-in-out infinite}
+@keyframes displayPulse{0%,100%{box-shadow:0 0 30px rgba(255,215,0,0.2)}50%{box-shadow:0 0 60px rgba(255,215,0,0.4),0 0 100px rgba(255,215,0,0.1)}}
+
+/* Histórico de Chamadas */
+.historico-strip{display:flex;gap:10px;overflow-x:auto;padding:10px 0;margin:15px 0;scrollbar-width:thin;scrollbar-color:var(--cyan) transparent}
+.historico-strip::-webkit-scrollbar{height:4px}
+.historico-strip::-webkit-scrollbar-thumb{background:var(--cyan);border-radius:4px}
+.hist-item{flex-shrink:0;background:linear-gradient(135deg,var(--card),var(--card2));border:1px solid rgba(0,188,212,0.1);border-radius:15px;padding:12px 20px;text-align:center;min-width:120px;transition:all 0.3s}
+.hist-item:hover{border-color:var(--cyan);transform:translateY(-3px)}
+.hist-item .num{font-size:1.5em;font-weight:900;color:var(--cyan2)}
+.hist-item .nome{font-size:0.75em;color:var(--text2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
+.hist-item .hora{font-size:0.7em;color:var(--gold);margin-top:2px}
+
+/* Fila de espera */
+.fila-container{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin:15px 0}
+.fila-card{background:linear-gradient(135deg,var(--card),var(--card2));border:1px solid rgba(0,188,212,0.1);border-radius:18px;padding:18px;position:relative;overflow:hidden;transition:all 0.3s;cursor:pointer}
+.fila-card:hover{border-color:var(--cyan);transform:translateY(-3px);box-shadow:0 0 20px rgba(0,188,212,0.2)}
+.fila-card.chamando{border-color:var(--gold);animation:filaPulse 1.5s infinite}
+@keyframes filaPulse{0%,100%{box-shadow:0 0 15px rgba(255,215,0,0.2)}50%{box-shadow:0 0 30px rgba(255,215,0,0.4)}}
+.fila-card.urgente{border-left:4px solid var(--pink)}
+.fila-card.alta{border-left:4px solid var(--red)}
+.fila-header{display:flex;justify-content:space-between;align-items:center}
+.fila-num{font-size:1.6em;font-weight:900;color:var(--cyan2)}
+.fila-status{padding:3px 10px;border-radius:15px;font-size:0.65em;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.fila-status.aguardando{background:rgba(0,188,212,0.12);color:var(--cyan2)}
+.fila-status.chamando{background:rgba(255,215,0,0.15);color:var(--gold)}
+.fila-nome{font-size:1.05em;font-weight:600;margin-top:8px;color:var(--text)}
+.fila-meta{display:flex;gap:10px;margin-top:6px;font-size:0.75em;color:var(--text2)}
+.fila-actions{display:flex;gap:6px;margin-top:12px}
+.btn{padding:8px 14px;border:none;border-radius:10px;font-size:0.75em;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:1px;transition:all 0.3s;display:inline-flex;align-items:center;gap:5px}
+.btn:active{transform:scale(0.95)}
+.btn-call{background:linear-gradient(135deg,var(--gold),#FFA000);color:#000}
+.btn-call:hover{box-shadow:0 0 20px rgba(255,215,0,0.4)}
+.btn-attend{background:linear-gradient(135deg,var(--green),#69F0AE);color:#000}
+.btn-attend:hover{box-shadow:0 0 20px rgba(0,230,118,0.4)}
+.btn-cancel{background:linear-gradient(135deg,var(--red),#FF8A80);color:#fff}
+.btn-rechamar{background:linear-gradient(135deg,var(--purple),#B388FF);color:#fff}
+.btn-danger-outline{background:transparent;border:1px solid var(--red);color:var(--red);padding:8px 16px;border-radius:10px;cursor:pointer;font-size:0.8em;font-weight:600;transition:all 0.3s}
+.btn-danger-outline:hover{background:rgba(255,82,82,0.1)}
+
+/* Controles */
+.controls-bar{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:15px 0}
+.control-btn{padding:10px 20px;background:linear-gradient(135deg,var(--card),var(--card2));border:1px solid rgba(0,188,212,0.2);border-radius:15px;color:var(--text);cursor:pointer;font-size:0.85em;font-weight:600;transition:all 0.3s;display:flex;align-items:center;gap:8px}
+.control-btn:hover{border-color:var(--cyan);box-shadow:0 0 15px rgba(0,188,212,0.2)}
+.control-btn.active{background:linear-gradient(135deg,rgba(0,188,212,0.15),rgba(124,77,255,0.1));border-color:var(--cyan)}
+.control-btn .indicator{width:8px;height:8px;border-radius:50%}
+.control-btn .indicator.on{background:var(--green);box-shadow:0 0 10px var(--green)}
+.control-btn .indicator.off{background:var(--red)}
+
+/* Stats mini */
+.stats-mini{display:flex;gap:15px;justify-content:center;margin:15px 0;flex-wrap:wrap}
+.stat-mini{background:linear-gradient(135deg,var(--card),var(--card2));border:1px solid rgba(0,188,212,0.1);border-radius:12px;padding:10px 20px;text-align:center}
+.stat-mini .num{font-size:1.8em;font-weight:900;color:var(--cyan2)}
+.stat-mini .lbl{font-size:0.7em;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+
+.section-title{display:flex;align-items:center;gap:10px;margin:20px 0 10px;font-size:1em;color:var(--cyan2);text-transform:uppercase;letter-spacing:2px}
+.section-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--cyan),transparent)}
+
+.clock{position:fixed;top:12px;right:15px;font-size:1.1em;color:var(--cyan2);font-weight:700;z-index:10;font-variant-numeric:tabular-nums;background:rgba(5,8,22,0.9);padding:8px 15px;border-radius:12px;border:1px solid rgba(0,188,212,0.2)}
+.server-status{position:fixed;top:12px;left:15px;display:flex;align-items:center;gap:8px;font-size:0.75em;color:var(--text2);background:rgba(5,8,22,0.9);padding:8px 15px;border-radius:12px;border:1px solid rgba(0,188,212,0.1);z-index:10}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+.toast{position:fixed;bottom:30px;right:30px;padding:15px 25px;border-radius:15px;color:#fff;font-weight:600;z-index:9999;animation:toastIn 0.5s ease-out;box-shadow:0 10px 40px rgba(0,0,0,0.4)}
+@keyframes toastIn{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.toast.success{background:linear-gradient(135deg,var(--green),#00C853)}
+.toast.error{background:linear-gradient(135deg,var(--red),#D50000)}
+.toast.info{background:linear-gradient(135deg,var(--cyan),#0097A7)}
+
+.empty-state{text-align:center;padding:40px;color:var(--text2)}
+.empty-state .icon{font-size:3em;opacity:0.3;margin-bottom:10px}
+
+/* Volume control */
+.volume-control{display:flex;align-items:center;gap:10px;background:var(--card);padding:8px 15px;border-radius:12px;border:1px solid rgba(0,188,212,0.1)}
+.volume-control input[type=range]{-webkit-appearance:none;width:100px;height:4px;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:2px;outline:none}
+.volume-control input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:var(--cyan2);border-radius:50%;cursor:pointer;box-shadow:0 0 10px rgba(0,229,255,0.5)}
+
+@media(max-width:768px){.display-numero{font-size:5em}.display-cliente{font-size:1.5em}.fila-container{grid-template-columns:1fr}h1{font-size:1.2em}}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="scan-line"></div>
+<div class="clock" id="clock"></div>
+<div class="server-status"><div class="status-dot"></div>Servidor Ativo • Auto-refresh 2s</div>
+
+<div class="container">
+    <header>
+        <div class="title-bar">
+            <div class="title-icon">📢</div>
+            <div>
+                <h1>GERENCIADOR DE CHAMADAS</h1>
+                <div class="subtitle">Sistema de Chamada por Voz &bull; PDV Pro</div>
+            </div>
+        </div>
+    </header>
+
+    <nav class="nav-links">
+        <a href="/" class="nav-link">📋 Painel de Chamados</a>
+        <a href="/gerenciador" class="nav-link active">📢 Gerenciador de Chamadas</a>
+    </nav>
+
+    <div class="controls-bar">
+        <button class="control-btn active" id="btnVoz" onclick="toggleVoz()">
+            <div class="indicator on" id="indVoz"></div>
+            🔊 Chamada por Voz
+        </button>
+        <button class="control-btn active" id="btnSom" onclick="toggleSom()">
+            <div class="indicator on" id="indSom"></div>
+            🔔 Sinal Sonoro
+        </button>
+        <button class="control-btn" id="btnAutoCall" onclick="toggleAutoCall()">
+            <div class="indicator off" id="indAutoCall"></div>
+            ⚡ Auto-chamar
+        </button>
+        <div class="volume-control">
+            🔊 <input type="range" id="volumeRange" min="0" max="1" step="0.1" value="1" onchange="setVolume(this.value)">
+        </div>
+        <button class="btn-danger-outline" onclick="limparAtendidos()">🗑 Limpar Atendidos</button>
+    </div>
+
+    <div class="stats-mini">
+        <div class="stat-mini"><div class="num" id="sAguardando">0</div><div class="lbl">Na Fila</div></div>
+        <div class="stat-mini"><div class="num" id="sChamando">0</div><div class="lbl">Chamando</div></div>
+        <div class="stat-mini"><div class="num" id="sAtendidos">0</div><div class="lbl">Atendidos</div></div>
+    </div>
+
+    <!-- DISPLAY PRINCIPAL -->
+    <div class="display-principal" id="displayPrincipal">
+        <div class="display-empty" id="displayEmpty">
+            <div class="icon">📢</div>
+            <p>Nenhuma chamada ativa</p>
+            <p style="font-size:0.7em;margin-top:5px;color:var(--text2)">Clique em "Chamar" em um chamado da fila</p>
+        </div>
+        <div id="displayContent" style="display:none">
+            <div class="display-label">CHAMANDO AGORA</div>
+            <div class="display-numero" id="dispNumero">000</div>
+            <div class="display-cliente" id="dispCliente">-</div>
+            <div class="display-tipo" id="dispTipo">-</div>
+            <div class="display-comanda" id="dispComanda"></div>
+        </div>
+    </div>
+
+    <!-- Histórico de chamadas recentes -->
+    <div class="section-title">📜 Últimas Chamadas</div>
+    <div class="historico-strip" id="historicoStrip">
+        <div class="empty-state" style="padding:15px;width:100%"><p style="font-size:0.85em">Nenhuma chamada realizada</p></div>
+    </div>
+
+    <!-- Fila de Espera -->
+    <div class="section-title">📋 Fila de Espera</div>
+    <div class="fila-container" id="filaContainer">
+        <div class="empty-state"><div class="icon">⏳</div><p>Fila vazia</p></div>
+    </div>
+</div>
+
+<script>
+const API = window.location.origin;
+let vozAtiva = true;
+let somAtivo = true;
+let autoCall = false;
+let volume = 1;
+let ultimoChamadoId = 0;
+let chamadoAtual = null;
+let historicoLocal = [];
+let audioCtx = null;
+
+function init() {
+    updateClock();
+    setInterval(updateClock, 1000);
+    carregarDados();
+    setInterval(carregarDados, 2000);
+}
+
+function updateClock() {
+    const now = new Date();
+    document.getElementById('clock').textContent = now.toLocaleTimeString('pt-BR') + ' • ' + now.toLocaleDateString('pt-BR');
+}
+
+function getAudioContext() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+}
+
+// === SINAL SONORO AVANÇADO ===
+function tocarSinalSonoro() {
+    if (!somAtivo) return;
+    try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+        
+        // Sequência de tons futurísticos
+        const notas = [880, 1100, 880, 1320, 880];
+        const duracoes = [0.15, 0.15, 0.15, 0.3, 0.2];
+        let tempo = now;
+        
+        notas.forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, tempo);
+            gain.gain.setValueAtTime(0, tempo);
+            gain.gain.linearRampToValueAtTime(volume * 0.4, tempo + 0.02);
+            gain.gain.linearRampToValueAtTime(0, tempo + duracoes[i]);
+            osc.start(tempo);
+            osc.stop(tempo + duracoes[i] + 0.05);
+            tempo += duracoes[i] + 0.05;
+        });
+
+        // Tom de atenção adicional
+        setTimeout(() => {
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            osc2.type = 'triangle';
+            osc2.frequency.setValueAtTime(660, ctx.currentTime);
+            osc2.frequency.linearRampToValueAtTime(990, ctx.currentTime + 0.5);
+            gain2.gain.setValueAtTime(volume * 0.3, ctx.currentTime);
+            gain2.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.6);
+            osc2.start(ctx.currentTime);
+            osc2.stop(ctx.currentTime + 0.7);
+        }, 800);
+    } catch(e) { console.error('Erro audio:', e); }
+}
+
+// === CHAMADA POR VOZ (TTS) ===
+function chamarPorVoz(chamado) {
+    if (!vozAtiva) return;
+    if (!('speechSynthesis' in window)) { console.warn('TTS não suportado'); return; }
+    
+    window.speechSynthesis.cancel();
+    
+    const numero = String(chamado.numero_chamado).padStart(3, '0');
+    const digitos = numero.split('').join(', ');
+    
+    // Primeira chamada
+    setTimeout(() => {
+        const msg1 = new SpeechSynthesisUtterance(`Atenção! Chamado número ${digitos}.`);
+        msg1.lang = 'pt-BR';
+        msg1.rate = 0.85;
+        msg1.pitch = 1.1;
+        msg1.volume = volume;
+        window.speechSynthesis.speak(msg1);
+        
+        // Nome do cliente
+        const msg2 = new SpeechSynthesisUtterance(`${chamado.cliente_nome}, por favor, dirija-se ao atendimento.`);
+        msg2.lang = 'pt-BR';
+        msg2.rate = 0.85;
+        msg2.pitch = 1.0;
+        msg2.volume = volume;
+        window.speechSynthesis.speak(msg2);
+        
+        // Repetição
+        setTimeout(() => {
+            const msg3 = new SpeechSynthesisUtterance(`Chamado ${digitos}. ${chamado.cliente_nome}.`);
+            msg3.lang = 'pt-BR';
+            msg3.rate = 0.9;
+            msg3.pitch = 1.0;
+            msg3.volume = volume;
+            window.speechSynthesis.speak(msg3);
+        }, 4000);
+    }, 1200);
+}
+
+// === CARREGAR DADOS ===
+async function carregarDados() {
+    try {
+        // Stats
+        const rStats = await fetch(API + '/api/chamados/stats');
+        const stats = await rStats.json();
+        document.getElementById('sAguardando').textContent = stats.aguardando || 0;
+        document.getElementById('sChamando').textContent = stats.chamando || 0;
+        document.getElementById('sAtendidos').textContent = stats.atendidos_hoje || 0;
+
+        // Último chamado
+        const rUltimo = await fetch(API + '/api/chamados/ultimo-chamado');
+        const dUltimo = await rUltimo.json();
+        
+        if (dUltimo.chamado && dUltimo.chamado !== 'null') {
+            const ch = dUltimo.chamado;
+            if (ch.id !== ultimoChamadoId) {
+                ultimoChamadoId = ch.id;
+                chamadoAtual = ch;
+                exibirChamadaAtiva(ch);
+                tocarSinalSonoro();
+                chamarPorVoz(ch);
+                adicionarHistorico(ch);
+            }
+        } else {
+            if (chamadoAtual) {
+                chamadoAtual = null;
+                ultimoChamadoId = 0;
+                ocultarChamadaAtiva();
+            }
+        }
+
+        // Fila
+        const rFila = await fetch(API + '/api/chamados/fila');
+        const fila = await rFila.json();
+        renderFila(fila);
+
+        // Auto-chamar
+        if (autoCall && fila.length > 0) {
+            const aguardando = fila.filter(c => c.status === 'aguardando');
+            const chamando = fila.filter(c => c.status === 'chamando');
+            if (chamando.length === 0 && aguardando.length > 0) {
+                chamarChamado(aguardando[0].id);
+            }
+        }
+    } catch(e) { console.error('Erro:', e); }
+}
+
+function exibirChamadaAtiva(ch) {
+    document.getElementById('displayEmpty').style.display = 'none';
+    document.getElementById('displayContent').style.display = 'block';
+    document.getElementById('displayPrincipal').classList.add('ativo');
+    
+    const numEl = document.getElementById('dispNumero');
+    numEl.textContent = String(ch.numero_chamado).padStart(3, '0');
+    numEl.classList.remove('animating');
+    void numEl.offsetWidth;
+    numEl.classList.add('animating');
+    
+    document.getElementById('dispCliente').textContent = ch.cliente_nome;
+    document.getElementById('dispTipo').textContent = ch.tipo.toUpperCase();
+    document.getElementById('dispComanda').textContent = ch.comanda_numero > 0 ? 'Comanda: ' + ch.comanda_numero : '';
+}
+
+function ocultarChamadaAtiva() {
+    document.getElementById('displayEmpty').style.display = 'block';
+    document.getElementById('displayContent').style.display = 'none';
+    document.getElementById('displayPrincipal').classList.remove('ativo');
+}
+
+function adicionarHistorico(ch) {
+    historicoLocal.unshift({
+        numero: ch.numero_chamado,
+        nome: ch.cliente_nome,
+        hora: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})
+    });
+    if (historicoLocal.length > 20) historicoLocal.pop();
+    renderHistorico();
+}
+
+function renderHistorico() {
+    const c = document.getElementById('historicoStrip');
+    if (historicoLocal.length === 0) {
+        c.innerHTML = '<div class="empty-state" style="padding:15px;width:100%"><p style="font-size:0.85em">Nenhuma chamada realizada</p></div>';
+        return;
+    }
+    c.innerHTML = historicoLocal.map(h => `
+        <div class="hist-item">
+            <div class="num">#${String(h.numero).padStart(3,'0')}</div>
+            <div class="nome">${escHtml(h.nome)}</div>
+            <div class="hora">${h.hora}</div>
+        </div>
+    `).join('');
+}
+
+function renderFila(fila) {
+    const c = document.getElementById('filaContainer');
+    if (!fila || fila.length === 0) {
+        c.innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>Fila vazia - Nenhum chamado pendente</p></div>';
+        return;
+    }
+    c.innerHTML = fila.map(ch => `
+        <div class="fila-card ${ch.status} ${ch.prioridade === 'urgente' || ch.prioridade === 'alta' ? ch.prioridade : ''}">
+            <div class="fila-header">
+                <div class="fila-num">#${String(ch.numero_chamado).padStart(3,'0')}</div>
+                <span class="fila-status ${ch.status}">${ch.status}</span>
+            </div>
+            <div class="fila-nome">${escHtml(ch.cliente_nome)}</div>
+            <div class="fila-meta">
+                ${ch.comanda_numero > 0 ? '<span>🎫 ' + ch.comanda_numero + '</span>' : ''}
+                <span>📁 ${ch.tipo}</span>
+                <span>🕐 ${formatTime(ch.data_criacao)}</span>
+                ${ch.vezes_chamado > 0 ? '<span>📢 ' + ch.vezes_chamado + 'x</span>' : ''}
+            </div>
+            <div class="fila-actions">
+                ${ch.status === 'aguardando' ? `
+                    <button class="btn btn-call" onclick="chamarChamado(${ch.id})">📢 Chamar</button>
+                    <button class="btn btn-attend" onclick="atenderChamado(${ch.id})">✓ Atender</button>
+                    <button class="btn btn-cancel" onclick="cancelarChamado(${ch.id})">✕</button>
+                ` : ''}
+                ${ch.status === 'chamando' ? `
+                    <button class="btn btn-rechamar" onclick="rechamarChamado(${ch.id})">🔄 Re-chamar</button>
+                    <button class="btn btn-attend" onclick="atenderChamado(${ch.id})">✓ Atender</button>
+                    <button class="btn btn-cancel" onclick="cancelarChamado(${ch.id})">✕</button>
+                ` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+// === AÇÕES ===
+async function chamarChamado(id) {
+    try {
+        const r = await fetch(API + '/api/chamados/chamar', {
+            method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({id})
+        });
+        const d = await r.json();
+        if (d.success) { showToast('Chamando...', 'info'); carregarDados(); }
+    } catch(e) { showToast('Erro', 'error'); }
+}
+
+async function rechamarChamado(id) {
+    try {
+        ultimoChamadoId = 0; // Forçar re-chamada
+        const r = await fetch(API + '/api/chamados/rechamar', {
+            method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({id})
+        });
+        const d = await r.json();
+        if (d.success) { showToast('Re-chamando...', 'info'); carregarDados(); }
+    } catch(e) { showToast('Erro', 'error'); }
+}
+
+async function atenderChamado(id) {
+    try {
+        const r = await fetch(API + '/api/chamados/atender', {
+            method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({id, atendente: 'Operador'})
+        });
+        const d = await r.json();
+        if (d.success) {
+            showToast('Atendido!', 'success');
+            if (chamadoAtual && chamadoAtual.id === id) {
+                chamadoAtual = null;
+                ultimoChamadoId = 0;
+                ocultarChamadaAtiva();
+            }
+            carregarDados();
+        }
+    } catch(e) { showToast('Erro', 'error'); }
+}
+
+async function cancelarChamado(id) {
+    try {
+        const r = await fetch(API + '/api/chamados/cancelar', {
+            method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({id})
+        });
+        const d = await r.json();
+        if (d.success) { showToast('Cancelado', 'info'); carregarDados(); }
+    } catch(e) { showToast('Erro', 'error'); }
+}
+
+async function limparAtendidos() {
+    if (!confirm('Limpar todos os chamados atendidos e cancelados?')) return;
+    try {
+        const r = await fetch(API + '/api/chamados/limpar', { method: 'POST' });
+        const d = await r.json();
+        if (d.success) showToast('Removidos: ' + d.removidos, 'success');
+        carregarDados();
+    } catch(e) { showToast('Erro', 'error'); }
+}
+
+// === CONTROLES ===
+function toggleVoz() {
+    vozAtiva = !vozAtiva;
+    const btn = document.getElementById('btnVoz');
+    const ind = document.getElementById('indVoz');
+    btn.classList.toggle('active', vozAtiva);
+    ind.className = 'indicator ' + (vozAtiva ? 'on' : 'off');
+    showToast(vozAtiva ? 'Voz ativada' : 'Voz desativada', 'info');
+}
+
+function toggleSom() {
+    somAtivo = !somAtivo;
+    const btn = document.getElementById('btnSom');
+    const ind = document.getElementById('indSom');
+    btn.classList.toggle('active', somAtivo);
+    ind.className = 'indicator ' + (somAtivo ? 'on' : 'off');
+    showToast(somAtivo ? 'Som ativado' : 'Som desativado', 'info');
+}
+
+function toggleAutoCall() {
+    autoCall = !autoCall;
+    const btn = document.getElementById('btnAutoCall');
+    const ind = document.getElementById('indAutoCall');
+    btn.classList.toggle('active', autoCall);
+    ind.className = 'indicator ' + (autoCall ? 'on' : 'off');
+    showToast(autoCall ? 'Auto-chamar ativado' : 'Auto-chamar desativado', 'info');
+}
+
+function setVolume(v) {
+    volume = parseFloat(v);
+}
+
+function formatTime(d) {
+    if (!d) return '-';
+    try { return new Date(d.replace(' ','T')).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
+    catch(e) { return d; }
+}
+
+function escHtml(s) { if(!s)return''; const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+function showToast(msg, type) {
+    const t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity='0'; t.style.transform='translateY(20px)'; setTimeout(()=>t.remove(),300); }, 3000);
+}
+
+// Ativar AudioContext no primeiro toque
+document.addEventListener('click', () => { try { getAudioContext().resume(); } catch(e){} }, { once: true });
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>

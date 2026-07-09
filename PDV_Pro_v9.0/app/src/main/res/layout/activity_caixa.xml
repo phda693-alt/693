@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/gradient_bg"
+    android:padding="16dp">
+
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="Controle de Caixa" android:textSize="24sp" android:textColor="@color/accent_cyan"
+        android:textStyle="bold" android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Escolha o caixa de trabalho"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp"
+        android:layout_marginBottom="4dp" />
+
+    <Spinner
+        android:id="@+id/spCaixaOperacao"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/input_bg"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:layout_marginBottom="12dp" />
+
+    <TextView android:id="@+id/tvStatus" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="CAIXA FECHADO" android:textSize="20sp" android:textColor="@color/text_primary"
+        android:textStyle="bold" android:gravity="center" android:padding="12dp" android:layout_marginBottom="12dp" />
+
+    <TextView android:id="@+id/tvValorAbertura" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:textColor="@color/text_primary" android:textSize="16sp" />
+    <TextView android:id="@+id/tvTotalVendas" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:textColor="@color/accent_cyan" android:textSize="16sp" />
+    <TextView android:id="@+id/tvTotalVales" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:textColor="#FFFF5252" android:textSize="16sp" />
+    <TextView android:id="@+id/tvSubtotalCaixa" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:textColor="#FF00E676" android:textSize="17sp" android:textStyle="bold"
+        android:layout_marginTop="3dp" android:layout_marginBottom="12dp" />
+
+    <Button android:id="@+id/btnAbrir" android:layout_width="match_parent" android:layout_height="48dp"
+        android:text="ABRIR CAIXA" android:textColor="@color/white" android:background="@drawable/btn_primary"
+        android:layout_marginBottom="8dp" />
+
+    <Button android:id="@+id/btnAddVale" android:layout_width="match_parent" android:layout_height="44dp"
+        android:text="+ VALE DE DEBITO" android:textColor="@color/white" android:background="@drawable/btn_secondary"
+        android:layout_marginBottom="8dp" android:visibility="gone" />
+
+    <Button android:id="@+id/btnFechar" android:layout_width="match_parent" android:layout_height="48dp"
+        android:text="FECHAR CAIXA" android:textColor="#FFFFFF" android:background="@drawable/btn_danger"
+        android:visibility="gone" />
+
+    <Button android:id="@+id/btnReimprimirFechamento" android:layout_width="match_parent"
+        android:layout_height="44dp" android:text="REIMPRIMIR FECHAMENTO"
+        android:textColor="@color/white" android:background="@drawable/btn_secondary"
+        android:layout_marginTop="8dp" />
+
+    <Button android:id="@+id/btnGerenciarCaixas" android:layout_width="match_parent"
+        android:layout_height="44dp" android:text="GERENCIAR CAIXAS"
+        android:textColor="@color/white" android:background="@drawable/btn_secondary"
+        android:layout_marginTop="8dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvVales"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp" />
+</LinearLayout>

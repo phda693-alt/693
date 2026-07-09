@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Logo "PDV Pro" premium - versao reformulada (8.0.18).
+    Hexagono tecnologico com letra P estilizada, aneis discretos,
+    diamante de marca e raios. Compativel com qualquer tamanho
+    pois e 100% vetorial.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- ============================================================ -->
+    <!-- Outer rotating ring (decorative)                              -->
+    <!-- ============================================================ -->
+    <path
+        android:strokeColor="#332DD4BF"
+        android:strokeWidth="0.6"
+        android:pathData="M60,8 a52,52 0 1,0 0.001,0 z" />
+
+    <!-- Outer neon ring -->
+    <path
+        android:strokeWidth="1.2"
+        android:pathData="M60,14 a46,46 0 1,0 0.001,0 z">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="sweep"
+                android:centerX="60" android:centerY="60"
+                android:startColor="#2DD4BF"
+                android:endColor="#8A2945" />
+        </aapt:attr>
+    </path>
+
+    <!-- Tick marks (12 around) -->
+    <path android:strokeColor="#2DD4BF" android:strokeWidth="0.9"
+        android:pathData="M60,14 L60,20 M60,100 L60,106 M14,60 L20,60 M100,60 L106,60 M27,27 L31,31 M89,89 L93,93 M89,27 L93,23 M27,89 L31,85" />
+
+    <!-- ============================================================ -->
+    <!-- Inner secondary ring                                          -->
+    <!-- ============================================================ -->
+    <path
+        android:strokeColor="#662DD4BF"
+        android:strokeWidth="0.5"
+        android:pathData="M60,24 a36,36 0 1,0 0.001,0 z" />
+
+    <!-- ============================================================ -->
+    <!-- Hexagon emblem - main shape                                   -->
+    <!-- ============================================================ -->
+    <path android:pathData="M60,32 L82.5,45 L82.5,75 L60,88 L37.5,75 L37.5,45 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="37.5" android:startY="32"
+                android:endX="82.5" android:endY="88"
+                android:startColor="#23343A"
+                android:endColor="#0D1012" />
+        </aapt:attr>
+    </path>
+
+    <!-- Hex inner highlight -->
+    <path
+        android:fillColor="#142DD4BF"
+        android:pathData="M60,36 L78.5,47 L78.5,73 L60,84 L41.5,73 L41.5,47 Z" />
+
+    <!-- Hex border -->
+    <path
+        android:strokeWidth="1.6"
+        android:pathData="M60,32 L82.5,45 L82.5,75 L60,88 L37.5,75 L37.5,45 Z">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="37.5" android:startY="32"
+                android:endX="82.5" android:endY="88"
+                android:startColor="#2DD4BF"
+                android:endColor="#F4B860" />
+        </aapt:attr>
+    </path>
+
+    <!-- ============================================================ -->
+    <!-- "P" letter stylized (block + cutout)                          -->
+    <!-- ============================================================ -->
+    <path
+        android:pathData="M50,46 L50,76 L56,76 L56,64 L63,64 C69,64 73,60 73,55 C73,50 69,46 63,46 Z M56,51 L62,51 C64,51 65,53 65,55 C65,57 64,59 62,59 L56,59 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="50" android:startY="46"
+                android:endX="73" android:endY="76"
+                android:startColor="#FFFFFF"
+                android:endColor="#2DD4BF" />
+        </aapt:attr>
+    </path>
+
+    <!-- ============================================================ -->
+    <!-- Diamond accent below                                          -->
+    <!-- ============================================================ -->
+    <path android:pathData="M60,90 L67,97 L60,104 L53,97 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="53" android:startY="90"
+                android:endX="67" android:endY="104"
+                android:startColor="#F4B860"
+                android:endColor="#8A2945" />
+        </aapt:attr>
+    </path>
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="0.6"
+        android:pathData="M60,90 L67,97 L60,104 L53,97 Z" />
+
+    <!-- ============================================================ -->
+    <!-- Energy particle dots                                          -->
+    <!-- ============================================================ -->
+    <path android:fillColor="#2DD4BF" android:pathData="M22,22 a1.2,1.2 0 1,0 0.001,0 z" />
+    <path android:fillColor="#F4B860" android:pathData="M98,22 a1.2,1.2 0 1,0 0.001,0 z" />
+    <path android:fillColor="#8A2945" android:pathData="M22,98 a1.2,1.2 0 1,0 0.001,0 z" />
+    <path android:fillColor="#2DD4BF" android:pathData="M98,98 a1.2,1.2 0 1,0 0.001,0 z" />
+</vector>

@@ -1,0 +1,517 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/card_bg">
+
+    <LinearLayout
+        android:id="@+id/formContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Cliente Cadastrado -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Selecionar Cliente Cadastrado:"
+            android:textColor="#CDDC39"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp" />
+
+        <Spinner
+            android:id="@+id/spCliente"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="4dp"
+            android:background="@drawable/spinner_bg"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp" />
+
+        <EditText
+            android:id="@+id/etClienteManual"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/input_bg"
+            android:hint="Ou digite o nome do cliente manualmente"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#90A4AE"
+            android:textSize="13sp" />
+
+        <!-- Equipamento -->
+        <EditText
+            android:id="@+id/etEquipamento"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/input_bg"
+            android:hint="Equipamento / aparelho"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#90A4AE"
+            android:textSize="13sp" />
+
+        <!-- v8.0.12 - Equipamento/Produto Recebido Detalhado -->
+        <EditText
+            android:id="@+id/etEquipamentoDetalhado"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/input_bg"
+            android:hint="Descrição detalhada do equipamento/produto recebido (marca, modelo, número de série, etc.)"
+            android:minLines="3"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#90A4AE"
+            android:textSize="13sp" />
+
+        <!-- Defeito Relatado (simples) -->
+        <EditText
+            android:id="@+id/etDefeito"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/input_bg"
+            android:hint="Defeito relatado (resumo)"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#90A4AE"
+            android:textSize="13sp" />
+
+        <!-- v8.0.9 - Defeitos Detalhados -->
+        <EditText
+            android:id="@+id/etDefeitos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/input_bg"
+            android:hint="Descrição detalhada dos defeitos"
+            android:minLines="3"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#90A4AE"
+            android:textSize="13sp" />
+
+        <!-- v8.0.9 - Soluções Aplicadas -->
+        <EditText
+            android:id="@+id/etSolucoes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/input_bg"
+            android:hint="Descrição das soluções aplicadas"
+            android:minLines="3"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#90A4AE"
+            android:textSize="13sp" />
+
+        <!-- Status -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Status da OS:"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp" />
+
+        <Spinner
+            android:id="@+id/spStatus"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/spinner_bg"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp" />
+
+        <!-- ==================== SECAO DE SERVICOS ==================== -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="SERVIÇOS"
+            android:textColor="#00BCD4"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp" />
+
+        <!-- Spinner de serviços -->
+        <Spinner
+            android:id="@+id/spServico"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="4dp"
+            android:background="@drawable/spinner_bg"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp" />
+
+        <!-- Quantidade e botão adicionar serviço -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp"
+            android:gravity="center_vertical">
+
+            <EditText
+                android:id="@+id/etQtdServico"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/input_bg"
+                android:hint="Qtd"
+                android:inputType="numberDecimal"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:text="1"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#607D8B"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/etPrecoServico"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginLeft="6dp"
+                android:background="@drawable/input_bg"
+                android:hint="Preço unit."
+                android:inputType="numberDecimal"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#607D8B"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/btnAddServico"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp"
+                android:layout_marginLeft="6dp"
+                android:background="@drawable/btn_primary"
+                android:paddingLeft="14dp"
+                android:paddingRight="14dp"
+                android:text="Adicionar"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- Lista de serviços adicionados -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Serviços na OS:"
+            android:textColor="#00BCD4"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerServicos"
+            android:layout_width="match_parent"
+            android:layout_height="160dp"
+            android:layout_marginBottom="4dp"
+            android:background="@drawable/item_list_bg"
+            android:padding="4dp" />
+
+        <TextView
+            android:id="@+id/tvTotalServicos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:gravity="end"
+            android:text="Total Serviços: R$ 0,00"
+            android:textColor="#CDDC39"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <!-- ==================== SECAO DE PRODUTOS ==================== -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="PRODUTOS / PEÇAS"
+            android:textColor="#FF9800"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp" />
+
+        <!-- Produto com leitor de codigo de barras -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <Spinner
+                android:id="@+id/spProduto"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:background="@drawable/spinner_bg"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp" />
+
+            <ImageButton
+                android:id="@+id/btnScanProdutoOS"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginLeft="6dp"
+                android:background="@drawable/btn_scanner"
+                android:contentDescription="Ler codigo de barras"
+                android:padding="8dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_barcode_scan" />
+        </LinearLayout>
+
+        <!-- Quantidade e botão adicionar produto -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp"
+            android:gravity="center_vertical">
+
+            <EditText
+                android:id="@+id/etQtdProduto"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/input_bg"
+                android:hint="Qtd"
+                android:inputType="numberDecimal"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:text="1"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#607D8B"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/etPrecoProduto"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginLeft="6dp"
+                android:background="@drawable/input_bg"
+                android:hint="Preço unit."
+                android:inputType="numberDecimal"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#607D8B"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/btnAddProduto"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp"
+                android:layout_marginLeft="6dp"
+                android:background="@drawable/btn_primary"
+                android:paddingLeft="14dp"
+                android:paddingRight="14dp"
+                android:text="Adicionar"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- Lista de produtos adicionados -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Produtos / Peças na OS:"
+            android:textColor="#FF9800"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerProdutos"
+            android:layout_width="match_parent"
+            android:layout_height="160dp"
+            android:layout_marginBottom="4dp"
+            android:background="@drawable/item_list_bg"
+            android:padding="4dp" />
+
+        <TextView
+            android:id="@+id/tvTotalProdutos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:gravity="end"
+            android:text="Total Produtos: R$ 0,00"
+            android:textColor="#FF9800"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <!-- Descontos -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="DESCONTOS"
+            android:textColor="#F44336"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <EditText
+                android:id="@+id/etDescontoValor"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:background="@drawable/input_bg"
+                android:hint="Desconto R$"
+                android:inputType="numberDecimal"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#90A4AE"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/etDescontoPercent"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:layout_marginLeft="8dp"
+                android:background="@drawable/input_bg"
+                android:hint="Desconto %"
+                android:inputType="numberDecimal"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#90A4AE"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvTotalGeral"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:background="#0D1B2A"
+            android:gravity="end"
+            android:padding="10dp"
+            android:text="TOTAL GERAL: R$ 0,00"
+            android:textColor="#FFD700"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <!-- Observação -->
+        <EditText
+            android:id="@+id/etObs"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/input_bg"
+            android:hint="Observacao"
+            android:minLines="3"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#90A4AE"
+            android:textSize="13sp" />
+
+        <!-- v8.0.10 - Seção de Fotos -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="FOTOS DA OS - LOCAL + FTP"
+            android:textColor="@color/colorSuccess"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/card_bg"
+            android:padding="10dp"
+            android:text="As fotos ficam no aparelho e tambem sao sincronizadas com o FTP cadastrado quando houver conexao."
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp"
+            android:gravity="center_vertical">
+
+            <Button
+                android:id="@+id/btnCapturarFoto"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:background="@drawable/btn_primary"
+                android:drawableStart="@drawable/ic_barcode_scan"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:text="Câmera"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:layout_marginRight="4dp" />
+
+            <Button
+                android:id="@+id/btnSelecionarFoto"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:background="@drawable/btn_primary"
+                android:drawableStart="@drawable/ic_image_placeholder"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:text="Galeria"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- RecyclerView para exibir fotos adicionadas -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Galeria da ordem de servico"
+            android:textColor="@color/accent_cyan"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerFotos"
+            android:layout_width="match_parent"
+            android:layout_height="150dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/card_bg"
+            android:padding="8dp" />
+
+    </LinearLayout>
+</ScrollView>

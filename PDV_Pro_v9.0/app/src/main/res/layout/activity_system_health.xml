@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/gradient_bg"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingBottom="12dp">
+
+            <ImageButton
+                android:id="@+id/btnVoltar"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/card_bg"
+                android:contentDescription="Voltar"
+                android:padding="10dp"
+                android:src="@drawable/ic_arrow_back" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Central de Diagnostico Pro"
+                    android:textColor="@color/accent_cyan"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvResumo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Monitoramento operacional do PDV"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvAppStatus"
+            style="@style/DiagnosticCard"
+            android:text="App" />
+
+        <TextView
+            android:id="@+id/tvDbStatus"
+            style="@style/DiagnosticCard"
+            android:text="Banco de dados" />
+
+        <TextView
+            android:id="@+id/tvLicenseStatus"
+            style="@style/DiagnosticCard"
+            android:text="Licenca" />
+
+        <TextView
+            android:id="@+id/tvBackupStatus"
+            style="@style/DiagnosticCard"
+            android:text="Backup" />
+
+        <TextView
+            android:id="@+id/tvPermissionStatus"
+            style="@style/DiagnosticCard"
+            android:text="Permissoes" />
+
+        <TextView
+            android:id="@+id/tvStorageStatus"
+            style="@style/DiagnosticCard"
+            android:text="Armazenamento" />
+
+        <TextView
+            android:id="@+id/tvServerStatus"
+            style="@style/DiagnosticCard"
+            android:text="Servidor local" />
+
+        <TextView
+            android:id="@+id/tvCrashStatus"
+            style="@style/DiagnosticCard"
+            android:text="Historico de falhas" />
+
+        <GridLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:columnCount="2"
+            android:layout_marginTop="10dp"
+            android:useDefaultMargins="true">
+
+            <Button
+                android:id="@+id/btnAtualizarDiagnostico"
+                style="@style/DiagnosticActionButton"
+                android:background="@drawable/btn_primary"
+                android:drawableTop="@drawable/ic_refresh"
+                android:text="Atualizar" />
+
+            <Button
+                android:id="@+id/btnTestarConexao"
+                style="@style/DiagnosticActionButton"
+                android:background="@drawable/btn_primary"
+                android:drawableTop="@drawable/ic_network"
+                android:text="Testar\nConexao" />
+
+            <Button
+                android:id="@+id/btnAbrirBanco"
+                style="@style/DiagnosticActionButton"
+                android:drawableTop="@drawable/ic_computer"
+                android:text="Banco" />
+
+            <Button
+                android:id="@+id/btnAbrirBackup"
+                style="@style/DiagnosticActionButton"
+                android:drawableTop="@drawable/ic_backup"
+                android:text="Backup" />
+
+            <Button
+                android:id="@+id/btnAbrirLicenca"
+                style="@style/DiagnosticActionButton"
+                android:drawableTop="@drawable/ic_license"
+                android:text="Licenca" />
+
+            <Button
+                android:id="@+id/btnCopiarDiagnostico"
+                style="@style/DiagnosticActionButton"
+                android:drawableTop="@drawable/ic_note"
+                android:text="Copiar\nResumo" />
+        </GridLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:layout_marginBottom="10dp"
+            android:gravity="center"
+            android:text="Use esta central antes de vender, atualizar ou prestar suporte."
+            android:textColor="@color/text_hint"
+            android:textSize="12sp" />
+    </LinearLayout>
+</ScrollView>

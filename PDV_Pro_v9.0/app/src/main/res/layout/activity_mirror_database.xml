@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/gradient_bg" android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="20dp">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="MySQL Espelho" android:textSize="24sp" android:textStyle="bold"
+            android:textColor="@color/accent_cyan" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Replica estrutura e dados sem interromper o banco principal."
+            android:textColor="@color/text_secondary" android:layout_marginBottom="16dp" />
+        <CheckBox android:id="@+id/cbMirrorEnabled" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="Sincronizacao automatica ativada"
+            android:textColor="@color/text_primary" />
+        <EditText android:id="@+id/etMirrorHost" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="Host ou IP externo"
+            android:textColor="@color/text_primary" android:textColorHint="@color/text_hint"
+            android:background="@drawable/input_bg" android:padding="14dp" android:layout_marginTop="8dp" />
+        <EditText android:id="@+id/etMirrorPort" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="Porta" android:inputType="number"
+            android:textColor="@color/text_primary" android:textColorHint="@color/text_hint"
+            android:background="@drawable/input_bg" android:padding="14dp" android:layout_marginTop="8dp" />
+        <EditText android:id="@+id/etMirrorDatabase" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="Nome do banco espelho"
+            android:textColor="@color/text_primary" android:textColorHint="@color/text_hint"
+            android:background="@drawable/input_bg" android:padding="14dp" android:layout_marginTop="8dp" />
+        <EditText android:id="@+id/etMirrorUser" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="Usuario MySQL"
+            android:textColor="@color/text_primary" android:textColorHint="@color/text_hint"
+            android:background="@drawable/input_bg" android:padding="14dp" android:layout_marginTop="8dp" />
+        <EditText android:id="@+id/etMirrorPassword" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="Senha MySQL" android:inputType="textPassword"
+            android:textColor="@color/text_primary" android:textColorHint="@color/text_hint"
+            android:background="@drawable/input_bg" android:padding="14dp" android:layout_marginTop="8dp" />
+        <Button android:id="@+id/btnMirrorSave" android:layout_width="match_parent"
+            android:layout_height="48dp" android:text="SALVAR CONFIGURACAO"
+            android:background="@drawable/btn_primary" android:textColor="@color/white"
+            android:layout_marginTop="16dp" />
+        <Button android:id="@+id/btnMirrorTest" android:layout_width="match_parent"
+            android:layout_height="48dp" android:text="TESTAR E CRIAR BANCO"
+            android:background="@drawable/btn_secondary" android:textColor="@color/white"
+            android:layout_marginTop="8dp" />
+        <Button android:id="@+id/btnMirrorSync" android:layout_width="match_parent"
+            android:layout_height="48dp" android:text="SINCRONIZAR AGORA"
+            android:background="@drawable/btn_gold" android:textColor="@color/dark_bg"
+            android:layout_marginTop="8dp" />
+        <TextView android:id="@+id/tvMirrorStatus" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:textColor="@color/text_secondary"
+            android:padding="12dp" android:layout_marginTop="8dp" />
+    </LinearLayout>
+</ScrollView>

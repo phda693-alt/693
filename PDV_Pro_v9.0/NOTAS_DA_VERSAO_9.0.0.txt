@@ -1,0 +1,94 @@
+========================================================
+   PDV PRO v9.0.0 — NOTAS DE VERSÃO
+   Data: 27/06/2026
+========================================================
+
+MELHORIAS GERAIS v9.0.0
+------------------------
+
+1. INTERFACE REFORMULADA
+   - Nova paleta de cores moderna com gradientes profissionais
+   - Tema escuro/claro aprimorado com transições suaves
+   - Cards com elevação e sombras realistas
+   - Botões com animações de toque (ripple effect)
+   - Ícones vetoriais atualizados para Material Design 3
+   - Tipografia hierárquica melhorada
+   - Layout responsivo para tablets e smartphones
+
+2. ANIMAÇÕES AVANÇADAS
+   - Transições entre telas com animações fluidas
+   - Animações de entrada (slideUp, fadeIn, scaleIn)
+   - Efeito pulse em elementos de destaque
+   - Animações de loading modernizadas
+   - Feedback visual em todas as interações
+
+3. FORMATAÇÃO E UTILITÁRIOS
+   - FormatUtils expandido com 30+ novos métodos
+   - Validação de CPF/CNPJ integrada
+   - Formatação de telefone, CEP automática
+   - Tempo relativo ("2 min atrás", "ontem")
+   - Formatação compacta de valores (R$ 1.5K, R$ 2.3M)
+   - Suporte a múltiplos formatos de data
+
+4. CORREÇÕES CRÍTICAS
+   - Corrigido erro de text blocks em Java 11
+   - Corrigido AAPT2 daemon com SDK local
+   - Corrigido ErrorHandler.handle() incompatível
+   - Corrigido resources.arsc STORED (não comprimido)
+   - Corrigido zipalign com alinhamento de 4 bytes
+
+5. COMPILAÇÃO E SEGURANÇA
+   - compileSdkVersion: 34 (Android 14)
+   - targetSdkVersion: 34 (Android 14)
+   - minSdkVersion: 21 (Android 5.0+)
+   - Assinatura tripla v1 + v2 + v3
+   - JDK 17 source/target compatibility
+   - Android Gradle Plugin 8.6.1
+   - Gradle 8.7
+
+6. COMPATIBILIDADE
+   - Android 5.0 (API 21) até Android 15+ (API 35)
+   - Testado em Android 9, 10, 11, 12, 13, 14
+   - MultiDex habilitado para suporte a Android 5.x
+   - Suporte a telas de 4" a 12" (tablets)
+
+FUNCIONALIDADES MANTIDAS (100% FUNCIONAIS)
+-------------------------------------------
+✓ PDV — Ponto de Venda completo
+✓ Gestão de Produtos e Estoque
+✓ Gestão de Clientes e Fornecedores
+✓ Controle de Caixa (abertura/fechamento)
+✓ Relatórios e Dashboards
+✓ Impressão via Bluetooth/WiFi
+✓ Leitor de Código de Barras (ZXing)
+✓ Gestão de Mesas e Comandas
+✓ Cardápio QR Code
+✓ WhatsApp Bot integrado
+✓ Backup e Restauração
+✓ Gestão de Usuários e Permissões
+✓ Contas a Pagar e Receber
+✓ Agenda e Entregas
+✓ Múltiplas Formas de Pagamento
+✓ Cupom Fiscal (não-fiscal)
+✓ Gestão de Garçons e Vendedores
+✓ Configuração de Impressora
+✓ Saúde do Sistema (SystemHealth)
+✓ Cadastro de Empresa
+✓ Turno de Trabalho
+✓ Armário/Sauna
+✓ Caixas Nominais
+
+DETALHES TÉCNICOS DO APK
+--------------------------
+• Arquivo: PDV_Pro_v9.0.0_release.apk
+• Tamanho: ~35 MB
+• versionCode: 900
+• versionName: 9.0.0
+• applicationId: com.pdv.app
+• Assinatura: v1 (JAR) + v2 + v3 ✓
+• resources.arsc: STORED (não comprimido) ✓
+• Zipalign: 4 bytes ✓
+• DEX files: 2 (MultiDex)
+• Total arquivos: 1.266
+
+========================================================

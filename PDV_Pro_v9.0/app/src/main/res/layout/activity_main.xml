@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/gradient_bg"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="14dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/card_bg"
+            android:padding="14dp"
+            android:layout_marginBottom="10dp">
+
+            <TextView
+                android:id="@+id/tvWelcome"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Bem-vindo!"
+                android:textSize="20sp"
+                android:textColor="@color/accent_cyan"
+                android:textStyle="bold"
+                android:lineSpacingExtra="3dp" />
+
+            <ImageView
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:src="@drawable/ic_pdv"
+                android:padding="7dp"
+                android:background="@drawable/circle_logo" />
+        </LinearLayout>
+
+        <include layout="@layout/balloon_licenca_alerta" />
+
+        <EditText
+            android:id="@+id/etBuscaDashboard"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/search_bg"
+            android:hint="Buscar botoes ou titulos..."
+            android:imeOptions="actionSearch"
+            android:inputType="text"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:singleLine="true"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint" />
+
+        <!-- SECAO: OPERACIONAL -->
+        <TextView
+            android:id="@+id/titleOperacional"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="OPERACIONAL"
+            android:textColor="@color/accent_gold"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp"
+            android:paddingStart="8dp" />
+
+        <GridLayout
+            android:id="@+id/gridOperacional"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:columnCount="3"
+            android:useDefaultMargins="true">
+
+            <Button android:id="@+id/btnVendas" style="@style/DashboardButton" android:text="Vendas" android:drawableTop="@drawable/ic_cart" />
+            <Button android:id="@+id/btnComandas" style="@style/DashboardButton" android:text="Comandas" android:drawableTop="@drawable/ic_comanda" />
+            <Button android:id="@+id/btnCaixa" style="@style/DashboardButton" android:text="Caixa" android:drawableTop="@drawable/ic_cash" />
+            <Button android:id="@+id/btnGerenciarMesas" style="@style/DashboardButton" android:text="Gerenciar\nMesas" android:drawableTop="@drawable/ic_gerenciar_mesas" />
+            <Button android:id="@+id/btnGerenciarArmariosSauna" style="@style/DashboardButton" android:text="Gerenciar\nArmarios" android:drawableTop="@drawable/ic_gerenciar_armarios" />
+            <Button android:id="@+id/btnOrdemServico" style="@style/DashboardButton" android:text="Ordem de\nServico" android:drawableTop="@drawable/ic_ordem_servico" />
+            <Button android:id="@+id/btnAgenda" style="@style/DashboardButton" android:text="Agenda de\nServicos" android:drawableTop="@drawable/ic_history" />
+        </GridLayout>
+
+        <!-- SECAO: GESTAO E CADASTROS -->
+        <TextView
+            android:id="@+id/titleGestao"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="GESTAO E CADASTROS"
+            android:textColor="@color/accent_gold"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="8dp"
+            android:paddingStart="8dp" />
+
+        <GridLayout
+            android:id="@+id/gridGestao"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:columnCount="3"
+            android:useDefaultMargins="true">
+
+            <Button android:id="@+id/btnGerenciarProdutos" style="@style/DashboardButton" android:text="Estoque" android:drawableTop="@drawable/ic_manage_products" />
+            <Button android:id="@+id/btnProdutos" style="@style/DashboardButton" android:text="Novo\nProduto" android:drawableTop="@drawable/ic_product" />
+            <Button android:id="@+id/btnTiposProduto" style="@style/DashboardButton" android:text="Categorias" android:drawableTop="@drawable/ic_category" />
+            <Button android:id="@+id/btnAdicionais" style="@style/DashboardButton" android:text="Adicionais" android:drawableTop="@drawable/ic_adicional" />
+            <Button android:id="@+id/btnCadastroServico" style="@style/DashboardButton" android:text="Cadastro\nServicos" android:drawableTop="@drawable/ic_cadastro_servico" />
+            <Button android:id="@+id/btnClientes" style="@style/DashboardButton" android:text="Clientes" android:drawableTop="@drawable/ic_client" />
+            <Button android:id="@+id/btnUsuarios" style="@style/DashboardButton" android:text="Usuarios" android:drawableTop="@drawable/ic_user" />
+            <Button android:id="@+id/btnVendedores" style="@style/DashboardButton" android:text="Vendedores" android:drawableTop="@drawable/ic_seller" />
+            <Button android:id="@+id/btnEntregadores" style="@style/DashboardButton" android:text="Entregadores" android:drawableTop="@drawable/ic_delivery" />
+            <Button android:id="@+id/btnGarcons" style="@style/DashboardButton" android:text="Garcons" android:drawableTop="@drawable/ic_garcom" />
+            <Button android:id="@+id/btnHistorico" style="@style/DashboardButton" android:text="Historico" android:drawableTop="@drawable/ic_history" />
+            <Button android:id="@+id/btnRelatorios" style="@style/DashboardButton" android:text="Relatorios" android:drawableTop="@drawable/ic_report" />
+            <Button android:id="@+id/btnContasReceber" style="@style/DashboardButton" android:text="Contas a\nReceber" android:drawableTop="@drawable/ic_contas_receber" />
+            <Button android:id="@+id/btnContasPagar" style="@style/DashboardButton" android:text="Contas a\nPagar" android:drawableTop="@drawable/ic_contas_receber" />
+            <Button android:id="@+id/btnEntradaNotas" style="@style/DashboardButton" android:text="Entrada\nNotas" android:drawableTop="@drawable/ic_nota_entrada" />
+            <Button android:id="@+id/btnFornecedores" style="@style/DashboardButton" android:text="Fornecedores" android:drawableTop="@drawable/ic_company" />
+            <Button android:id="@+id/btnCadastroCaixasNominais" style="@style/DashboardButton" android:text="Caixas" android:drawableTop="@drawable/ic_cash" />
+            <Button android:id="@+id/btnCadastroTurnos" style="@style/DashboardButton" android:text="Turnos" android:drawableTop="@drawable/ic_history" />
+            <Button android:id="@+id/btnVinculos" style="@style/DashboardButton" android:text="Vinculos\nUsuarios" android:drawableTop="@drawable/ic_user" />
+        </GridLayout>
+
+        <!-- SECAO: DELIVERY E WHATSAPP -->
+        <TextView
+            android:id="@+id/titleDelivery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="DELIVERY E WHATSAPP"
+            android:textColor="@color/accent_gold"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="8dp"
+            android:paddingStart="8dp" />
+
+        <GridLayout
+            android:id="@+id/gridDelivery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:columnCount="3"
+            android:useDefaultMargins="true">
+
+            <Button android:id="@+id/btnWhatsBot" style="@style/DashboardButton" android:text="Bot\nWhatsApp" android:drawableTop="@drawable/ic_whatsbot" />
+            <Button android:id="@+id/btnGerenciarEntregas" style="@style/DashboardButton" android:text="Gerenciar\nEntregas" android:drawableTop="@drawable/ic_manage_delivery" />
+            <Button android:id="@+id/btnTaxaEntrega" style="@style/DashboardButton" android:text="Taxas de\nEntrega" android:drawableTop="@drawable/ic_delivery_fee" />
+            <Button android:id="@+id/btnModoEntregador" style="@style/DashboardButton" android:text="Modo\nEntregador" android:drawableTop="@drawable/ic_gps" />
+        </GridLayout>
+
+        <!-- SECAO: CONFIGURACOES E SISTEMA -->
+        <TextView
+            android:id="@+id/titleSistema"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="CONFIGURACOES E SISTEMA"
+            android:textColor="@color/accent_gold"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="8dp"
+            android:paddingStart="8dp" />
+
+        <GridLayout
+            android:id="@+id/gridSistema"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:columnCount="3"
+            android:useDefaultMargins="true">
+
+            <Button android:id="@+id/btnEmpresa" style="@style/DashboardButton" android:text="Empresa" android:drawableTop="@drawable/ic_company" />
+            <Button android:id="@+id/btnConfiguracoes" style="@style/DashboardButton" android:text="Configuracoes" android:drawableTop="@drawable/ic_settings" />
+            <Button android:id="@+id/btnPerfis" style="@style/DashboardButton" android:text="Permissoes" android:drawableTop="@drawable/ic_permissions" />
+            <Button android:id="@+id/btnImpressora" style="@style/DashboardButton" android:text="Impressora" android:drawableTop="@drawable/ic_printer" />
+            <Button android:id="@+id/btnMultiImpressoras" style="@style/DashboardButton" android:text="Multi
+Impressoras" android:drawableTop="@drawable/ic_printer" />
+            <Button android:id="@+id/btnBackup" style="@style/DashboardButton" android:text="Backup" android:drawableTop="@drawable/ic_backup" />
+            <Button android:id="@+id/btnDiagnostico" style="@style/DashboardButton" android:text="Diagnostico\nPro" android:drawableTop="@drawable/ic_check_circle" />
+            <Button android:id="@+id/btnAtualizar" style="@style/DashboardButton" android:text="Atualizar\nSistema" android:drawableTop="@drawable/ic_update" />
+            <Button android:id="@+id/btnLicenca" style="@style/DashboardButton" android:text="Licenca" android:drawableTop="@drawable/ic_license" />
+            <Button android:id="@+id/btnTrocarSenha" style="@style/DashboardButton" android:text="Senha" android:drawableTop="@drawable/ic_lock" />
+            <Button android:id="@+id/btnSobre" style="@style/DashboardButton" android:text="Sobre" android:drawableTop="@drawable/ic_about" />
+            <Button android:id="@+id/btnServidorMySQL" style="@style/DashboardButton" android:text="Servidor\nMySQL" android:drawableTop="@drawable/ic_network" />
+            <Button android:id="@+id/btnCriarBanco" style="@style/DashboardButton" android:text="Criar\nBanco" android:drawableTop="@drawable/ic_nota_entrada" />
+            <Button android:id="@+id/btnGerenciarUsuariosDB" style="@style/DashboardButton" android:text="Usuarios\nMySQL" android:drawableTop="@drawable/ic_user_db" />
+            <Button android:id="@+id/btnMySQLEspelho" style="@style/DashboardButton" android:text="MySQL\nEspelho" android:drawableTop="@drawable/ic_backup" />
+        </GridLayout>
+
+        <!-- SECAO: OUTROS RECURSOS -->
+        <TextView
+            android:id="@+id/titleOutros"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="OUTROS RECURSOS"
+            android:textColor="@color/accent_gold"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="8dp"
+            android:paddingStart="8dp" />
+
+        <GridLayout
+            android:id="@+id/gridOutros"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:columnCount="3"
+            android:useDefaultMargins="true">
+
+            <Button android:id="@+id/btnFormasPagamento" style="@style/DashboardButton" android:text="Pagamentos" android:drawableTop="@drawable/ic_payment" />
+            <Button android:id="@+id/btnObservacoes" style="@style/DashboardButton" android:text="Obs. Cupom" android:drawableTop="@drawable/ic_note" />
+            <Button android:id="@+id/btnPainelChamados" style="@style/DashboardButton" android:text="Painel\nChamados" android:drawableTop="@drawable/ic_painel_chamados" />
+            <Button android:id="@+id/btnPainelSenhas" style="@style/DashboardButton" android:text="Senhas\nWeb" android:drawableTop="@drawable/ic_painel_chamados" />
+            <Button android:id="@+id/btnGerenciadorChamados" style="@style/DashboardButton" android:text="Gerenciar\nChamados" android:drawableTop="@drawable/ic_gerenciador_chamados" />
+            <Button android:id="@+id/btnCadastroMesas" style="@style/DashboardButton" android:text="Cadastro\nMesas" android:drawableTop="@drawable/ic_mesa" />
+            <Button android:id="@+id/btnCardapioQRCode" style="@style/DashboardButton" android:text="Cardapio\nQR Code" android:drawableTop="@drawable/ic_qrcode" />
+            <Button android:id="@+id/btnPainelCozinha" style="@style/DashboardButton" android:text="Painel\nCozinha" android:drawableTop="@drawable/ic_painel_cozinha" />
+            <Button android:id="@+id/btnWebCozinha" style="@style/DashboardButton" android:text="Web\nCozinha" android:drawableTop="@drawable/ic_painel_cozinha" />
+            <Button android:id="@+id/btnEstacionamento" style="@style/DashboardButton" android:text="Estaciona\nmento" android:drawableTop="@drawable/ic_gps" />
+            <Button android:id="@+id/btnCadastroArmariosSauna" style="@style/DashboardButton" android:text="Cadastro\nArmarios" android:drawableTop="@drawable/ic_armario_sauna" />
+        </GridLayout>
+
+        <!-- ACOES DE SESSAO -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="16dp">
+
+            <Button
+                android:id="@+id/btnLogoff"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="TROCAR USUARIO"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/card_bg"
+                android:drawableStart="@drawable/ic_logoff"
+                android:padding="12dp"
+                android:layout_marginEnd="8dp"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/btnSair"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="SAIR DO APP"
+                android:textColor="@color/colorDanger"
+                android:background="@drawable/card_bg"
+                android:drawableStart="@drawable/ic_exit"
+                android:padding="12dp"
+                android:textAllCaps="false" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvVersao"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="v8.0.20"
+            android:textColor="@color/text_hint"
+            android:textSize="12sp"
+            android:gravity="center"
+            android:layout_marginBottom="16dp" />
+
+    </LinearLayout>
+</ScrollView>
