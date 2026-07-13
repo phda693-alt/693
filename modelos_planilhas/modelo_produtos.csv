@@ -1,0 +1,4 @@
+codigo;codigo_barras;descricao;tipo;unidade;preco_custo;preco_venda;estoque;estoque_minimo;ativo
+;7891000100103;Coca-Cola Lata 350ml;Bebidas;UN;2,50;5,00;100;10;1
+;7896005800010;Arroz Tipo 1 5kg;Mercearia;UN;18,00;24,90;50;5;1
+;;Pao Frances;Padaria;KG;6,00;12,90;0;0;1
