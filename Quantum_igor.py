@@ -18926,6 +18926,197 @@ def _auto_repair_transacoes(db, tabela, row_id, raw_transacoes, transacoes_recup
         logging.error(f"[REPARO AUTO] Falha ao reparar tabela '{tabela}' id={row_id}: {e}")
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# PARSING SEGURO DE JSON VINDO DO BANCO (tolerante a dados truncados/corrompidos)
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _fechar_json_truncado(trecho):
+    """Analisa um fragmento de JSON e retorna (dentro_de_string, sufixo_de_fechamento).
+
+    Percorre o texto controlando aspas/escapes e a pilha de '{' e '[' abertos que
+    ainda não foram fechados. Retorna se o fragmento termina dentro de uma string
+    (situação em que não é seguro fechar) e a sequência de caracteres necessária
+    para fechar as estruturas abertas.
+    """
+    pilha = []
+    dentro_string = False
+    escape = False
+    for ch in trecho:
+        if dentro_string:
+            if escape:
+                escape = False
+            elif ch == '\\':
+                escape = True
+            elif ch == '"':
+                dentro_string = False
+            continue
+        if ch == '"':
+            dentro_string = True
+        elif ch == '{':
+            pilha.append('}')
+        elif ch == '[':
+            pilha.append(']')
+        elif ch in '}]':
+            if pilha:
+                pilha.pop()
+    return dentro_string, ''.join(reversed(pilha))
+
+
+def _tentar_reparar_json(texto):
+    """Tenta reconstruir um JSON válido a partir de um texto truncado/corrompido.
+
+    Estratégia: corta o texto progressivamente a partir do fim (removendo o
+    fragmento incompleto) e fecha as estruturas ainda abertas até obter algo que
+    o json.loads aceite. Recupera o máximo de pares/itens completos possível.
+    Retorna a string reparada ou None se não for possível recuperar.
+    """
+    if not isinstance(texto, str):
+        return None
+    s = texto.strip()
+    if not s or s[0] not in '{[':
+        return None
+    for corte in range(len(s), 0, -1):
+        trecho = s[:corte].rstrip()
+        # Remove separadores/dois-pontos pendentes no fim do fragmento
+        while trecho and trecho[-1] in ',:':
+            trecho = trecho[:-1].rstrip()
+        if not trecho:
+            continue
+        dentro_string, fechamento = _fechar_json_truncado(trecho)
+        if dentro_string:
+            # Cortou no meio de uma string: continua reduzindo o fragmento
+            continue
+        candidato = trecho + fechamento
+        try:
+            json.loads(candidato)
+            return candidato
+        except Exception:
+            continue
+    return None
+
+
+def _json_load_seguro(raw, default=None, contexto='banco'):
+    """json.loads tolerante a falhas: nunca levanta exceção.
+
+    - Aceita valores já no tipo esperado (dict/list) e bytes.
+    - Em caso de JSON inválido, tenta reparar dados truncados.
+    - Se nada funcionar, retorna uma cópia de `default`.
+    """
+    if default is None:
+        default = {}
+
+    def _copia_default():
+        if isinstance(default, dict):
+            return dict(default)
+        if isinstance(default, list):
+            return list(default)
+        return default
+
+    if raw is None:
+        return _copia_default()
+    if isinstance(raw, (dict, list)):
+        return raw
+    if isinstance(raw, (bytes, bytearray)):
+        try:
+            raw = raw.decode('utf-8')
+        except Exception:
+            try:
+                raw = raw.decode('latin-1')
+            except Exception:
+                return _copia_default()
+    if not isinstance(raw, str):
+        try:
+            raw = str(raw)
+        except Exception:
+            return _copia_default()
+
+    s = raw.strip()
+    if not s:
+        return _copia_default()
+
+    # 1) Tentativa direta
+    try:
+        return json.loads(s)
+    except Exception:
+        pass
+
+    # 2) Tentativa de reparo para JSON truncado/corrompido
+    reparado = _tentar_reparar_json(s)
+    if reparado is not None:
+        try:
+            resultado = json.loads(reparado)
+            print(f"[JSON] Valor corrompido recuperado parcialmente ({contexto}). "
+                  f"Original: {len(s)} chars -> recuperado: {len(reparado)} chars")
+            return resultado
+        except Exception:
+            pass
+
+    # 3) Não foi possível recuperar
+    print(f"[JSON] Valor inválido ignorado ({contexto}): {s[:80]!r}...")
+    return _copia_default()
+
+
+def repair_vendas_json_column(db, table_name='vendas', id_column='id',
+                              colunas=('formas_pagamento', 'itens')):
+    """Repara registros com JSON inválido/truncado nas colunas JSON da tabela de vendas.
+
+    Percorre a tabela e, para cada coluna informada, tenta desserializar o valor.
+    Quando o valor está corrompido (ex.: truncado por coluna VARCHAR pequena), grava
+    de volta a versão recuperada e válida, evitando que a carga inicial quebre.
+    """
+    colunas_sql = ", ".join([id_column] + list(colunas))
+    try:
+        rows = db.fetchall(f"SELECT {colunas_sql} FROM {table_name}")
+    except Exception as e:
+        print(f"[MIGRAÇÃO] Não foi possível verificar a tabela '{table_name}' para reparo de JSON: {e}")
+        return False
+
+    reparados = 0
+    for row in rows or []:
+        try:
+            row_id = row.get(id_column) if isinstance(row, dict) else row[id_column]
+        except Exception:
+            continue
+
+        for coluna in colunas:
+            valor_atual = row.get(coluna) if isinstance(row, dict) else row[coluna]
+
+            valor_str = valor_atual
+            if isinstance(valor_str, (bytes, bytearray)):
+                try:
+                    valor_str = valor_str.decode('utf-8')
+                except Exception:
+                    valor_str = ''
+
+            # Só reparamos strings que NÃO sejam JSON válido
+            if valor_str is None or valor_str == '':
+                continue
+            if not isinstance(valor_str, str):
+                continue
+            try:
+                json.loads(valor_str)
+                continue  # JSON válido, nada a fazer
+            except Exception:
+                pass
+
+            default_val = {} if coluna == 'formas_pagamento' else []
+            recuperado = _json_load_seguro(valor_atual, default_val, f"{table_name}.{coluna}")
+            valor_corrigido = json.dumps(recuperado, ensure_ascii=False)
+            try:
+                db.execute(
+                    f"UPDATE {table_name} SET {coluna} = %s WHERE {id_column} = %s",
+                    (valor_corrigido, row_id)
+                )
+                reparados += 1
+                print(f"[MIGRAÇÃO] JSON corrompido reparado em '{table_name}.{coluna}' (id={row_id})")
+            except Exception as e:
+                print(f"[MIGRAÇÃO] Falha ao reparar '{table_name}.{coluna}' (id={row_id}): {e}")
+
+    if reparados:
+        print(f"[MIGRAÇÃO] {reparados} valor(es) JSON reparado(s) na tabela '{table_name}'")
+    return True
+
+
 def migrate_database(db):
     """Executa todas as migrações necessárias no banco de dados."""
     AUDITORIA.banco_dados("Executando migrações do banco de dados")
@@ -19182,7 +19373,16 @@ def migrate_database(db):
     ensure_column_type(db, 'fechamentos_caixa', 'transacoes', 'LONGTEXT', '[]')
     repair_cash_transactions_column(db, 'caixa')
     repair_cash_transactions_column(db, 'fechamentos_caixa')
-    
+
+    # Ajustes de capacidade para colunas JSON de vendas.
+    # CAUSA RAIZ do erro "Unterminated string": formas_pagamento/itens foram
+    # criadas como VARCHAR(500) em bancos antigos e o MySQL truncava o JSON
+    # (>500 chars), corrompendo o valor. Convertemos para LONGTEXT e reparamos
+    # os registros já corrompidos para que a carga inicial não quebre.
+    ensure_column_type(db, 'vendas', 'formas_pagamento', 'LONGTEXT', '{}')
+    ensure_column_type(db, 'vendas', 'itens', 'LONGTEXT', '{}')
+    repair_vendas_json_column(db, 'vendas')
+
     print("[MIGRAÇÃO] Verificação e migração do banco de dados concluída!")
 
 
@@ -19923,7 +20123,7 @@ def verificar_integridade_banco():
                 cliente_id INTEGER DEFAULT 1,
                 cliente_nome VARCHAR(500) DEFAULT 'Consumidor Final',
                 total DOUBLE DEFAULT 0.0,
-                formas_pagamento VARCHAR(500) DEFAULT '{}',
+                formas_pagamento LONGTEXT,
                 troco DOUBLE DEFAULT 0.0,
                 usuario VARCHAR(500) DEFAULT '',
                 is_delivery INTEGER DEFAULT 0,
@@ -20933,7 +21133,7 @@ def init_database():
             cliente_id INTEGER DEFAULT 1,
             cliente_nome VARCHAR(500) DEFAULT 'Consumidor Final',
             total DOUBLE DEFAULT 0.0,
-            formas_pagamento VARCHAR(500) DEFAULT '{}',
+            formas_pagamento LONGTEXT,
             troco DOUBLE DEFAULT 0.0,
             usuario VARCHAR(500) DEFAULT '',
             is_delivery INTEGER DEFAULT 0,
@@ -21678,11 +21878,11 @@ def _mysql_load_sales():
             'cliente_id': str(row['cliente_id']) if row['cliente_id'] else '1',
             'cliente_nome': row['cliente_nome'] or 'Consumidor Final',
             'total': row['total'] or 0.0,
-            'formas_pagamento': json.loads(row['formas_pagamento']) if row['formas_pagamento'] else {},
+            'formas_pagamento': _json_load_seguro(row['formas_pagamento'], {}, 'vendas.formas_pagamento') if row['formas_pagamento'] else {},
             'troco': row['troco'] or 0.0,
             'usuario': row['usuario'] or '',
             'is_delivery': bool(row['is_delivery']),
-            'itens': json.loads(row['itens']) if row['itens'] else {},
+            'itens': _json_load_seguro(row['itens'], {}, 'vendas.itens') if row['itens'] else {},
             'entregador_id': row.get('entregador_id', '') or '',
             'entregador_nome': row.get('entregador_nome', '') or '',
             'entrega_concluida': bool(row.get('entrega_concluida', 0)),
@@ -50455,14 +50655,14 @@ Formatos suportados: Excel (.xlsx, .xls) e CSV (.csv)"""
                     # Parsear formas de pagamento
                     if row['formas_pagamento']:
                         try:
-                            venda['formas_pagamento'] = json.loads(row['formas_pagamento']) if isinstance(row['formas_pagamento'], str) else row['formas_pagamento']
+                            venda['formas_pagamento'] = _json_load_seguro(row['formas_pagamento'], {}, 'vendas.formas_pagamento') if isinstance(row['formas_pagamento'], str) else row['formas_pagamento']
                         except:
                             venda['formas_pagamento'] = {}
                     
                     # Parsear itens
                     if row['itens']:
                         try:
-                            venda['itens'] = json.loads(row['itens']) if isinstance(row['itens'], str) else row['itens']
+                            venda['itens'] = _json_load_seguro(row['itens'], {}, 'vendas.itens') if isinstance(row['itens'], str) else row['itens']
                         except:
                             venda['itens'] = {}
                     
@@ -50735,11 +50935,11 @@ Formatos suportados: Excel (.xlsx, .xls) e CSV (.csv)"""
                             'itens': {}
                         }
                         try:
-                            venda_data['formas_pagamento'] = json.loads(row.get('formas_pagamento') or '{}') if isinstance(row.get('formas_pagamento'), str) else (row.get('formas_pagamento') or {})
+                            venda_data['formas_pagamento'] = _json_load_seguro(row.get('formas_pagamento'), {}, 'vendas.formas_pagamento') if isinstance(row.get('formas_pagamento'), str) else (row.get('formas_pagamento') or {})
                         except Exception:
                             venda_data['formas_pagamento'] = {}
                         try:
-                            venda_data['itens'] = json.loads(row.get('itens') or '{}') if isinstance(row.get('itens'), str) else (row.get('itens') or {})
+                            venda_data['itens'] = _json_load_seguro(row.get('itens'), {}, 'vendas.itens') if isinstance(row.get('itens'), str) else (row.get('itens') or {})
                         except Exception:
                             venda_data['itens'] = {}
                         try:
